@@ -616,7 +616,7 @@ class Phase_Retrieval_funs():
 
         Parameters
         ----------
-        algorithm0 : string
+        algorithm0 : str
             The algorithm chain defining the Phase retrieval process.
 
         Example

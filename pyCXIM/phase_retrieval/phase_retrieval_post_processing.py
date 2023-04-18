@@ -304,15 +304,15 @@ def save_to_vti(pathsave, save_arrays, array_names, voxel_size=(1, 1, 1), origin
 
     Parameters
     ----------
-    pathsave : string
+    pathsave : str
         path to save the result vti file.
-    save_arrays : turple
-        Turple of arrays to be saved.
-    array_names : turple
+    save_arrays : tuple
+        tuple of arrays to be saved.
+    array_names : tuple
         Names of the arrays.
-    voxel_size : turple, optional
+    voxel_size : tuple, optional
         The voxel size of the saved array. The default is (1,1,1).
-    origin : turple, optional
+    origin : tuple, optional
         The origin position of the saved arrray. The default is (0,0,0).
 
     Returns

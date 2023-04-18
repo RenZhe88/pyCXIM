@@ -859,7 +859,7 @@ class phase_retrieval_widget():
             The group name, where the arrays are stored in the h5 file.
         array_names : list
             The array names to be plotted.
-        voxel_size : turple
+        voxel_size : tuple
             The unit of different axis in Z, Y, X order.
         display_range : list, optional
             The range for the display in Z, Y, X order. The default is None.
@@ -948,13 +948,13 @@ class phase_retrieval_widget():
             The group name, where the arrays are stored in the h5 file.
         array_names : list
             The array names to be plotted.
-        voxel_size : turple
+        voxel_size : tuple
             The unit of different axis in Z, Y, X order.
         display_range :  list, optional
             The range for the display in Z, Y, X order. The default is None.
         title : str, optional
             The title of the whole plot. The default is ''.
-        subplot_config : turple, optional
+        subplot_config : tuple, optional
             The row and column number of the subplots. The default is None.
         save_image : bool, optional
             If ture, the image will be saved in the pathsave folder. The default is True.
@@ -1213,10 +1213,10 @@ def plt_result_2D_simple(plt_arrays, array_names, pathsave='', filename=''):
 
     Parameters
     ----------
-    plt_arrays : turple
-        Turple of arrays for the plot.
-    array_names : turple
-        Turple of array names.
+    plt_arrays : tuple
+        tuple of arrays for the plot.
+    array_names : tuple
+        tuple of array names.
     pathsave : str, optional
         the path for saveing the plot, if not given, the plot will not be saved. The default is ''.
     filename : str, optional
@@ -1262,10 +1262,10 @@ def plt_result_3D_simple(plt_arrays, array_names, pathsave='', filename=''):
 
     Parameters
     ----------
-    plt_arrays : turple
-        Turple of arrays for the plot.
-    array_names : turple
-        Turple of array names.
+    plt_arrays : tuple
+        tuple of arrays for the plot.
+    array_names : tuple
+        tuple of array names.
     pathsave : str, optional
         the path for saveing the plot, if not given, the plot will not be saved. The default is ''.
     filename : str, optional

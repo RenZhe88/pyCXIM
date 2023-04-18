@@ -28,9 +28,9 @@ import os
 import sys
 import h5py
 import time
-sys.path.append(r'E:\Work place 3\testprog\X-ray diffraction\Common functions')
-from Information_file_generator import BCDI_Information
-from phase_retrieval_widget import phase_retrieval_widget
+sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
+from pyCXIM.Common.Information_file_generator import Information_file_io
+from pyCXIM.phase_retrieval.phase_retrieval_widget import phase_retrieval_widget
 
 # %%Input
 starting_time = time.time()
@@ -81,7 +81,7 @@ support_smooth_width_end = 1.0
 
 # Input: parameters for flipping the images to remove the trival solutions.
 # flip_condition = 'Support'
-flip_condition ='Phase'
+flip_condition = 'Phase'
 # flip_condition ='Modulus'
 first_seed_flip = False
 
@@ -108,13 +108,13 @@ elif data_description == 'cuty':
         'direct_cut_box_size']
 
 path_retrieval_infor = os.path.join(pathsave, "Phase_retrieval_information.txt")
-pr_infor = BCDI_Information(path_retrieval_infor)
+pr_infor = Information_file_io(path_retrieval_infor)
 if not os.path.exists(path_retrieval_infor):
     trial_num = 1
     start_trial_num = 0
     support_type = 'auto_correlation'
     if os.path.exists(path_scan_infor):
-        scan_infor = BCDI_Information(path_scan_infor)
+        scan_infor = Information_file_io(path_scan_infor)
         pr_infor.add_para('total_trial_num', 'General Information', 0)
         pr_infor.copy_para_file(scan_infor, para_name_list, 'General Information')
     else:
