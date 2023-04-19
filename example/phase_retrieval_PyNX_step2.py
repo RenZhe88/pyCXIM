@@ -28,139 +28,17 @@ import os
 import sys
 import h5py
 import time
-sys.path.append(r'E:\Work place 3\testprog\X-ray diffraction\Common functions')
-sys.path.append(r'E:\Work place 3\testprog\X-ray diffraction\Phase retrieval')
-from Information_file_generator import BCDI_Information
-import phase_retrieval_post_processing as pp
-
-
-def plot_3D_result(plt_arrays, array_names, pathsave='', filename=''):
-    """
-    Plot cuts of the 3D arrays without units.
-
-    Parameters
-    ----------
-    plt_arrays : turple
-        Turple of arrays for the plot.
-    array_names : turple
-        Turple of array names.
-    pathsave : string, optional
-        the path for saveing the plot, if not given, the plot will not be saved. The default is ''.
-    filename : string, optional
-        the filename for saving the plot. The default is ''.
-
-    Returns
-    -------
-    None.
-
-    """
-    num_of_arrays = len(plt_arrays)
-    fig, axs = plt.subplots(num_of_arrays, 3, figsize=(12, num_of_arrays * 4))
-    for i in range(num_of_arrays):
-        plt_array = plt_arrays[i]
-        zd, yd, xd = plt_array.shape
-        im = axs[i, 0].imshow(plt_array[int(zd / 2), int(yd / 4):int(yd * 3 / 4), int(xd / 4):int(xd * 3 / 4)])
-        axs[i, 0].set_xlabel('x (pixel)', fontsize=24)
-        axs[i, 0].set_ylabel('y (pixel)', fontsize=24)
-        plt.colorbar(im, ax=axs[i, 0], shrink=0.6)
-        axs[i, 0].set_title('%s z cut' % array_names[i], fontsize=24)
-        im = axs[i, 1].imshow(plt_array[int(zd / 4):int(zd * 3 / 4), int(yd / 2), int(xd / 4):int(xd * 3 / 4)])
-        axs[i, 1].set_xlabel('x (pixel)', fontsize=24)
-        axs[i, 1].set_ylabel('z (pixel)', fontsize=24)
-        plt.colorbar(im, ax=axs[i, 1], shrink=0.6)
-        axs[i, 1].set_title('%s y cut' % array_names[i], fontsize=24)
-        im = axs[i, 2].imshow(plt_array[int(zd / 4):int(zd * 3 / 4), int(yd / 4):int(yd * 3 / 4), int(xd / 2)])
-        axs[i, 2].set_xlabel('y (pixel)', fontsize=24)
-        axs[i, 2].set_ylabel('z (pixel)', fontsize=24)
-        plt.colorbar(im, ax=axs[i, 2], shrink=0.6)
-        axs[i, 2].set_title('%s x cut' % array_names[i], fontsize=24)
-    fig.tight_layout()
-    if os.path.exists(pathsave):
-        plt.savefig(os.path.join(pathsave, filename))
-    else:
-        plt.show()
-    plt.close()
-    return
-
-
-def plot_3D_result2(arrays_to_plot, array_names, unitx, unity, unitz, display_range=None, pathsave='', filename=''):
-    """
-    Plot and save the 3D phase retrieval plots.
-
-    Parameters
-    ----------
-    arrays_to_plot : turple
-        3D arrays to plot, data type of the array should be float.
-    array_names : turple
-        array names.
-    unitx : ndarray
-        X axis of the array in 1D.
-    unity : ndarray
-        Y axis of the array in 1D.
-    unitz : ndarray
-        Z axis of the array in 1D.
-    display_range : ndarray
-        The range for the display in X, Y, Z order.
-    pathsave : string, optional
-        the folder to save the images. The default is ''.
-    filename : string, optional
-        The filename to save the images. The default is ''.
-
-    Returns
-    -------
-    None.
-
-    """
-    num_of_arrays = len(arrays_to_plot)
-    zd, yd, xd = arrays_to_plot[0].shape
-    if display_range is None:
-        display_range = np.zeros(3, dtype=int)
-        display_range[0] = int(np.amax(unitx) / 2.0)
-        display_range[1] = int(np.amax(unity) / 2.0)
-        display_range[2] = int(np.amax(unitz) / 2.0)
-    fig, axs = plt.subplots(num_of_arrays, 3, figsize=(24, num_of_arrays * 8))
-    for i in range(num_of_arrays):
-        plt_array = arrays_to_plot[i]
-        color_bar_range = np.linspace(np.amin(plt_array), np.amax(plt_array), 150)
-        im = axs[i, 0].contourf(unitx, unity, plt_array[int(zd / 2), :, :], color_bar_range, cmap='jet')
-        plt.colorbar(im, ax=axs[i, 0], shrink=0.6)
-        axs[i, 0].set_title('%s z cut' % array_names[i], fontsize=24)
-        axs[i, 0].set_xlabel('x (nm)', fontsize=24)
-        axs[i, 0].set_ylabel('y (nm)', fontsize=24)
-        axs[i, 0].axis('scaled')
-        axs[i, 0].set_xlim(-display_range[0], display_range[0])
-        axs[i, 0].set_ylim(-display_range[1], display_range[1])
-        im = axs[i, 1].contourf(unitx, unitz, plt_array[:, int(yd / 2), :], color_bar_range, cmap='jet')
-        plt.colorbar(im, ax=axs[i, 1], shrink=0.6)
-        axs[i, 1].set_title('%s y cut' % array_names[i], fontsize=24)
-        axs[i, 1].set_xlabel('x (nm)', fontsize=24)
-        axs[i, 1].set_ylabel('z (nm)', fontsize=24)
-        axs[i, 1].axis('scaled')
-        axs[i, 1].set_xlim(-display_range[0], display_range[0])
-        axs[i, 1].set_ylim(-display_range[2], display_range[2])
-        im = axs[i, 2].contourf(unity, unitz, plt_array[:, :, int(xd / 2)], color_bar_range, cmap='jet')
-        plt.colorbar(im, ax=axs[i, 2], shrink=0.6)
-        axs[i, 2].set_title('%s x cut' % array_names[i], fontsize=24)
-        axs[i, 2].set_xlabel('y (nm)', fontsize=24)
-        axs[i, 2].set_ylabel('z (nm)', fontsize=24)
-        axs[i, 2].axis('scaled')
-        axs[i, 2].set_xlim(-display_range[1], display_range[1])
-        axs[i, 2].set_ylim(-display_range[2], display_range[2])
-    fig.tight_layout()
-    if os.path.exists(pathsave):
-        pathsaveplot = os.path.join(pathsave, filename)
-        plt.savefig(pathsaveplot)
-        plt.close()
-    else:
-        plt.show()
-    return
-
+sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
+from pyCXIM.Common.Information_file_generator import Information_file_io
+from pyCXIM.phase_retrieval.phase_retrieval_widget import phase_retrieval_widget
 
 def plot_pynx_results():
     # %%Inputs
+    pathsave = r'E:\Work place 3\sample\XRD\20201128 Longfei\B15_syn_S1_2_00024\pynxpre\reciprocal_space_map'
+    data_description = 'reciprocal_space_map'
+    # data_description='stacked_detector_images'
+    trial_num = 5
     path_scan_infor = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt islands\B12SYNS1P1_00043\scan_0043_information.txt"
-    method_selected = 'reciprocal_space_map'
-    # method_selected='stacked_detector_images'
     pathPyNXfolder = r'E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt islands\B12SYNS1P1_00043\pynxpre\reciprocal_space_map\PyNX Trial04'
 
     flip_condition = 'Support'

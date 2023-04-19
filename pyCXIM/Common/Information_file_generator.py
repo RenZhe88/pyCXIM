@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Reading, writing and modifying the information file for a typical BCDI scan and the phase retrieveal
-
-:param:
-    -pathinfor: the complete path for the aimed information filee 
-
-:return:
-    -The information file for the BCDI
+Reading, writing and modifying the information file for a typical BCDI scan and the phase retrieveal.
 """
 import os
 import ast
@@ -136,6 +130,27 @@ class Information_file_io:
             self.para_list = pd.concat([self.para_list, pd.DataFrame({'value': str(para_value)}, index=index)])
         else:
             self.para_list.at[(section, para_name), 'value'] = para_value
+        return
+
+    def del_para_section(self, section):
+        """
+        Delete parameters from a section.
+
+        Works only if the section name exists.
+
+        Parameters
+        ----------
+        section : str
+            The name of the section.
+
+        Returns
+        -------
+        None.
+
+        """
+        if self.para_list is not None:
+            if section in self.para_list.index.get_level_values('section'):
+                self.para_list = self.para_list.drop(section, level='section')
         return
 
     def gen_empty_para_file(self, para_name_list, section):

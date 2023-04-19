@@ -113,7 +113,7 @@ class phase_retrieval_widget():
 
         self.para_dict['intensity_file'] = intensity_file
         self.para_dict['mask_file'] = mask_file
-        self.para_dict['data_shape'] = image.shape
+        self.para_dict['data_shape'] = list(image.shape)
 
         # Determining how the data should be compressed
         data_shape = self.para_dict['data_shape']
@@ -826,7 +826,7 @@ class phase_retrieval_widget():
         Parameters
         ----------
         pathinfor : str
-            The .
+            The path for the information file.
         section : str
             The section name to be stored in the information file.
         para_name_list : list, optional
@@ -839,6 +839,7 @@ class phase_retrieval_widget():
         """
         infor = Information_file_io(pathinfor)
         infor.infor_reader()
+        infor.del_para_section(section)
         if para_name_list is None:
             for para_name in self.para_dict:
                 infor.add_para(para_name, section, self.para_dict[para_name])
