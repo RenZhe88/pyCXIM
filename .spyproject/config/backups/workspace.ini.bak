@@ -1,0 +1,12 @@
+[workspace]
+restore_data_on_startup = True
+save_data_on_exit = True
+save_history = True
+save_non_project_files = False
+project_type = 'empty-project-type'
+recent_files = ['pyCXIM\\phase_retrieval\\phase_retrieval_GPU.py', 'example\\phase_retrieval_3D.py', 'example\\phase retrieval_2D.py', 'example\\phase_retrieval_Maxwell_step2.py', 'example\\phase_retrieval_Maxwell_step1.py', 'pyCXIM\\phase_retrieval\\phase_retrieval_widget.py', 'pyCXIM\\phase_retrieval\\phase_retrieval_post_processing.py', 'example\\phase_retrieval_PyNX_step2.py', '..\\X-ray diffraction\\BCDI\\Common\\sixc out of plane\\P10_BCDI_preparation_dep.py']
+
+[main]
+version = 0.2.0
+recent_files = []
+
