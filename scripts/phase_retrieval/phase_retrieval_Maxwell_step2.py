@@ -16,9 +16,9 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import phase_retrieval_widget
 
 def plot_phase_retrieval_results():
     # %%Inputs
-    pathsave = r'E:\Work place 3\sample\XRD\20201128 Longfei\B15_syn_S1_2_00024\pynxpre\reciprocal_space_map'
-    trial_num = 3
-    path_scan_infor = r"E:\Work place 3\sample\XRD\20201128 Longfei\B15_syn_S1_2_00024\scan_0024_information.txt"
+    pathsave = r'E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\pynxpre\reciprocal_space_map'
+    trial_num = 1
+    path_scan_infor = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\scan_0144_information.txt"
     display_range = [400, 400, 400]
 
     # %%Load the information file
@@ -108,15 +108,18 @@ def plot_phase_retrieval_results():
     if os.path.exists(path_retrieval_infor):
         pr_infor.infor_reader()
         if trial_num > pr_infor.get_para_value('total_trial_num'):
-            pr_infor.add_para('total_trial_num', section, trial_num)
+            total_trial_num = trial_num
     else:
-        pr_infor.add_para('total_trial_num', section, trial_num)
+        total_trial_num = trial_num
     pr_infor.infor_writer()
+
     para_name_list = [
         'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'data_description', 'omega',
-        'delta', 'omegastep', 'detector_distance', 'energy', 'pixelsize', 'intensity_file',
+        'delta', 'omegastep', 'detector_distance', 'energy', 'pixelsize', 'RSM_unit', 'DC_unit', 'intensity_file',
         'mask_file', 'pathsave']
     pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
+    pr_infor.add_para('total_trial_num', section, total_trial_num)
+    pr_infor.infor_writer()
 
     section = 'Trial %02d' % trial_num
     para_name_list = [
