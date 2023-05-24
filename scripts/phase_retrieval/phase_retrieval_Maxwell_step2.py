@@ -16,10 +16,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import phase_retrieval_widget
 
 def plot_phase_retrieval_results():
     # %%Inputs
-    pathsave = r'E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\pynxpre\reciprocal_space_map'
+    pathsave = r'E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\align_AuNP_00096\pynxpre\reciprocal_space_map'
     trial_num = 1
-    path_scan_infor = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\scan_0144_information.txt"
-    display_range = [400, 400, 400]
+    path_scan_infor = r"E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\align_AuNP_00096\scan_0096_information.txt"
+    display_range = [500, 500, 500]
 
     # %%Load the information file
     print("Loading the information file...")
@@ -107,7 +107,7 @@ def plot_phase_retrieval_results():
     section = 'General Information'
     if os.path.exists(path_retrieval_infor):
         pr_infor.infor_reader()
-        if trial_num > pr_infor.get_para_value('total_trial_num'):
+        if trial_num >= pr_infor.get_para_value('total_trial_num'):
             total_trial_num = trial_num
     else:
         total_trial_num = trial_num

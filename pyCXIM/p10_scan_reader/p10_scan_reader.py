@@ -25,7 +25,7 @@ class p10_scan:
         The name of the sample defined by the p10_newfile name in the system.
     scan : int
         The scan number.
-    pathsave : string, optional
+    pathsave : str, optional
         The folder to save the results, if not given no results will be saved. The default is ''.
     creat_save_folder : boolen, optional
         Whether the save folder should be created. The default is True.
@@ -147,7 +147,7 @@ class p10_scan:
 
         Parameters
         ----------
-        motor_name : string
+        motor_name : str
             The name of the motors to be added.
         position : object
             The poisiotn of the aimed motor.
@@ -166,7 +166,7 @@ class p10_scan:
 
         Parameters
         ----------
-        counter_name : string
+        counter_name : str
             The name of the counter to be added.
         data_value : ndarray
             The value of the counters.
@@ -191,11 +191,23 @@ class p10_scan:
 
         Returns
         -------
-        string
+        str
             the command of the scan.
 
         """
         return self.command
+
+    def get_counter_names(self):
+        """
+        Get the counter names in the scan.
+
+        Returns
+        -------
+        list
+            The counter names that exists in the scan.
+
+        """
+        return list(self.scan_infor.columns)
 
     def get_p10_file(self):
         """
@@ -203,7 +215,7 @@ class p10_scan:
 
         Returns
         -------
-        string
+        str
             The p10_newfile name.
 
         """
@@ -317,7 +329,7 @@ class p10_scan:
 
         Returns
         -------
-        string
+        str
             The path to save the results.
 
         """
@@ -329,7 +341,7 @@ class p10_scan:
 
         Parameters
         ----------
-        motor_name : string
+        motor_name : str
             The name of the motor.
 
         Returns
@@ -400,7 +412,7 @@ class p10_scan:
 
         Parameters
         ----------
-        counter_name : string
+        counter_name : str
             The name of the counter.
 
         Returns
@@ -769,10 +781,10 @@ class p10_scan:
             The sum of the corresponding detector images.
 
         """
-        if det_type == 'e4m':
-            self.path_e4m_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.p10_file, self.scan, 'e4m'))
-            assert os.path.exists(self.path_e4m_imgsum), print('Could not find the summarized e4m detector images!')
-            return np.load(self.path_e4m_imgsum)
+        if det_type == 'e4m' or det_type == 'e500':
+            self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.p10_file, self.scan, det_type))
+            assert os.path.exists(self.path_imgsum), print('Could not find the summarized e4m detector images!')
+            return np.load(self.path_imgsum)
 
     def fio_to_spec(self, list_of_motors):
         """
@@ -840,7 +852,7 @@ def spec_writer(beamtimeID, path, p10_file, pathsave):
         The path for the raw file folder.
     p10_file : str
         The name of the sample defined by the p10_newfile name in the system.
-    pathsave : string, optional
+    pathsave : str, optional
         The folder to save the results.
 
     Returns

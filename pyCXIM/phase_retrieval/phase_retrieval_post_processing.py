@@ -97,7 +97,8 @@ def unwrap_phase(phase, number_of_ffts=6):
 
     Returns
     -------
-    None.
+    phase : ndarray.
+        The unwraped phase.
 
     """
     dim = len(phase.shape)

@@ -112,7 +112,7 @@ class p10_eiger_scan(p10_scan):
             The updated version of the maks file with a circular area masked.
 
         """
-        temp = np.linalg.norm(np.indices(self.mask.shape) - np.array(cen)[:, np.newaxis], axis=0)
+        temp = np.linalg.norm(np.indices(self.mask.shape) - np.array(cen)[:, np.newaxis, np.newaxis], axis=0)
         self.mask[temp < r0] = 1
         self.img_correction = 1.0 - self.mask
         return self.mask
@@ -508,12 +508,9 @@ class p10_eiger_scan(p10_scan):
         """
         rois = np.array(rois, dtype=int)
         assert rois.ndim == 2, 'Region of interest should be described as two dimensional arrays! If only one roi is needed, then rois = [roi].'
-        if rois.shape[1] == 0:
-            num_of_rois = 0
-        elif rois.shape[1] == 4:
-            num_of_rois = rois.shape[0]
-        else:
-            assert False, 'The roi must contain four integers!'
+        assert rois.shape[1] == 4, 'The roi must contain four integers!'
+        num_of_rois = rois.shape[0]
+
         for i in range(num_of_rois):
             roi = rois[i, :]
             if roi_order == 'XY':
@@ -555,7 +552,6 @@ class p10_eiger_scan(p10_scan):
         print('')
         self.add_scan_data('%s_full' % self.detector, rois_int[:, 0])
         for j in range(num_of_rois):
-            print(rois[j, :])
             self.add_motor_pos('%s_roi%d' % (self.detector, (j + 1)), list(rois[j, :]))
             self.add_scan_data('%s_roi%d' % (self.detector, (j + 1)), rois_int[:, j + 1])
 

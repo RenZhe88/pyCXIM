@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/local/bin/python2.7.3 -tttt
 """
 Description
 Created on Thu Apr 27 13:50:07 2023
@@ -6,60 +6,131 @@ Created on Thu Apr 27 13:50:07 2023
 @author: renzhe
 """
 
-import os
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.ndimage import measurements
 
-def Cut_central(dataset, bs, cut_central_pos='maximum integration', peak_pos=None):
-    #Cutting the three dimensional data with the center of mass in the center of the intensity distribution
-    if cut_central_pos=='maximum integration':
-        peak_pos=np.array([np.argmax(np.sum(dataset, axis=(1,2))), np.argmax(np.sum(dataset, axis=(0,2))), np.argmax(np.sum(dataset, axis=(0,1)))], dtype=int)
+
+def check_cut_box_size(bs, peak_pos, data_shape):
+    """
+    Check the box size possible for the symmetrical cut around the given peak position in the data.
+
+    Parameters
+    ----------
+    bs : list
+        The Half width of the boxsize in [Z, Y, X] order.
+    peak_pos : list
+        The peak position in the dataset.
+    data_shape : Unions(list|turple)
+        The shape of the data to be cutted.
+
+    Returns
+    -------
+    bs : list
+        The suggested box size according to the shape of the data.
+
+    """
+    bs[0] = int(np.amin([bs[0], peak_pos[0] * 0.95, 0.95 * (data_shape[0] - peak_pos[0])]))
+    bs[1] = int(np.amin([bs[1], peak_pos[1] * 0.95, 0.95 * (data_shape[1] - peak_pos[1])]))
+    bs[2] = int(np.amin([bs[2], peak_pos[2] * 0.95, 0.95 * (data_shape[2] - peak_pos[2])]))
+    return bs
+
+
+def Cut_central(dataset, bs, cut_mode='maximum integration', peak_pos=None):
+    """
+    Cut the three dimensional dataset symmetrically with the box size given.
+
+    Parameters
+    ----------
+    dataset : ndarray
+        The three dimensional dataset to be cutted.
+    bs : list
+        The half width of the box size.
+    cut_mode : str, optional
+        The mode for choosing the center position for the cutting.
+        The cut mode can be 'maximum integration', 'maximum intensity', 'weight center' and 'given'.
+        'maximum integration': The dataset is cutted around the maximum integrated intensity in each dimension.
+        'maximum intensity': The dataset is cutted around the maximum intensity.
+        'weight center': The dataset is cutted around weight center in the box.
+        'given': The dataset is cutted around the given peak position.
+        The default is 'maximum integration'.
+    peak_pos : list, optional
+        The position for given peak position. The default is None.
+
+    Returns
+    -------
+    intcut : ndarray
+        The symmetrically cutted intensity.
+    peak_pos : list
+        The position of the peak position.
+    bs : list
+        The used box size for symmetrically cutting the dataset.
+
+    """
+    # Cutting the three dimensional data with the center of mass in the center of the intensity distribution
+    if cut_mode == 'maximum integration':
+        peak_pos = np.array([np.argmax(np.sum(dataset, axis=(1, 2))), np.argmax(np.sum(dataset, axis=(0, 2))), np.argmax(np.sum(dataset, axis=(0, 1)))], dtype=int)
         print('finding the centeral position for the cutting')
-        bs[0]=int(np.amin([bs[0], peak_pos[0]*0.95, 0.95*(dataset.shape[0]-peak_pos[0])]))
-        bs[1]=int(np.amin([bs[1], peak_pos[1]*0.95, 0.95*(dataset.shape[1]-peak_pos[1])]))
-        bs[2]=int(np.amin([bs[2], peak_pos[2]*0.95, 0.95*(dataset.shape[2]-peak_pos[2])]))
-        intcut=np.array(dataset[(peak_pos[0]-bs[0]):(peak_pos[0]+bs[0]),(peak_pos[1]-bs[1]):(peak_pos[1]+bs[1]), (peak_pos[2]-bs[2]):(peak_pos[2]+bs[2])])
-    elif cut_central_pos=='maximum intensity':
-        peak_pos=np.unravel_index(np.argmax(dataset), dataset.shape)
-        bs[0]=int(np.amin([bs[0], peak_pos[0]*0.95, 0.95*(dataset.shape[0]-peak_pos[0])]))
-        bs[1]=int(np.amin([bs[1], peak_pos[1]*0.95, 0.95*(dataset.shape[1]-peak_pos[1])]))
-        bs[2]=int(np.amin([bs[2], peak_pos[2]*0.95, 0.95*(dataset.shape[2]-peak_pos[2])]))
-        intcut=np.array(dataset[(peak_pos[0]-bs[0]):(peak_pos[0]+bs[0]),(peak_pos[1]-bs[1]):(peak_pos[1]+bs[1]), (peak_pos[2]-bs[2]):(peak_pos[2]+bs[2])])       
-    elif cut_central_pos=='weight center':
-        peak_pos=np.array(np.around(measurements.center_of_mass(dataset), dtype=int))
-        bs[0]=int(np.amin([bs[0], peak_pos[0]*0.95, 0.95*(dataset.shape[0]-peak_pos[0])]))
-        bs[1]=int(np.amin([bs[1], peak_pos[1]*0.95, 0.95*(dataset.shape[1]-peak_pos[1])]))
-        bs[2]=int(np.amin([bs[2], peak_pos[2]*0.95, 0.95*(dataset.shape[2]-peak_pos[2])]))
-        intcut=np.array(dataset[(peak_pos[0]-bs[0]):(peak_pos[0]+bs[0]),(peak_pos[1]-bs[1]):(peak_pos[1]+bs[1]), (peak_pos[2]-bs[2]):(peak_pos[2]+bs[2])])
+        bs = check_cut_box_size(bs, peak_pos, dataset.shape)
+        intcut = np.array(dataset[(peak_pos[0] - bs[0]):(peak_pos[0] + bs[0]), (peak_pos[1] - bs[1]):(peak_pos[1] + bs[1]), (peak_pos[2] - bs[2]):(peak_pos[2] + bs[2])])
+    elif cut_mode == 'maximum intensity':
+        peak_pos = np.unravel_index(np.argmax(dataset), dataset.shape)
+        bs = check_cut_box_size(bs, peak_pos, dataset.shape)
+        intcut = np.array(dataset[(peak_pos[0] - bs[0]):(peak_pos[0] + bs[0]), (peak_pos[1] - bs[1]):(peak_pos[1] + bs[1]), (peak_pos[2] - bs[2]):(peak_pos[2] + bs[2])])
+    elif cut_mode == 'weight center':
+        peak_pos = np.array(np.around(measurements.center_of_mass(dataset), dtype=int))
+        bs = check_cut_box_size(bs, peak_pos, dataset.shape)
+        intcut = np.array(dataset[(peak_pos[0] - bs[0]):(peak_pos[0] + bs[0]), (peak_pos[1] - bs[1]):(peak_pos[1] + bs[1]), (peak_pos[2] - bs[2]):(peak_pos[2] + bs[2])])
         print('cut according to the weight center')
-        i=0
-        torlerence=0.5
-        while not np.allclose(measurements.center_of_mass(intcut), np.array(bs, dtype=float)-0.5, atol=torlerence):
-            peak_pos=np.array(peak_pos+np.around(measurements.center_of_mass(intcut)-np.array(bs, dtype=float)+0.5), dtype=int)
-            bs[0]=int(np.amin([bs[0], peak_pos[0]*0.95, 0.95*(dataset.shape[0]-peak_pos[0])]))
-            bs[1]=int(np.amin([bs[1], peak_pos[1]*0.95, 0.95*(dataset.shape[1]-peak_pos[1])]))
-            bs[2]=int(np.amin([bs[2], peak_pos[2]*0.95, 0.95*(dataset.shape[2]-peak_pos[2])]))
-            intcut=np.array(dataset[(peak_pos[0]-bs[0]):(peak_pos[0]+bs[0]),(peak_pos[1]-bs[1]):(peak_pos[1]+bs[1]), (peak_pos[2]-bs[2]):(peak_pos[2]+bs[2])])
-            i+=1
-            if i==5:
+        i = 0
+        torlerence = 0.5
+        while not np.allclose(measurements.center_of_mass(intcut), np.array(bs, dtype=float) - 0.5, atol=torlerence):
+            peak_pos = np.array(peak_pos + np.around(measurements.center_of_mass(intcut) - np.array(bs, dtype=float) + 0.5), dtype=int)
+            bs = check_cut_box_size(bs, peak_pos, dataset.shape)
+            intcut = np.array(dataset[(peak_pos[0] - bs[0]):(peak_pos[0] + bs[0]), (peak_pos[1] - bs[1]):(peak_pos[1] + bs[1]), (peak_pos[2] - bs[2]):(peak_pos[2] + bs[2])])
+            i += 1
+            if i == 5:
                 print("Loosen the constrain for the weight center cutting")
-                torlerence=1
-            elif i>8:
+                torlerence = 1
+            elif i > 8:
                 print("could not find the weight center for the cutting")
                 break
-    elif cut_central_pos=='given':
+    elif cut_mode == 'given':
         if peak_pos is None:
             print('Could not find the given position for the cutting, please check it again!')
-            peak_pos=np.array((dataset.shape)/2, dtype=int)
+            peak_pos = np.array((dataset.shape) / 2, dtype=int)
         else:
-            peak_pos=np.array(peak_pos, dtype=int)
-        bs[0]=int(np.amin([bs[0], peak_pos[0]*0.95, 0.95*(dataset.shape[0]-peak_pos[0])]))
-        bs[1]=int(np.amin([bs[1], peak_pos[1]*0.95, 0.95*(dataset.shape[1]-peak_pos[1])]))
-        bs[2]=int(np.amin([bs[2], peak_pos[2]*0.95, 0.95*(dataset.shape[2]-peak_pos[2])]))
-        intcut=np.array(dataset[(peak_pos[0]-bs[0]):(peak_pos[0]+bs[0]),(peak_pos[1]-bs[1]):(peak_pos[1]+bs[1]), (peak_pos[2]-bs[2]):(peak_pos[2]+bs[2])])
+            peak_pos = np.array(peak_pos, dtype=int)
+        bs = check_cut_box_size(bs, peak_pos, dataset.shape)
+        intcut = np.array(dataset[(peak_pos[0] - bs[0]):(peak_pos[0] + bs[0]), (peak_pos[1] - bs[1]):(peak_pos[1] + bs[1]), (peak_pos[2] - bs[2]):(peak_pos[2] + bs[2])])
     return intcut, peak_pos, bs
 
-def plotandsave(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
+
+def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
+    """
+    Plot and save the diffraction pattern with correct units.
+
+    Parameters
+    ----------
+    RSM_int : ndarray
+        The diffraction pattern to be plotted.
+    q_origin : list
+        The minimum origin of the diffraction pattern.
+    unit : float
+        The unit of the diffraction pattern.
+    pathsavetmp : str
+        The template for saving the diffraction pattern.
+        The parameter should be the complete path with %s in the filename for the position indicating different cut directions.
+    qmax : list, optional
+        If given, the cutted diffraction pattern will be displayed around the given position.
+        Else the integrated diffraction intensity will be plotted.
+        The default is np.array([]).
+
+    Returns
+    -------
+    None.
+
+    """
     dz, dy, dx = RSM_int.shape
     qz = np.arange(dz) * unit + q_origin[0]
     qy = np.arange(dy) * unit + q_origin[1]
@@ -106,49 +177,90 @@ def plotandsave(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
     # plt.close()
     return
 
-def plotandsave2(RSM_int, pathsavetmp, mask=np.array([])):
-    mask=np.ma.masked_where(mask==0, mask)
-    dz, dy, dx=RSM_int.shape
-    #save the qx qy qz cut of the 3D intensity
+
+def plot_without_units(RSM_int, mask, pathsavetmp):
+    """
+    Plot and save the diffraction pattern without units.
+
+    Parameters
+    ----------
+    RSM_int : ndarray
+        The diffraction pattern to be plotted.
+    mask : ndarray
+        The mask to be used. The masked pixels will be displayed by the red colors in the result plot.
+    pathsavetmp : str
+        The template for saving the diffraction pattern.
+        The parameter should be the complete path with %s in the filename for the position indicating different cut directions.
+
+    Returns
+    -------
+    None.
+
+    """
+    mask = np.ma.masked_where(mask == 0, mask)
+    dz, dy, dx = RSM_int.shape
+    # save the qx qy qz cut of the 3D intensity
     print('Saving the qx qy qz cuts......')
-    plt.figure(figsize=(12,12))
-    pathsaveimg=pathsavetmp%('cutqz')
-    plt.imshow(np.log10(RSM_int[int(dz/2), :,:]+1.0), cmap='Blues')
-    if mask.ndim!=1:
-        plt.imshow(mask[int(dz/2), :, :], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
-    plt.xlabel(r'Q$_x$', fontsize= 14)
-    plt.ylabel(r'Q$_y$', fontsize= 14)
+    plt.figure(figsize=(12, 12))
+    pathsaveimg = pathsavetmp % 'cutqz'
+    plt.imshow(np.log10(RSM_int[int(dz / 2), :, :] + 1.0), cmap='Blues')
+    if mask.ndim != 1:
+        plt.imshow(mask[int(dz / 2), :, :], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
+    plt.xlabel(r'Q$_x$', fontsize=14)
+    plt.ylabel(r'Q$_y$', fontsize=14)
     plt.axis('scaled')
     plt.savefig(pathsaveimg)
     plt.show()
     plt.close()
-    
-    plt.figure(figsize=(12,12))
-    pathsaveimg=pathsavetmp%('cutqy')
-    plt.imshow(np.log10(RSM_int[:, int(dy/2), :]+1.0), cmap='Blues')
-    if mask.ndim!=1:
-        plt.imshow(mask[:, int(dy/2), :], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
-    plt.xlabel(r'Q$_x$', fontsize= 14)
-    plt.ylabel(r'Q$_z$', fontsize= 14)
+
+    plt.figure(figsize=(12, 12))
+    pathsaveimg = pathsavetmp % 'cutqy'
+    plt.imshow(np.log10(RSM_int[:, int(dy / 2), :] + 1.0), cmap='Blues')
+    if mask.ndim != 1:
+        plt.imshow(mask[:, int(dy / 2), :], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
+    plt.xlabel(r'Q$_x$', fontsize=14)
+    plt.ylabel(r'Q$_z$', fontsize=14)
     plt.axis('scaled')
     plt.savefig(pathsaveimg)
     plt.show()
     plt.close()
-    
-    plt.figure(figsize=(12,12))
-    pathsaveimg=pathsavetmp%('cutqx')
-    plt.imshow(np.log10(RSM_int[:,:,int(dx/2)]+1.0), cmap='Blues')
-    if mask.ndim!=1:
-        plt.imshow(mask[:, :, int(dx/2)], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
-    plt.xlabel(r'Q$_y$', fontsize= 14)
-    plt.ylabel(r'Q$_z$', fontsize= 14)
+
+    plt.figure(figsize=(12, 12))
+    pathsaveimg = pathsavetmp % 'cutqx'
+    plt.imshow(np.log10(RSM_int[:, :, int(dx / 2)] + 1.0), cmap='Blues')
+    if mask.ndim != 1:
+        plt.imshow(mask[:, :, int(dx / 2)], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
+    plt.xlabel(r'Q$_y$', fontsize=14)
+    plt.ylabel(r'Q$_z$', fontsize=14)
     plt.axis('scaled')
     plt.savefig(pathsaveimg)
     plt.show()
     plt.close()
     return
 
+
 def RSM2vti(pathsave, RSM_dataset, filename, RSM_unit, origin=(0, 0, 0)):
+    """
+    Save the reciprocal space map to vti format for reading with paraview.
+
+    Parameters
+    ----------
+    pathsave : str
+        The folder path to save the RSM.
+    RSM_dataset : ndarray
+        The RSM to be saved.
+    filename : str
+        The filename for the saving.
+    RSM_unit : float
+        The unit of the RSM.
+    origin : list, optional
+        The origin of the RSM. The default is (0, 0, 0).
+
+    Returns
+    -------
+    None.
+
+    """
     import vtk
     from vtk.util.numpy_support import numpy_to_vtk
 

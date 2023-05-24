@@ -53,7 +53,7 @@ def BCDI_preparation():
     # the folder that stores the raw data of the beamtime
     path = r"E:\Data2\XRD raw\20211004 P10 BFO Pt\raw"
     # the aimed saving folder
-    pathsavefolder = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands"
+    pathsavefolder = r"E:\Work place 3\sample\XRD\Test"
     # the path for the mask file for the detector
     pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e4m_mask.npy'
 
@@ -171,8 +171,8 @@ def BCDI_preparation():
             DC_bs[[1, 2]] = DC_bs[[2, 1]]
 
         # cutting the stacked detector images
-        Direct_cut, npch, DC_bs = RSM_post_processing.Cut_central(dataset, DC_bs, cut_central_pos=cut_central_pos)
-        Direct_mask, npch, DC_bs = RSM_post_processing.Cut_central(mask3D, DC_bs, cut_central_pos='given', peak_pos=npch)
+        Direct_cut, npch, DC_bs = RSM_post_processing.Cut_central(dataset, DC_bs, cut_mode=cut_central_pos)
+        Direct_mask, npch, DC_bs = RSM_post_processing.Cut_central(mask3D, DC_bs, cut_mode='given', peak_pos=npch)
 
         if geometry == 'in_plane':
             Direct_cut = np.swapaxes(Direct_cut, 1, 2)
@@ -259,7 +259,7 @@ def BCDI_preparation():
             infor.add_para('pathRSM', section_ar[1], pathsaveRSM)
 
         # Cutting the three dimensional data with the center of mass in the center of cut intensity
-        RSM_cut, qcen, RSM_bs = RSM_post_processing.Cut_central(RSM_int, RSM_bs, cut_central_pos=cut_central_pos)
+        RSM_cut, qcen, RSM_bs = RSM_post_processing.Cut_central(RSM_int, RSM_bs, cut_mode=cut_central_pos)
 
         print("saving the RSM cut for pynx...")
         path3dRSM = os.path.join(pathtmp, "scan%04d.npz" % scan_num)
@@ -272,7 +272,7 @@ def BCDI_preparation():
 
         RSM_mask[RSM_mask >= 0.1] = 1
         RSM_mask[RSM_mask < 0.1] = 0
-        RSM_cut_mask, qcen, RSM_bs = RSM_post_processing.Cut_central(RSM_mask, RSM_bs, cut_central_pos='given', peak_pos=qcen)
+        RSM_cut_mask, qcen, RSM_bs = RSM_post_processing.Cut_central(RSM_mask, RSM_bs, cut_mode='given', peak_pos=qcen)
 
         print("saving the mask...")
         path3dmask = os.path.join(pathtmp, "scan%04d_mask.npz" % scan_num)
@@ -285,11 +285,11 @@ def BCDI_preparation():
         # Generate the images of the reciprocal space map
         print('Generating the images of the RSM')
         pathsavetmp = os.path.join(pathsave, 'scan%04d_integrate' % scan_num + '_%s.png')
-        RSM_post_processing.plotandsave(RSM_int, q_origin, RSM_unit, pathsavetmp)
+        RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp)
         pathsavetmp = os.path.join(pathsave, 'scan%04d_cut' % scan_num + '_%s.png')
-        RSM_post_processing.plotandsave(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qcen)
+        RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qcen)
         pathsavetmp = os.path.join(pathtmp, 'scan%04d' % scan_num + '_%s.png')
-        RSM_post_processing.plotandsave2(RSM_cut, pathsavetmp, RSM_cut_mask)
+        RSM_post_processing.plot_without_units(RSM_cut, RSM_cut_mask, pathsavetmp)
         del RSM_int, RSM_mask
 
         # save the information
