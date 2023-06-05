@@ -11,9 +11,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.p10_scan_reader.p10_eiger_reader import p10_eiger_scan
-from pyCXIM.p10_scan_reader.p10_scan_reader import p10_scan
-from pyCXIM.p10_scan_reader.p10_fluo_reader import p10_fluo_scan
+from pyCXIM.p10_scan_reader.p10_eiger_reader import P10EigerScan
+from pyCXIM.p10_scan_reader.p10_scan_reader import P10Scan
+from pyCXIM.p10_scan_reader.p10_fluo_reader import P10FluoScan
 
 def draw_roi(roi, roi_name=''):
     v_line = np.arange(roi[0], roi[1])
@@ -28,19 +28,22 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [2]
-p10_file = ["det_cal"]
+scan_num_ar = [9]
+p10_file = ["cell2_p01_c1"]
 
 # path information
-path = r"E:\Data2\XRD raw\20221103 P10 BFO PTO\raw"
+path = r"T:\2022\data\11013125\raw"
 path_e4m_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e4m_mask.npy'
 path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e500_mask.npy'
 pathsavefolder = r"E:\Work place 3\sample\XRD\Test"
 
 # The rois for the Eiger 4M detector
-e4m_roi1 = [1300, 1800, 1100, 1600]
-e4m_roi2 = [1100, 1300, 1100, 1600]
-cal_e4m_roi = [e4m_roi1, e4m_roi2]
+e4m_roi1 = [1267, 1467, 1262, 1462]
+e4m_roi2 = [1264, 1464, 1278, 1478]
+e4m_roi3 = [1630, 1660, 950, 1000]
+e4m_roi4 = [400, 600, 300, 500]
+
+cal_e4m_roi = []
 
 # The rois for the Eiger500 detector
 e500_roi1 = [300, 800, 100, 600]
@@ -53,7 +56,7 @@ fluo_06 = [1020, 1374]
 cal_fluo_channels = []
 
 # Plot selection
-counter_select = ['e4m_full', 'e4m_roi1']
+counter_select = ['curpetra']
 scale = 'Linear'
 # scale = 'Normalized'
 # scale = 'Log'
@@ -66,28 +69,35 @@ for i, scan_num in enumerate(scan_num_ar):
         p10_newfile = p10_file[i]
 
     if len(cal_e4m_roi) != 0:
-        scan = p10_eiger_scan(path, p10_file[0], scan_num, 'e4m', pathsavefolder, path_e4m_mask)
+        scan = P10EigerScan(path, p10_newfile, scan_num, 'e4m', pathsavefolder, path_e4m_mask)
         scan.eiger_roi_sum(cal_e4m_roi, roi_order='XY', save_img_sum=True)
         scan.write_fio()
 
     if len(cal_e500_roi) != 0:
-        scan = p10_eiger_scan(path, p10_file[0], scan_num, 'e500', pathsavefolder, path_e500_mask)
+        scan = P10EigerScan(path, p10_newfile, scan_num, 'e500', pathsavefolder, path_e500_mask)
         scan.eiger_roi_sum(cal_e500_roi, roi_order='XY', save_img_sum=True)
         scan.write_fio()
 
     if len(cal_fluo_channels) != 0:
-        scan = p10_fluo_scan(path, p10_file[0], scan_num, pathsavefolder)
+        scan = P10FluoScan(path, p10_newfile, scan_num, pathsavefolder)
         fluo_spectrum = scan.fluo_spec_reader(cal_fluo_channels)
         scan.write_fio()
         plt.plot(fluo_spectrum)
         plt.show()
-    print(scan)
 
+    if (len(cal_e4m_roi) == 0) and (len(cal_e500_roi) == 0) and (len(cal_fluo_channels) == 0):
+        scan = P10Scan(path, p10_newfile, scan_num, pathsavefolder)
+
+    print(scan)
+    print('Following counters are available, please select at least one of them to plot:')
+    print(scan.get_counter_names())
 # beamtimeID=scan.get_motor_pos('_beamtimeID')
 # spec_writer(beamtimeID, path, scan.get_p10_file(), pathsavefolder)
 
 # %% Plot and save
-
+assert len(counter_select) > 0, 'Please select at least one of the counters to plot!'
+for counter in counter_select:
+    assert (counter in scan.get_counter_names()), 'The counter %s does not exist! Please check the name of the counter again!' % counter
 line_scan_num = []
 mesh_scan_num = []
 for i, scan_num in enumerate(scan_num_ar):
@@ -96,7 +106,7 @@ for i, scan_num in enumerate(scan_num_ar):
     else:
         p10_newfile = p10_file[i]
 
-    scan = p10_scan(path, p10_newfile, scan_num, pathsavefolder)
+    scan = P10Scan(path, p10_newfile, scan_num, pathsavefolder)
     command_infor = scan.get_command_infor()
 
     if command_infor['scan_type'] in ['ascan', 'dscan', 'a2scan', 'd2scan']:
@@ -115,7 +125,7 @@ if len(line_scan_num) > 0:
         else:
             p10_newfile = p10_file[i]
 
-        scan = p10_scan(path, p10_newfile, scan_num, pathsavefolder)
+        scan = P10Scan(path, p10_newfile, scan_num, pathsavefolder)
         command_infor = scan.get_command_infor()
         curpetra_ar = scan.get_scan_data('curpetra') / np.round(np.average(scan.get_scan_data('curpetra')))
         motor = command_infor['motor1_name']
@@ -143,7 +153,7 @@ if len(line_scan_num) > 0:
             p10_newfile = p10_file[0]
         else:
             p10_newfile = p10_file[i]
-        scan = p10_scan(path, p10_newfile, scan_num, pathsavefolder)
+        scan = P10Scan(path, p10_newfile, scan_num, pathsavefolder)
 
         e4mcounters = [counter_name for counter_name in counter_select if 'e4m' in counter_name]
         if len(e4mcounters) > 0:
@@ -174,7 +184,7 @@ if len(mesh_scan_num) > 0:
             p10_newfile = p10_file[0]
         else:
             p10_newfile = p10_file[i]
-        scan = p10_scan(path, p10_newfile, scan_num, pathsavefolder)
+        scan = P10Scan(path, p10_newfile, scan_num, pathsavefolder)
 
         command_infor = scan.get_command_infor()
         curpetra_ar = scan.get_scan_data('curpetra') / np.round(np.average(scan.get_scan_data('curpetra')))

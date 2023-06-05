@@ -4,13 +4,8 @@ Perform the 3D phase retrieval and save the results.
 
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-import sys
-import h5py
 import time
-from pyCXIM.phase_retrieval.phase_retrieval_widget import phase_retrieval_widget
+from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def phase_retrieval_main():
     starting_time = time.time()
@@ -64,14 +59,14 @@ def phase_retrieval_main():
     # flip_condition ='Modulus'
     first_seed_flip = False
 
-    # Input: Parameters for further analysis like SVD and average
+    # Input: The number of images selected for further analysis like SVD and average
     further_analysis_selected = 10
 
     # Input: Parameters determining the display of the images
     display_image_num = 10
 
     # %% Load the image data and the mask
-    pr_file = phase_retrieval_widget(pathsave, trial_num, data_description, mode='w')
+    pr_file = PhaseRetrievalWidget(pathsave, trial_num, data_description, mode='w')
     pr_file.load_image_data(intensity_file, mask_file)
 
     # %% create the initial support for the phase retrieval process

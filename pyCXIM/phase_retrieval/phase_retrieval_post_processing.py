@@ -37,19 +37,15 @@ def cal_PRTF(intensity, Img_sum, MaskFFT=None):
     """
     if MaskFFT is None:
         MaskFFT = np.zeros_like(intensity)
-    PRTF = np.ma.masked_array((np.abs(np.fft.fftshift(np.fft.fftn(Img_sum))) + 0.1) / (np.sqrt(intensity) + 0.1), mask=MaskFFT)
+    PRTF = np.ma.masked_array((np.abs(np.fft.fftshift(np.fft.fftn(Img_sum)))) / (np.sqrt(intensity) + 0.1), mask=MaskFFT)
     if intensity.ndim == 2:
-        r_2D = np.linalg.norm(np.indices(intensity.shape) - np.array(intensity.shape)[:, np.newaxis, np.newaxis] / 2 + 0.5, axis=0)
-        PRTF_1D = np.zeros(int(np.amax(r_2D)))
-        for i in range(int(np.amax(r_2D))):
-            con = np.logical_and(r_2D >= i, r_2D < i + 1)
-            PRTF_1D[i] = np.mean(PRTF[con])
+        r_ar = np.linalg.norm(np.indices(intensity.shape) - np.array(intensity.shape)[:, np.newaxis, np.newaxis] / 2 + 0.5, axis=0)
     elif intensity.ndim == 3:
-        r_3D = np.linalg.norm(np.indices(intensity.shape) - np.array(intensity.shape)[:, np.newaxis, np.newaxis, np.newaxis] / 2 + 0.5, axis=0)
-        PRTF_1D = np.zeros(int(np.amax(r_3D)))
-        for i in range(int(np.amax(r_3D))):
-            con = np.logical_and(r_3D >= i, r_3D < i + 1)
-            PRTF_1D[i] = np.mean(PRTF[con])
+        r_ar = np.linalg.norm(np.indices(intensity.shape) - np.array(intensity.shape)[:, np.newaxis, np.newaxis, np.newaxis] / 2 + 0.5, axis=0)
+    PRTF_1D = np.zeros(int(np.amax(r_ar)))
+    for i in range(int(np.amax(r_ar))):
+        con = np.logical_and(r_ar >= i, r_ar < i + 1)
+        PRTF_1D[i] = np.mean(PRTF[con])
     return PRTF_1D
 
 
@@ -302,6 +298,7 @@ def save_to_vti(pathsave, save_arrays, array_names, voxel_size=(1, 1, 1), origin
     Save the three dimensional array to the vti file for the visilization with paraview.
 
     The library of vtk is needed. (https://pypi.org/project/vtk/)
+    Function written based on bcdi package from Carnis Jerome (https://github.com/carnisj/bcdi)
 
     Parameters
     ----------

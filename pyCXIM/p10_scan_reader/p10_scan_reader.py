@@ -13,7 +13,7 @@ import sys
 import datetime
 
 
-class p10_scan:
+class P10Scan:
     """
     Read the p10 scan. Load the information from fio files, load the detector images with corresponding mask, and sum up the intensity in the corresponding rois.
 

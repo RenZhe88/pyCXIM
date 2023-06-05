@@ -7,7 +7,7 @@ import ast
 import pandas as pd
 
 
-class Information_file_io:
+class InformationFileIO():
     """
     Generate the information file to store the parameters during the BCDI data treatment.
 

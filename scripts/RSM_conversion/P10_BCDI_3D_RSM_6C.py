@@ -13,8 +13,8 @@ import numpy as np
 import sys
 import time
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.Common.Information_file_generator import Information_file_io
-from pyCXIM.p10_scan_reader.p10_eiger_reader import p10_eiger_scan
+from pyCXIM.Common.Information_file_generator import InformationFileIO
+from pyCXIM.p10_scan_reader.p10_eiger_reader import P10EigerScan
 from pyCXIM.RSM.RC2RSM import RC2RSM_6C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 
@@ -57,7 +57,7 @@ print("Basic information")
 print("#################")
 
 # Read images and fio files
-scan = p10_eiger_scan(path, p10_file, scan_num, detector, pathsave, pathmask)
+scan = P10EigerScan(path, p10_file, scan_num, detector, pathsave, pathmask)
 print(scan)
 # Generate the paths for saving the data
 pathsave = scan.get_pathsave()
@@ -90,7 +90,7 @@ print("peak at omega = %.2f, delta = %.2f, chi = %.2f, phi = %.2f, gamma = %.2f"
 
 # writing the scan information to the aimed file
 section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map']
-infor = Information_file_io(pathinfor)
+infor = InformationFileIO(pathinfor)
 infor.add_para('command', section_ar[0], scan.get_command())
 infor.add_para('year', section_ar[0], year)
 infor.add_para('beamtimeID', section_ar[0], beamtimeID)

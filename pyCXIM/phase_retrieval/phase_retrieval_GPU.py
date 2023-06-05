@@ -18,7 +18,7 @@ import re
 import torch
 
 
-class Phase_Retrieval_funs():
+class PhaseRetrievalFuns():
     """
     Functions for the phase retrieval process.
 

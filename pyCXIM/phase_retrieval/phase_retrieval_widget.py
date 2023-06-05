@@ -13,19 +13,19 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import h5py
-from ..Common.Information_file_generator import Information_file_io
+from ..Common.Information_file_generator import InformationFileIO
 try:
-    from .phase_retrieval_GPU import Phase_Retrieval_funs as pr
+    from .phase_retrieval_GPU import PhaseRetrievalFuns as pr
     from .phase_retrieval_GPU import Free_LLK_FFTmask
 except ModuleNotFoundError:
-    from .phase_retrieval_numpy import Phase_Retrieval_funs as pr
+    from .phase_retrieval_numpy import PhaseRetrievalFuns as pr
     from .phase_retrieval_numpy import Free_LLK_FFTmask
 from . import phase_retrieval_post_processing as pp
 from scipy.ndimage import gaussian_filter
 from scipy.linalg import svd
 
 
-class phase_retrieval_widget():
+class PhaseRetrievalWidget():
     """
     The integrated functions for the phase retrieval.
 
@@ -481,7 +481,7 @@ class phase_retrieval_widget():
         Parameters
         ----------
         further_analysis_selected : float
-            The percentage of the images to be used in the further analysis.
+            The number of the images selected for the further analysis.
         error_type : str, optional
             The type of error to be used for the selection of images.
             Three options are 'Fourier space error', 'Poisson logLikelihood', 'Free logLikelihood'.
@@ -494,7 +494,10 @@ class phase_retrieval_widget():
         """
         imgfile = h5py.File(self.pathsaveimg, "r+")
         SeedNum = self.para_dict['nb_run']
-        selected_image_num = int(further_analysis_selected / 100.0 * SeedNum)
+        if further_analysis_selected <= SeedNum:
+            selected_image_num = int(further_analysis_selected)
+        else:
+            selected_image_num = int(SeedNum)
 
         # import the error matrix for the image selection.
         err_ar = np.array(imgfile["Error/error"], dtype=float)
@@ -560,8 +563,7 @@ class phase_retrieval_widget():
             Avr_Modulus = Avr_Modulus / selected_image_num
             Avr_Phase = Avr_Phase / selected_image_num
 
-            self.para_dict['further_analysis_selected'] = further_analysis_selected
-            self.para_dict['selected_image_num'] = selected_image_num
+            self.para_dict['further_analysis_selected'] = selected_image_num
             self.para_dict['further_analysis_method'] = further_analysis_method
             imgfile.create_dataset("Selected_average/select_Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/select_Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
@@ -592,8 +594,7 @@ class phase_retrieval_widget():
             Avr_Phase = Avr_Phase / selected_image_num
             Avr_support = Avr_support / selected_image_num
 
-            self.para_dict['further_analysis_selected'] = further_analysis_selected
-            self.para_dict['selected_image_num'] = selected_image_num
+            self.para_dict['further_analysis_selected'] = selected_image_num
             self.para_dict['further_analysis_method'] = further_analysis_method
             imgfile.create_dataset("Selected_average/select_Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/select_Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
@@ -813,7 +814,7 @@ class phase_retrieval_widget():
 
         """
         assert os.path.exists(pathinfor), 'The information file does not exist! Please check the path of the information file again!'
-        infor = Information_file_io(pathinfor)
+        infor = InformationFileIO(pathinfor)
         infor.infor_reader()
         for para_name in para_name_list:
             self.para_dict[para_name] = infor.get_para_value(para_name, section)
@@ -837,7 +838,7 @@ class phase_retrieval_widget():
         None.
 
         """
-        infor = Information_file_io(pathinfor)
+        infor = InformationFileIO(pathinfor)
         infor.infor_reader()
         infor.del_para_section(section)
         if para_name_list is None:

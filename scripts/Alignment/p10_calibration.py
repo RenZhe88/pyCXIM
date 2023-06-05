@@ -12,23 +12,23 @@ import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 import sys
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.Common.Information_file_generator import Information_file_io
-from pyCXIM.p10_scan_reader.p10_eiger_reader import p10_eiger_scan
+from pyCXIM.Common.Information_file_generator import InformationFileIO
+from pyCXIM.p10_scan_reader.p10_eiger_reader import P10EigerScan
 from pyCXIM.RSM.RC2RSM import RC2RSM_6C
 
 def calibration():
     # Inputs: general information
     year = "2022"
-    beamtimeID = "11013318"
+    beamtimeID = "11014572"
     pixelsize = 0.075
     detector = 'e4m'
-    # Calibration_type = 'detector'
-    Calibration_type = 'single Bragg 6C'
+    Calibration_type = 'detector'
+    # Calibration_type = 'single Bragg 6C'
 
     # Inputs:Detector parameters
     if Calibration_type == 'detector':
-        p10_file = r"align_01"
-        scan_num = 117
+        p10_file = r"det_cal_02"
+        scan_num = 1
 
     # Inputs:Simple calibration with symmetric diffraction peak
     if Calibration_type == 'single Bragg 6C':
@@ -41,13 +41,13 @@ def calibration():
         error_source = ['omega', 'delta', 'chi']
 
     # Inputs: paths
-    path = r"E:\Data2\XRD raw\20211004 P10 BFO Pt\raw"
-    pathsave = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands"
+    path = r"E:\Data2\XRD raw\20221014 P10 CTR BFO Ptycho\raw"
+    pathsave = r"G:\Work place 3\sample\XRD\20221018 Longfei"
     pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e4m_mask.npy'
     pathinfor = os.path.join(pathsave, "calibration.txt")
     section_ar = ['General Information', 'Detector calibration', 'Bragg peak calibration %s']
 
-    infor = Information_file_io(pathinfor)
+    infor = InformationFileIO(pathinfor)
     infor.add_para('year', section_ar[0], year)
     infor.add_para('beamtimeID', section_ar[0], beamtimeID)
     infor.add_para('pathinfor', section_ar[0], pathinfor)
@@ -55,7 +55,7 @@ def calibration():
     infor.add_para('pathsave', section_ar[0], pathsave)
 
     if Calibration_type == 'detector':
-        scan = p10_eiger_scan(path, p10_file, scan_num, pathmask=pathmask)
+        scan = P10EigerScan(path, p10_file, scan_num, pathmask=pathmask)
         print(scan)
         command = scan.get_command()
         motor = str(command.split()[1])
@@ -97,7 +97,7 @@ def calibration():
         infor.infor_writer()
 
     elif Calibration_type == 'single Bragg 6C':
-        infor = Information_file_io(pathinfor)
+        infor = InformationFileIO(pathinfor)
         infor.infor_reader()
         distance = infor.get_para_value('detector_distance')
         pixelsize = infor.get_para_value('pixelsize')
@@ -124,7 +124,7 @@ def calibration():
         infor.add_para('error_source', section_ar[2] % (str(peak)), error_source)
         infor.add_para('geometry', section_ar[2] % (str(peak)), geometry)
 
-        scan = p10_eiger_scan(path, p10_file, scan_num, detector, pathmask=pathmask)
+        scan = P10EigerScan(path, p10_file, scan_num, detector, pathmask=pathmask)
         print(scan)
         pch = scan.eiger_find_peak_position(cut_width=[50, 50])
         if geometry == 'out_of_plane':

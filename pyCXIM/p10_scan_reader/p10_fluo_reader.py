@@ -9,10 +9,10 @@ Created on Thu May  4 17:23:02 2023
 import os
 import sys
 import numpy as np
-from .p10_scan_reader import p10_scan
+from .p10_scan_reader import P10Scan
 
 
-class p10_fluo_scan(p10_scan):
+class P10FluoScan(P10Scan):
     """
     The read and treat the scans with eiger4M detector.
 

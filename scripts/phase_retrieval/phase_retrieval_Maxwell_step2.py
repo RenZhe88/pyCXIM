@@ -11,36 +11,37 @@ import os
 import sys
 import h5py
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.Common.Information_file_generator import Information_file_io
-from pyCXIM.phase_retrieval.phase_retrieval_widget import phase_retrieval_widget
+from pyCXIM.Common.Information_file_generator import InformationFileIO
+from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def plot_phase_retrieval_results():
     # %%Inputs
-    pathsave = r'E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\align_AuNP_00096\pynxpre\reciprocal_space_map'
+    pathsave = r'E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
     trial_num = 1
-    path_scan_infor = r"E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\align_AuNP_00096\scan_0096_information.txt"
-    display_range = [500, 500, 500]
+    path_scan_infor = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00043\scan_0043_information.txt"
+    display_range = [600, 600, 600]
 
     # %%Load the information file
     print("Loading the information file...")
-    pr_file = phase_retrieval_widget(pathsave, trial_num, mode='r')
+    pr_file = PhaseRetrievalWidget(pathsave, trial_num, mode='r')
     data_description = pr_file.get_para('data_description')
+    print(data_description)
 
     if data_description == 'reciprocal_space_map':
         para_name_list = [
-            'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'omega', 'delta',
-            'omegastep', 'detector_distance', 'energy', 'pixelsize', 'RSM_unit']
+            'year', 'beamtimeID', 'scan_number', 'p10_newfile',
+            'detector_distance', 'energy', 'pixelsize', 'RSM_unit']
     elif data_description == 'stacked_detector_images':
         para_name_list = [
             'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'omega', 'delta',
             'omegastep', 'detector_distance', 'energy', 'pixelsize', 'DC_unit']
 
     path_retrieval_infor = os.path.join(pathsave, "Phase_retrieval_information.txt")
-    pr_infor = Information_file_io(path_retrieval_infor)
+    pr_infor = InformationFileIO(path_retrieval_infor)
     if not os.path.exists(path_retrieval_infor):
         pr_infor.add_para('total_trial_num', 'General Information', 0)
         if os.path.exists(path_scan_infor):
-            scan_infor = Information_file_io(path_scan_infor)
+            scan_infor = InformationFileIO(path_scan_infor)
             pr_infor.copy_para_file(scan_infor, para_name_list, 'General Information')
         else:
             print('Could not find the desired scan parameter file! Generate the file with desired parameters!')

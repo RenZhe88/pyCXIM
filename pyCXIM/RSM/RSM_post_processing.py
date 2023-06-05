@@ -138,7 +138,7 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
     # save the qx qy qz cut of the 3D intensity
     print('Saving the qx qy qz cuts......')
     plt.figure(figsize=(12, 12))
-    pathsaveimg = pathsavetmp % ('cutqz')
+    pathsaveimg = pathsavetmp % ('qz')
     if len(qmax) == 0:
         plt.contourf(qx, qy, np.log10(np.sum(RSM_int, axis=0) + 1.0), 150, cmap='jet')
     else:
@@ -151,7 +151,7 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
     # plt.close()
 
     plt.figure(figsize=(12, 12))
-    pathsaveimg = pathsavetmp % ('cutqy')
+    pathsaveimg = pathsavetmp % ('qy')
     if len(qmax) == 0:
         plt.contourf(qx, qz, np.log10(np.sum(RSM_int, axis=1) + 1.0), 150, cmap='jet')
     else:
@@ -164,7 +164,7 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
     # plt.close()
 
     plt.figure(figsize=(12, 12))
-    pathsaveimg = pathsavetmp % ('cutqx')
+    pathsaveimg = pathsavetmp % ('qx')
     if len(qmax) == 0:
         plt.contourf(qy, qz, np.log10(np.sum(RSM_int, axis=2) + 1.0), 150, cmap='jet')
     else:
@@ -202,7 +202,7 @@ def plot_without_units(RSM_int, mask, pathsavetmp):
     # save the qx qy qz cut of the 3D intensity
     print('Saving the qx qy qz cuts......')
     plt.figure(figsize=(12, 12))
-    pathsaveimg = pathsavetmp % 'cutqz'
+    pathsaveimg = pathsavetmp % 'qz'
     plt.imshow(np.log10(RSM_int[int(dz / 2), :, :] + 1.0), cmap='Blues')
     if mask.ndim != 1:
         plt.imshow(mask[int(dz / 2), :, :], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
@@ -214,7 +214,7 @@ def plot_without_units(RSM_int, mask, pathsavetmp):
     plt.close()
 
     plt.figure(figsize=(12, 12))
-    pathsaveimg = pathsavetmp % 'cutqy'
+    pathsaveimg = pathsavetmp % 'qy'
     plt.imshow(np.log10(RSM_int[:, int(dy / 2), :] + 1.0), cmap='Blues')
     if mask.ndim != 1:
         plt.imshow(mask[:, int(dy / 2), :], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
@@ -226,7 +226,7 @@ def plot_without_units(RSM_int, mask, pathsavetmp):
     plt.close()
 
     plt.figure(figsize=(12, 12))
-    pathsaveimg = pathsavetmp % 'cutqx'
+    pathsaveimg = pathsavetmp % 'qx'
     plt.imshow(np.log10(RSM_int[:, :, int(dx / 2)] + 1.0), cmap='Blues')
     if mask.ndim != 1:
         plt.imshow(mask[:, :, int(dx / 2)], cmap='Reds', alpha=0.5, vmin=0, vmax=1)

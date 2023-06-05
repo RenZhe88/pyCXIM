@@ -299,7 +299,7 @@ class RC2RSM_6C():
         print(new_shape)
         return q_origin, new_shape, RSM_unit
 
-    def RSM_conversion(self, dataset, new_shape, rebinfactor=1, cval=0, prefilter=True):
+    def RSM_conversion(self, dataset, new_shape, rebinfactor=1, cval=0, prefilter=False):
         """
         Convert the dataset to three dimensional reciprocal space map.
 
@@ -314,7 +314,7 @@ class RC2RSM_6C():
         cval : float, optional
             The constant value for the interpolation if the correponding point is missing. The default is 0.
         prefilter : bool, optional
-            Whether prefilter should be used before interpolation. The default is True.
+            Whether prefilter should be used before interpolation. The default is False.
 
         Returns
         -------
@@ -541,7 +541,7 @@ class RC2RSM_2C():
         print(new_shape)
         return q_origin, new_shape, RSM_unit
 
-    def RSM_conversion(self, dataset, new_shape, rebinfactor=1, cval=0, prefilter=True):
+    def RSM_conversion(self, dataset, new_shape, rebinfactor=1, cval=0, prefilter=False):
         """
         Convert the dataset to three dimensional reciprocal space map.
 
@@ -556,7 +556,7 @@ class RC2RSM_2C():
         cval : float, optional
             The constant value for the interpolation if the correponding point is missing. The default is 0.
         prefilter : bool, optional
-            Whether prefilter should be used before interpolation. The default is True.
+            Whether prefilter should be used before interpolation. The default is False.
 
         Returns
         -------

@@ -10,8 +10,8 @@ import sys
 import h5py
 import time
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.Common.Information_file_generator import Information_file_io
-from pyCXIM.phase_retrieval.phase_retrieval_widget import phase_retrieval_widget
+from pyCXIM.Common.Information_file_generator import InformationFileIO
+from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
@@ -65,7 +65,7 @@ flip_condition = 'Support'
 # flip_condition ='Modulus'
 first_seed_flip = False
 
-# Input: Parameters for further analysis like SVD and average
+# Input: The number of images selected for further analysis like SVD and average
 further_analysis_selected = 10
 
 # Input: Parameters determining the display of the images
@@ -78,21 +78,21 @@ print("Loading the information file...")
 
 if data_description == 'reciprocal_space_map':
     para_name_list = [
-        'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'omega', 'delta',
-        'omegastep', 'detector_distance', 'energy', 'pixelsize', 'RSM_unit']
+        'year', 'beamtimeID', 'scan_number', 'p10_newfile',
+        'detector_distance', 'energy', 'pixelsize', 'RSM_unit']
 elif data_description == 'stacked_detector_images':
     para_name_list = [
         'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'omega', 'delta',
         'omegastep', 'detector_distance', 'energy', 'pixelsize', 'DC_unit']
 
 path_retrieval_infor = os.path.join(pathsave, "Phase_retrieval_information.txt")
-pr_infor = Information_file_io(path_retrieval_infor)
+pr_infor = InformationFileIO(path_retrieval_infor)
 if not os.path.exists(path_retrieval_infor):
     trial_num = 1
     start_trial_num = 0
     support_type = 'auto_correlation'
     if os.path.exists(path_scan_infor):
-        scan_infor = Information_file_io(path_scan_infor)
+        scan_infor = InformationFileIO(path_scan_infor)
         pr_infor.copy_para_file(scan_infor, para_name_list, 'General Information')
     else:
         print('Could not find the desired scan parameter file! Generate the file with desired parameters!')
@@ -102,7 +102,7 @@ else:
     pr_infor.infor_reader()
     trial_num = pr_infor.get_para_value('total_trial_num') + 1
 
-pr_file = phase_retrieval_widget(pathsave, trial_num, data_description, mode='w')
+pr_file = PhaseRetrievalWidget(pathsave, trial_num, data_description, mode='w')
 pr_file.load_image_data(intensity_file, mask_file)
 pr_file.load_para_from_infor_file(path_retrieval_infor, para_name_list)
 zd, yd, xd = pr_file.get_para('data_shape')

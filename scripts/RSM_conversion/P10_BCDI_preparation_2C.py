@@ -7,8 +7,8 @@ import matplotlib.animation as anim
 import sys
 import time
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.Common.Information_file_generator import Information_file_io
-from pyCXIM.p10_scan_reader.p10_eiger_reader import p10_eiger_scan
+from pyCXIM.Common.Information_file_generator import InformationFileIO
+from pyCXIM.p10_scan_reader.p10_eiger_reader import P10EigerScan
 from pyCXIM.RSM.RC2RSM import RC2RSM_2C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 
@@ -22,7 +22,7 @@ def BCDI_preparation():
     year = "2021"
     beamtimeID = "11013318"
     p10_newfile = r"B12SYNS1P1"
-    scan_num = 43
+    scan_num = 144
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -53,7 +53,7 @@ def BCDI_preparation():
     # the folder that stores the raw data of the beamtime
     path = r"E:\Data2\XRD raw\20211004 P10 BFO Pt\raw"
     # the aimed saving folder
-    pathsavefolder = r"E:\Work place 3\sample\XRD\Test"
+    pathsavefolder = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands"
     # the path for the mask file for the detector
     pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e4m_mask.npy'
 
@@ -62,7 +62,7 @@ def BCDI_preparation():
     print("Basic information")
     print("#################")
     # reading the fio file
-    scan = p10_eiger_scan(path, p10_newfile, scan_num, detector, pathsavefolder, pathmask)
+    scan = P10EigerScan(path, p10_newfile, scan_num, detector, pathsavefolder, pathmask)
     print(scan)
     energy = scan.get_motor_pos('fmbenergy')
 
@@ -104,7 +104,7 @@ def BCDI_preparation():
 
     # writing the scan information to the aimed file
     section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map', 'Routine2: direct cutting']
-    infor = Information_file_io(pathinfor)
+    infor = InformationFileIO(pathinfor)
     infor.add_para('command', section_ar[0], scan.get_command())
     infor.add_para('year', section_ar[0], year)
     infor.add_para('beamtimeID', section_ar[0], beamtimeID)

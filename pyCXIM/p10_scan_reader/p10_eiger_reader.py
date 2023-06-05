@@ -13,10 +13,10 @@ import hdf5plugin
 import h5py
 from scipy.ndimage import measurements
 import matplotlib.pyplot as plt
-from .p10_scan_reader import p10_scan
+from .p10_scan_reader import P10Scan
 
 
-class p10_eiger_scan(p10_scan):
+class P10EigerScan(P10Scan):
     """
     Read and treat the scans with eiger detector. It is a child class of p10_scan.
 
