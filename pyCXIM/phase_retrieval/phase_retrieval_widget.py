@@ -385,6 +385,8 @@ class PhaseRetrievalWidget():
                             thrpara = thrpara * thr_increase_rate
                         elif threhold_update_method == 'lin_increase':
                             thrpara = thrpara + thr_increase_rate
+                elif method == 'DETWIN':
+                    PR_seed.DETWIN(axis=(0, 1, 2))
                 elif method == 'End':
                     PR_seed.End()
                     Support_final = PR_seed.get_support()
@@ -654,14 +656,14 @@ class PhaseRetrievalWidget():
         None.
 
         """
-        assert ('omega' in self.para_list), 'Please import the motor values of omega, delta, omega_step, distance, pixelsize and energy in the parameter list first!'
+        assert ('omega' in self.para_dict), 'Please import the motor values of omega, delta, omega_step, distance, pixelsize and energy in the parameter list first!'
         imgfile = h5py.File(self.pathsaveimg, "r+")
-        omega = self.para_list['omega']
-        omegastep = self.para_list['omegastep']
-        delta = self.para_list['delta']
-        distance = self.para_list['distance']
-        pixelsize = self.para_list['pixelsize']
-        energy = self.para_list['energy']
+        omega = self.para_dict['omega']
+        omegastep = self.para_dict['omegastep']
+        delta = self.para_dict['delta']
+        distance = self.para_dict['detector_distance']
+        pixelsize = self.para_dict['pixelsize']
+        energy = self.para_dict['energy']
         for input_name in input_names:
             input_array = imgfile['%s/%s' % (input_group, input_name)]
             Ortho_result, Ortho_unit = pp.Orth3D(input_array, omega, omegastep, delta, distance, pixelsize, energy)
@@ -1141,12 +1143,14 @@ class PhaseRetrievalWidget():
             plt.show()
         return
 
-    def plot_error_matrix(self, save_image=True, filename=''):
+    def plot_error_matrix(self, RSM_unit, save_image=True, filename=''):
         """
         Plot the error matrix for the phase retrieval results.
 
         Parameters
         ----------
+        RSM_unit : float,
+            The unit of the reciprocal space in inverse angstrom.
         pathsave : str, optional
             The path to save the result plot. The default is ''.
         filename : str, optional
@@ -1175,9 +1179,9 @@ class PhaseRetrievalWidget():
             axs[1, 0].set_title('Free Log likelihood', fontsize=24)
             axs[1, 0].set_xlabel('total support pixel', fontsize=24)
             axs[1, 0].set_ylabel('Free Log likelihood', fontsize=24)
-            axs[1, 1].plot(PRTF, 'r.')
+            axs[1, 1].plot(RSM_unit * np.arange(len(PRTF)), PRTF, 'r.')
             axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
-            axs[1, 1].set_xlabel('pixel', fontsize=24)
+            axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
             axs[1, 1].set_ylabel('PRTF', fontsize=24)
             fig.tight_layout()
         else:
@@ -1194,9 +1198,9 @@ class PhaseRetrievalWidget():
             axs[1, 0].set_title('Free Log likelihood', fontsize=24)
             axs[1, 0].set_xlabel('Free Log likelihood', fontsize=24)
             axs[1, 0].set_ylabel('Num of solutions', fontsize=24)
-            axs[1, 1].plot(PRTF, 'r.')
+            axs[1, 1].plot(RSM_unit * np.arange(len(PRTF)), PRTF, 'r.')
             axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
-            axs[1, 1].set_xlabel('pixel', fontsize=24)
+            axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
             axs[1, 1].set_ylabel('PRTF', fontsize=24)
         fig.tight_layout()
         if filename == '':

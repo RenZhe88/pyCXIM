@@ -131,7 +131,7 @@ pr_file.plot_3D_result('Average_All', array_names, voxel_size, display_range,
                        'Average results of %d runs' % pr_file.get_para('nb_run'),
                        True, "Trial%d" % (trial_num), save_as_vti=True)
 pr_file.plot_3D_intensity(filename="Intensity_difference_Trial%d.png" % (trial_num))
-pr_file.plot_error_matrix(filename="Error_Trial%d.png" % (trial_num))
+pr_file.plot_error_matrix(unit, filename="Error_Trial%d.png" % (trial_num))
 
 # %% Transforming into Orthoganol coordinates
 if data_description == 'stacked_detector_images':
@@ -149,7 +149,7 @@ if data_description == 'stacked_detector_images':
 pr_file.further_analysis(further_analysis_selected, error_type='Fourier space error')
 voxel_size = ((2.0 * np.pi / zd / unit / 10.0), (2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
 array_names = ('select_Modulus_sum', 'select_Phase_sum', 'select_Support_sum')
-pr_file.plot_3D_result('Selected_average', array_names, voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('selected_image_num'), save_image=True, filename="Trial%02d_selected_average" % trial_num, save_as_vti=True)
+pr_file.plot_3D_result('Selected_average', array_names, voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected '), save_image=True, filename="Trial%02d_selected_average" % trial_num, save_as_vti=True)
 if pr_file.get_para('further_analysis_method') == 'SVD':
     evalue = pr_file.get_dataset("SVD_analysis/evalue")
     array_names = ('Mode1_Modulus', 'Mode1_Phase')
@@ -163,7 +163,7 @@ if data_description == 'stacked_detector_images':
     pr_file.ortho_3D_transform('Selected_average', array_names)
     Ortho_unit = pr_file.get_para('Ortho_unit')
     array_names = ('Ortho_select_Modulus_sum', 'Ortho_select_Phase_sum', 'Ortho_select_Support_sum')
-    pr_file.plot_3D_result('Ortho', array_names, Ortho_voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('selected_image_num'), save_image=True, filename="Trial%02d_ortho_selected_average" % trial_num, save_as_vti=True)
+    pr_file.plot_3D_result('Ortho', array_names, Ortho_voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected '), save_image=True, filename="Trial%02d_ortho_selected_average" % trial_num, save_as_vti=True)
 
     if pr_file.get_para('further_analysis_method') == 'SVD':
         array_names = ('Mode1_Modulus', 'Mode1_Phase', 'Mode2_Modulus', 'Mode2_Phase', 'Mode3_Modulus', 'Mode3_Phase')
@@ -185,6 +185,7 @@ para_name_list = [
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
 
 section = 'Trial %02d' % trial_num
+pr_infor.add_para('RSM_unit', section, unit)
 para_name_list = [
     'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
     'voxel_size', 'Ortho_voxel_size', 'algorithm', 'flip_condition',
@@ -195,5 +196,5 @@ para_name_list = [
     'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
     'support_update_loops', 'support_threshold_min', 'support_threshold_max',
     'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-    'further_analysis_selected', 'selected_image_num', 'further_analysis_method']
+    'further_analysis_selected', 'further_analysis_method']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)

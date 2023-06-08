@@ -273,6 +273,18 @@ class PhaseRetrievalFuns():
             self.img = torch.fft.ifftn(AmpFFT)
         return
 
+    def DETWIN(self, axis=0):
+        zd, yd, xd = self.img.size()
+        if isinstance(axis, int):
+            axis = (axis,)
+        if 0 in axis:
+            self.img[int(zd / 2):, :, :] = 0
+        if 1 in axis:
+            self.img[:, int(yd / 2):, :] = 0
+        if 2 in axis:
+            self.img[:, :, int(xd / 2):] = 0
+        return
+
     def HIO(self, num_HIO_loop):
         """
         Use hybrid input and output (HIO) method to update the image.
