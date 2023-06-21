@@ -71,7 +71,7 @@ class PhaseRetrievalWidget():
             self.para_dict['data_description'] = data_description
         return
 
-    def load_image_data(self, intensity_file, mask_file=''):
+    def load_image_data(self, intensity_file, mask_file='', roi=None):
         """
         Load the diffraction patterns and the mask to start the phase retrieval process.
 
@@ -83,6 +83,8 @@ class PhaseRetrievalWidget():
             The filename of diffraction intensity.
         mask_file : str, optional
             The filename of 3D bad pixel mask. The default is ''.
+        roi : list, optional
+            The roi for cutting the diffraction data.
 
         Returns
         -------
@@ -354,10 +356,10 @@ class PhaseRetrievalWidget():
 
             algor_extend = PR_seed.Algorithm_expander(algorithm)
 
-            if int(algor_extend.count(('Sup', 0))) > 0:
+            if int(algor_extend.count(('Sup', 1))) > 0:
                 Gaussiandelta = support_smooth_width_begin
                 thrpara = thrpara_min
-                support_update_num = np.around(algor_extend.count(('Sup', 0)) * support_para_update_precent)
+                support_update_num = np.around(algor_extend.count(('Sup', 1)) * support_para_update_precent)
                 support_decay_rate = np.power(support_smooth_width_end / support_smooth_width_begin, 1.0 / support_update_num)
                 if threhold_update_method == 'exp_increase':
                     thr_increase_rate = np.power(thrpara_max / thrpara_min, 1.0 / support_update_num)
@@ -386,7 +388,9 @@ class PhaseRetrievalWidget():
                         elif threhold_update_method == 'lin_increase':
                             thrpara = thrpara + thr_increase_rate
                 elif method == 'DETWIN':
-                    PR_seed.DETWIN(axis=(0, 1, 2))
+                    PR_seed.DETWIN(axis=0)
+                elif method == 'ConvexSup':
+                    PR_seed.ConvexSup()
                 elif method == 'End':
                     PR_seed.End()
                     Support_final = PR_seed.get_support()
@@ -444,7 +448,7 @@ class PhaseRetrievalWidget():
         self.para_dict['algorithm'] = algorithm
         self.para_dict['start_trial_num'] = start_trial_num
 
-        if int(algor_extend.count(('Sup', 0))) != 0:
+        if int(algor_extend.count(('Sup', 1))) != 0:
             self.para_dict['support_update'] = True
             self.para_dict['support_smooth_width_begin'] = support_smooth_width_begin
             self.para_dict['support_smooth_width_end'] = support_smooth_width_end
@@ -819,7 +823,33 @@ class PhaseRetrievalWidget():
         infor = InformationFileIO(pathinfor)
         infor.infor_reader()
         for para_name in para_name_list:
-            self.para_dict[para_name] = infor.get_para_value(para_name, section)
+            if infor.get_para_value(para_name, section) is not None:
+                self.para_dict[para_name] = infor.get_para_value(para_name, section)
+        return
+
+    def load_para_from_pynx_results(self, pathcxi, para_name_list):
+        """
+        Load the parameters from pynx result files.
+
+        Parameters
+        ----------
+        pathcxi : str
+            The path to the pynx result file.
+        para_name_list : list
+            List of the parameter names to be imported.
+
+        Returns
+        -------
+        None.
+
+        """
+        assert os.path.exists(pathcxi), 'The pynx result file does not exist! Please check the path of the cxi file again!'
+        tempimgfile = h5py.File(pathcxi, "r")
+        Para_group = tempimgfile['entry_last/image_1/process_1/configuration']
+        for para_name in para_name_list:
+            if para_name in Para_group.keys():
+                self.para_dict[para_name] = Para_group[para_name][()]
+        tempimgfile.close()
         return
 
     def save_para_to_infor_file(self, pathinfor, section, para_name_list=None):
@@ -1180,6 +1210,7 @@ class PhaseRetrievalWidget():
             axs[1, 0].set_xlabel('total support pixel', fontsize=24)
             axs[1, 0].set_ylabel('Free Log likelihood', fontsize=24)
             axs[1, 1].plot(RSM_unit * np.arange(len(PRTF)), PRTF, 'r.')
+            axs[1, 1].set_ylim(0, 1.05)
             axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
             axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
             axs[1, 1].set_ylabel('PRTF', fontsize=24)

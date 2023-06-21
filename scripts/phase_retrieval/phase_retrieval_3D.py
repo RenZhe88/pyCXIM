@@ -15,10 +15,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-pathsave = r'E:\Work place 3\sample\XRD\20201128 Longfei\B15_syn_S1_2_00024\pynxpre\reciprocal_space_map'
-intensity_file = 'scan0024.npz'
-mask_file = 'scan0024_mask.npz'
-path_scan_infor = r"E:\Work place 3\sample\XRD\20201128 Longfei\B15_syn_S1_2_00024\scan_0024_information.txt"
+pathsave = r'E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\pynxpre\reciprocal_space_map'
+intensity_file = 'scan0144.npz'
+mask_file = 'scan0144_mask.npz'
+path_scan_infor = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\scan_0144_information.txt"
 data_description = 'reciprocal_space_map'
 # data_description = 'stacked_detector_images'
 
@@ -41,7 +41,7 @@ path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\
 # Input: starting image inherented from trial
 start_trial_num = 0
 SeedNum = 100
-algorithm = "(DIF**50)**3*(HIO**40*Sup)**10*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40"
+algorithm = "(HIO**40*Sup*ConvexSup)**10*(RAAR**60*ER**10*Sup*ConvexSup)**30"
 # algorithm = "DIF**200*(RAAR**50*ER**10)**20"
 
 # Input: parameters for the free Log likelihood
@@ -54,10 +54,10 @@ FLLK_radius = 3
 threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
-thrpara_min = 0.12
-thrpara_max = 0.178
+thrpara_min = 0.08
+thrpara_max = 0.12
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 0.5
+support_smooth_width_end = 1.0
 
 # Input: parameters for flipping the images to remove the trival solutions.
 flip_condition = 'Support'
@@ -176,13 +176,14 @@ ending_time = time.time()
 pr_file.add_para('total_calculation_time', ending_time - starting_time)
 pr_file.save_para_list()
 section = 'General Information'
-pr_infor.add_para('total_trial_num', section, trial_num)
-pr_infor.infor_writer()
+
 para_name_list = [
     'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'data_description', 'omega',
     'delta', 'omegastep', 'detector_distance', 'energy', 'pixelsize', 'intensity_file',
     'mask_file', 'pathsave']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
+pr_infor.add_para('total_trial_num', section, trial_num)
+pr_infor.infor_writer()
 
 section = 'Trial %02d' % trial_num
 pr_infor.add_para('RSM_unit', section, unit)

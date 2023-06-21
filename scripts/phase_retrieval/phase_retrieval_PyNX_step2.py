@@ -29,8 +29,8 @@ import sys
 import h5py
 import time
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.Common.Information_file_generator import Information_file_io
-from pyCXIM.phase_retrieval.phase_retrieval_widget import phase_retrieval_widget
+from pyCXIM.Common.Information_file_generator import InformationFileIO
+from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def plot_pynx_results():
     # %%Inputs
@@ -40,6 +40,8 @@ def plot_pynx_results():
     trial_num = 5
     path_scan_infor = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt islands\B12SYNS1P1_00043\scan_0043_information.txt"
     pathPyNXfolder = r'E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt islands\B12SYNS1P1_00043\pynxpre\reciprocal_space_map\PyNX Trial04'
+    intensity_file = 'scan0024.npz'
+    mask_file = 'scan0024_mask.npz'
 
     flip_condition = 'Support'
     # flip_condition = 'Phase'
@@ -50,45 +52,40 @@ def plot_pynx_results():
     display_range = [400, 400, 400]
     # %%Load the information file
     print("Loading the information file...")
-    scan_infor = BCDI_Information(path_scan_infor)
-    scan_infor.infor_reader()
-    year = int(scan_infor.get_para_value('year'))
-    beamtimeID = int(scan_infor.get_para_value('beamtimeID'))
-    scan = int(scan_infor.get_para_value('scan_number'))
-    p10_newfile = scan_infor.get_para_value('p10_newfile')
-    omega = float(scan_infor.get_para_value('omega'))
-    delta = float(scan_infor.get_para_value('delta'))
-    omegastep = float(scan_infor.get_para_value('omegastep'))
-    distance = float(scan_infor.get_para_value('detector_distance'))
-    energy = float(scan_infor.get_para_value('energy'))
-    pixelsize = float(scan_infor.get_para_value('pixelsize'))
-    if method_selected == 'reciprocal_space_map':
-        unit = float(scan_infor.get_para_value('RSM_unit'))
-    elif method_selected == 'stacked_detector_images':
-        unit = float(scan_infor.get_para_value('DC_unit'))
-
-    # defining the path to save the results
-    pathsave = str(scan_infor.get_para_value('pathsave'))
-    pathsave = os.path.join(pathsave, 'pynxpre')
-    if method_selected == 'reciprocal_space_map':
-        # Defining the path needed for
-        pathread = str(scan_infor.get_para_value('path3DRSM'))
-        pathmask = str(scan_infor.get_para_value('path3Dmask'))
-        pathsave = os.path.join(pathsave, 'reciprocal_space_map')
-    elif method_selected == 'stacked_detector_images':
-        # Defining the path needed for
-        pathread = str(scan_infor.get_para_value('path_stacked_detector_images'))
-        pathmask = str(scan_infor.get_para_value('path_stacked_mask'))
-        pathsave = os.path.join(pathsave, 'stacked_detector_images')
+    if data_description == 'reciprocal_space_map':
+        para_name_list = [
+            'year', 'beamtimeID', 'scan_number', 'p10_newfile',
+            'detector_distance', 'energy', 'pixelsize', 'RSM_unit']
+    elif data_description == 'stacked_detector_images':
+        para_name_list = [
+            'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'omega', 'delta',
+            'omegastep', 'detector_distance', 'energy', 'pixelsize', 'DC_unit']
 
     # Loading the information file
     path_retrieval_infor = os.path.join(pathsave, "Phase_retrieval_information.txt")
-    pr_infor = BCDI_Information(path_retrieval_infor)
+    pr_infor = InformationFileIO(path_retrieval_infor)
     if not os.path.exists(path_retrieval_infor):
-        trial_num = 1
+        if os.path.exists(path_scan_infor):
+            scan_infor = InformationFileIO(path_scan_infor)
+            pr_infor.copy_para_file(scan_infor, para_name_list, 'General Information')
+        else:
+            print('Could not find the desired scan parameter file! Generate the file with desired parameters!')
+            pr_infor.gen_empty_para_file(para_name_list, 'General Information')
+            assert False, 'Please fill the parameter file first, which is stored in the pathsave folder.'
     else:
         pr_infor.infor_reader()
-        trial_num = pr_infor.get_para_value('total_trial_num') + 1
+
+    pr_file = PhaseRetrievalWidget(pathsave, trial_num, data_description, mode='w')
+    print('Loading the measured intensity')
+    
+    pr_file.load_para_from_infor_file(path_retrieval_infor, para_name_list)
+
+    zd, yd, xd = pr_file.get_para('data_shape')
+    if data_description == 'reciprocal_space_map':
+        unit = float(pr_infor.get_para_value('RSM_unit'))
+    elif data_description == 'stacked_detector_images':
+        unit = float(pr_infor.get_para_value('DC_unit'))
+
 
     filenames = []
     for filename in os.listdir(pathPyNXfolder):
@@ -97,12 +94,12 @@ def plot_pynx_results():
     pathPRresult = os.path.join(pathPyNXfolder, filenames[0])
     tempimgfile = h5py.File(pathPRresult, "r")
     Para_group = tempimgfile['entry_last/image_1/process_1/configuration']
-    SeedNum = len(filenames)
-    rebin = np.array(Para_group['rebin'])
-    nb_er = np.array(Para_group['nb_er'])
-    nb_hio = np.array(Para_group['nb_hio'])
-    nb_raar = np.array(Para_group['nb_raar'])
-    roi_final = np.array(list(Para_group['roi_final']), dtype=int)
+    pr_file.add_para('nb_run', len(filenames))
+    para_name_list = [
+        'rebin', 'nb_er', 'nb_hio', 'nb_raar',
+        'roi_final', 'psf', 'support', 'RSM_unit']
+    roi_final = pr_file.get_para('roi_final')
+    pr_file.load_image_data(intensity_file, mask_file, roi_final)
     use_mask = True
     support_type = np.array(Para_group['support'])
     if np.array(Para_group['support']) == b'auto':
@@ -118,48 +115,10 @@ def plot_pynx_results():
         support_update = False
     tempimgfile.close()
 
-    pathsaveimg = os.path.join(pathsave, "Trial%02d.h5" % trial_num)
-    imgfile = h5py.File(pathsaveimg, "w")
 
-    print('Loading the measured intensity')
-    image = np.load(pathread)['data']
-    MaskFFT = np.load(pathmask)['data']
-    image = image[roi_final[0]:roi_final[1], roi_final[2]:roi_final[3], roi_final[4]:roi_final[5]]
-    zd, yd, xd = image.shape
-    MaskFFT = MaskFFT[roi_final[0]:roi_final[1], roi_final[2]:roi_final[3], roi_final[4]:roi_final[5]]
 
-    imgfile.attrs['year'] = year
-    imgfile.attrs['beamtimeID'] = beamtimeID
-    imgfile.attrs['scan'] = scan
-    imgfile.attrs['p10_newfile'] = p10_newfile
-    imgfile.attrs['method_selected'] = method_selected
-    imgfile.attrs['omega'] = omega
-    imgfile.attrs['delta'] = delta
-    imgfile.attrs['omegastep'] = omegastep
-    imgfile.attrs['unit'] = unit
-    imgfile.attrs['distance'] = distance
-    imgfile.attrs['energy'] = energy
-    imgfile.attrs['pixelsize'] = pixelsize
-    imgfile.attrs['pathread'] = pathread
-    imgfile.attrs['pathmask'] = pathmask
-    imgfile.attrs['trial_num'] = trial_num
-    imgfile.attrs['data_shape'] = image.shape
-    imgfile.attrs['SeedNum'] = SeedNum
-    imgfile.attrs['rebin'] = rebin
-    imgfile.attrs['nb_er'] = nb_er
-    imgfile.attrs['nb_hio'] = nb_hio
-    imgfile.attrs['nb_raar'] = nb_raar
-    imgfile.attrs['roi_final'] = roi_final
-    imgfile.attrs['support_type'] = support_type
-    imgfile.attrs['support_update'] = support_update
-    if support_update:
-        imgfile.attrs['support_smooth_width_begin'] = support_smooth_width_begin
-        imgfile.attrs['support_smooth_width_end'] = support_smooth_width_end
-        imgfile.attrs['support_smooth_width_relax_n'] = support_smooth_width_relax_n
-        imgfile.attrs['support_threshold_method'] = support_threshold_method
-        imgfile.attrs['support_update_period'] = support_update_period
-        imgfile.attrs['support_threshold'] = thrpara
-        imgfile.attrs['support_threshold_method'] = support_threshold_method
+
+
     imgfile.attrs['flip_condition'] = flip_condition
     imgfile.attrs['first_seed_flip'] = first_seed_flip
     imgfile.create_dataset("Input/intensity", data=image, dtype='f', chunks=(1, yd, xd), compression="gzip")

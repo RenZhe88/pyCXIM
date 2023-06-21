@@ -9,6 +9,7 @@ Created on Thu Apr 27 13:50:07 2023
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import measurements
+import os
 
 
 def check_cut_box_size(bs, peak_pos, data_shape):
@@ -264,6 +265,7 @@ def RSM2vti(pathsave, RSM_dataset, filename, RSM_unit, origin=(0, 0, 0)):
     import vtk
     from vtk.util.numpy_support import numpy_to_vtk
 
+    pathsave = os.path.join(pathsave, filename)
     imdata = vtk.vtkImageData()
     imdata.SetOrigin(origin[0], origin[1], origin[2])
     imdata.SetSpacing(RSM_unit, RSM_unit, RSM_unit)

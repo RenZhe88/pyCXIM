@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['scripts\\phase_retrieval\\phase_retrieval_Maxwell_step2.py', '..\\X-ray diffraction\\CDI\\Common\\CDI_preparation_dev_20230530.py', 'pyCXIM\\phase_retrieval\\phase_retrieval_widget.py']
+recent_files = ['pyCXIM\\p08_scan_reader\\p08_scan_reader.py', 'pyCXIM\\p08_scan_reader\\p08_eiger_reader.py', 'scripts\\p10_related\\P08_mesh_Scan.py', 'scripts\\RSM_conversion\\P08_2C.py', 'scripts\\p10_related\\P08_Scan.py']
 
 [main]
 version = 0.2.0

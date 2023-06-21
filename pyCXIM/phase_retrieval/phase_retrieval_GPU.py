@@ -16,7 +16,7 @@ import sys
 from scipy.special import gammaln
 import re
 import torch
-
+from skimage.morphology import convex_hull_image
 
 class PhaseRetrievalFuns():
     """
@@ -84,15 +84,19 @@ class PhaseRetrievalFuns():
 
         # generate or import the starting image for the phase retrieval process
         if starting_img is not None:
+            print('Given starting image used.')
             self.img = np.array(starting_img, dtype=complex)
         else:
+            print('Random starting image used.')
             np.random.seed(seed=Seed)
             self.img = np.fft.ifftn(np.multiply(self.ModulusFFT, np.exp(1j * np.random.rand(*self.ModulusFFT.shape) * 2 * np.pi)))
 
         # generate according to the autocorrelation or import the starting support
         if support is not None:
+            print('Given starting support used.')
             self.support = np.array(support, dtype=float)
         else:
+            print('Starting support estimated from the autocorrelation function.')
             self.support = np.zeros_like(self.ModulusFFT, dtype=float)
             Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
             threshold = 4.0 / 1000.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
@@ -175,10 +179,10 @@ class PhaseRetrievalFuns():
 
         """
         img = img.unsqueeze(0).unsqueeze(0)
-        kernel_size = int(12.0 * sigma)
+        kernel_size = int(round(14.0 * sigma))
         if kernel_size % 2 == 0:
             kernel_size += 1
-        x = torch.linspace(-(kernel_size // 2), kernel_size // 2, kernel_size, dtype=torch.float64, device=self.device)
+        x = torch.linspace(-(kernel_size // 2), (kernel_size // 2), kernel_size, dtype=torch.float64, device=self.device)
         gaussian1d = torch.exp(-torch.square(x / sigma) / 2)
         gaussian1d = gaussian1d / torch.sum(gaussian1d)
         for i in range(self.dim):
@@ -274,15 +278,43 @@ class PhaseRetrievalFuns():
         return
 
     def DETWIN(self, axis=0):
-        zd, yd, xd = self.img.size()
+        """
+        Remove part of the reconstructed image to reduce the effect of twinning in the reconstruction.
+
+        Parameters
+        ----------
+        axis : Union(int,turple), optional
+            The axis for half cutting the images. The default is 0.
+
+        Returns
+        -------
+        None.
+
+        """
         if isinstance(axis, int):
             axis = (axis,)
-        if 0 in axis:
-            self.img[int(zd / 2):, :, :] = 0
-        if 1 in axis:
-            self.img[:, int(yd / 2):, :] = 0
-        if 2 in axis:
-            self.img[:, :, int(xd / 2):] = 0
+        if self.dim == 2:
+            yd, xd = self.img.size()
+
+            if 0 in axis:
+                self.img[int(yd / 2):, :] = 0
+            if 1 in axis:
+                self.img[:, int(xd / 2):] = 0
+        elif self.dim == 3:
+            zd, yd, xd = self.img.size()
+
+            if 0 in axis:
+                self.img[int(zd / 2):, :, :] = 0
+            if 1 in axis:
+                self.img[:, int(yd / 2):, :] = 0
+            if 2 in axis:
+                self.img[:, :, int(xd / 2):] = 0
+        return
+
+    def ConvexSup(self):
+        self.support = self.support.cpu().numpy()
+        self.support = np.array(convex_hull_image(self.support), dtype=float)
+        self.support = torch.from_numpy(self.support).to(self.device)
         return
 
     def HIO(self, num_HIO_loop):
@@ -497,7 +529,7 @@ class PhaseRetrievalFuns():
 
         Should be used only after the phase retrieval calculation is finished.
         when the end function tranfers the result from GPU to memory.
-        Phase unwrap should be performed afterwards
+        Phase unwrap should be performed afterwards.
 
         Returns
         -------
@@ -634,7 +666,7 @@ class PhaseRetrievalFuns():
         Example
         -------
         Algorithm_expander((HIO**50)**2*ER**10*Sup)
-        [(HIO, 50), (HIO, 50), (ER, 10), (Sup, 0), (End, 0)]
+        [(HIO, 50), (HIO, 50), (ER, 10), (Sup, 1), (End, 1)]
 
         Returns
         -------
@@ -656,7 +688,7 @@ class PhaseRetrievalFuns():
             if bool(re.match(pattern1, level0.group())):
                 steps.append((re.findall(pattern1, level0.group())[0][0], int(re.findall(pattern1, level0.group())[0][1])))
             elif bool(re.match(pattern2, level0.group())):
-                steps.append((re.findall(pattern2, level0.group())[0], 0))
+                steps.append((re.findall(pattern2, level0.group())[0], 1))
             elif bool(re.match(pattern3, level0.group())):
                 algorithm1, loopnum1 = re.findall(pattern3, level0.group())[0]
                 for i in range(int(loopnum1)):
@@ -664,8 +696,8 @@ class PhaseRetrievalFuns():
                         if bool(re.match(pattern1, level1.group())):
                             steps.append((re.findall(pattern1, level1.group())[0][0], int(re.findall(pattern1, level1.group())[0][1])))
                         elif bool(re.match(pattern2, level1.group())):
-                            steps.append((re.findall(pattern2, level1.group())[0], 0))
-        steps.append(('End', 0))
+                            steps.append((re.findall(pattern2, level1.group())[0], 1))
+        steps.append(('End', 1))
         return steps
 
 

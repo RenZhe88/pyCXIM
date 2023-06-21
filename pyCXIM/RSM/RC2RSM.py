@@ -284,7 +284,7 @@ class RC2RSM_6C():
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    corners_q[corner_num, :] = self.cal_rel_q_pos([scan_range[i], roi[j], roi[k]], cch)
+                    corners_q[corner_num, :] = self.cal_rel_q_pos([scan_range[i], roi[j], roi[k + 2]], cch)
                     corner_num += 1
         q_origin = np.amin(corners_q, axis=0) * self.units
         new_shape = (np.ptp(corners_q, axis=0) / rebinfactor).astype(int)
@@ -527,7 +527,7 @@ class RC2RSM_2C():
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    corners_q[corner_num, :] = self.cal_rel_q_pos([om_range[i], roi[j], roi[k]], cch)
+                    corners_q[corner_num, :] = self.cal_rel_q_pos([om_range[i], roi[j], roi[k + 2]], cch)
                     corner_num += 1
         q_origin = np.amin(corners_q, axis=0) * self.units
         new_shape = (np.ptp(corners_q, axis=0) / rebinfactor).astype(int)
@@ -575,7 +575,7 @@ class RC2RSM_2C():
         if self.geometry == 'out_of_plane':
             offset = np.array([zd / 2.0, yd / 2.0]) - np.dot(inv_Coords_transform, np.array([nz / 2.0, nx / 2.0]))
             for X in np.arange(ny):
-                intensity2d = dataset[:, :, int((ny / 2 - X) * rebinfactor + xd / 2 - 0.5)]
+                intensity2d = dataset[:, :, int((ny - 1 - X) * rebinfactor + (xd / 2) % rebinfactor)]
                 intensity2dinterpolation = affine_transform(intensity2d, inv_Coords_transform, offset=offset, output_shape=(nz, nx), order=3, mode='constant', cval=cval, output=float, prefilter=prefilter)
                 intensityfinal[:, X, :] = intensity2dinterpolation
                 sys.stdout.write('\rprogress:%d%%' % ((X + 1) * 100.0 / ny))
@@ -583,7 +583,7 @@ class RC2RSM_2C():
         elif self.geometry == 'in_plane':
             offset = np.array([zd / 2.0, xd / 2.0]) - np.dot(inv_Coords_transform, np.array([nz / 2.0, nx / 2.0]))
             for Y in np.arange(ny):
-                intensity2d = dataset[:, int((ny / 2 - Y) * rebinfactor + yd / 2 - 0.5), :]
+                intensity2d = dataset[:, int((ny - 1 - Y) * rebinfactor + (yd / 2) % rebinfactor), :]
                 intensity2dinterpolation = affine_transform(intensity2d, inv_Coords_transform, offset=offset, output_shape=(nz, nx), order=3, mode='constant', cval=cval, output=float, prefilter=prefilter)
                 intensityfinal[:, Y, :] = intensity2dinterpolation
                 sys.stdout.write('\rprogress:%d%%' % ((Y + 1) * 100.0 / ny))

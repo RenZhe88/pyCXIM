@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Read and treat the p10 scans with eiger detectors.
+Read and treat the p08 scans with eiger detectors.
 Created on Thu Apr 27 15:33:21 2023
 
 @author: renzhe
@@ -13,23 +13,23 @@ import hdf5plugin
 import h5py
 from scipy.ndimage import measurements
 import matplotlib.pyplot as plt
-from .p10_scan_reader import P10Scan
+from .p08_scan_reader import P08Scan
 
 
-class P10EigerScan(P10Scan):
+class P08EigerScan(P08Scan):
     """
-    Read and treat the scans with eiger detector. It is a child class of p10_scan.
+    Read and treat the scans with eiger detector. It is a child class of p08_scan.
 
     Parameters
     ----------
     path : str
         The path for the raw file folder.
-    p10_file : str
-        The name of the sample defined by the p10_newfile name in the system.
+    p08_file : str
+        The name of the sample defined by the p08_newfile name in the system.
     scan : int
         The scan number.
     detector : str, optional
-        The name of the detecter, it can be either 'e4m' or 'e500'. The default is 'e4m'.
+        The name of the detecter, it can be either 'eiger1m' or 'e500'. The default is 'eiger1m'.
     pathsave : str, optional
         The folder to save the results, if not given no results will be saved. The default is ''.
     pathmask : str, optional
@@ -43,22 +43,17 @@ class P10EigerScan(P10Scan):
 
     """
 
-    def __init__(self, path, p10_file, scan, detector='e4m', pathsave='', pathmask='', creat_save_folder=True):
-        super().__init__(path, p10_file, scan, pathsave, creat_save_folder)
+    def __init__(self, path, p08_file, scan, detector='eiger1m', pathsave='', pathmask='', creat_save_folder=True):
+        super().__init__(path, p08_file, scan, pathsave, creat_save_folder)
         self.detector = detector
         self.path_eiger_folder = os.path.join(self.path, self.detector)
         self.path_eiger_img = os.path.join(self.path_eiger_folder, "%s_%05d_data_%06d.h5")
-        self.path_eiger_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.p10_file, self.scan, self.detector))
+        self.path_eiger_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.p08_file, self.scan, self.detector))
         assert os.path.exists(self.path_eiger_folder), 'The image folder for %s images %s does not exist, please check the path again!' % (self.detector, self.path_eiger_folder)
-        if self.detector == 'e4m':
-            self.detector_size = (2167, 2070)
-        elif self.detector == 'e500':
-            self.detector_size = (514, 1030)
+        if self.detector == 'eiger1m':
+            self.detector_size = (1062, 1028)
+
         self.eiger_load_mask(pathmask)
-        if len(os.listdir(self.path_eiger_folder)) == (self.npoints // 2000 + 2) or len(os.listdir(self.path_eiger_folder)) == 3:
-            self.img_per_point = 'one'
-        elif len(os.listdir(self.path_eiger_folder)) == (self.npoints + 1):
-            self.img_per_point = 'multiple'
 
     def eiger_load_mask(self, pathmask="", threshold=1.0e7):
         """
@@ -87,7 +82,7 @@ class P10EigerScan(P10Scan):
         else:
             print('Could not find the predefined mask, Generate the mask according to the first image in the scan')
             self.mask = np.zeros((self.detector_size[0], self.detector_size[1]))
-        pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, 1)
+        pathimg = (self.path_eiger_img) % (self.p08_file, self.scan, 1)
         f = h5py.File(pathimg, "r")
         dataset = f['entry/data/data']
         image = np.array(dataset[0, :, :], dtype=float)
@@ -236,16 +231,10 @@ class P10EigerScan(P10Scan):
         assert img_index < self.npoints, 'The image number wanted is larger than the total image number in the scan!'
         img_index = int(img_index)
 
-        if self.img_per_point == 'one':
-            pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, img_index // 2000 + 1)
-            f = h5py.File(pathimg, "r")
-            dataset = f['entry/data/data']
-            image = np.array(dataset[img_index % 2000, :, :], dtype=float)
-        elif self.img_per_point == 'multiple':
-            pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, img_index + 1)
-            f = h5py.File(pathimg, "r")
-            dataset = f['entry/data/data']
-            image = np.sum(f['entry/data/data'], axis=0)
+        pathimg = (self.path_eiger_img) % (self.p08_file, self.scan, img_index // 2000 + 1)
+        f = h5py.File(pathimg, "r")
+        dataset = f['entry/data/data']
+        image = np.array(dataset[img_index % 2000, :, :], dtype=float)
 
         if mask_correction:
             image = self.eiger_mask_correction(image)
@@ -288,7 +277,7 @@ class P10EigerScan(P10Scan):
         cen : list
             The center of the diffraction peak on the detector.
         width : list
-            The symmetric width to be cutted in the [Y, X] or [Ymin, Ymax, Xmin, Xmax] form.
+            The symmetric width to be cutted in the [Y, X] form.
 
         Returns
         -------
@@ -371,25 +360,17 @@ class P10EigerScan(P10Scan):
 
         dataset = np.zeros((self.npoints, roi[1] - roi[0], roi[3] - roi[2]))
         pch = np.zeros(3, dtype=int)
-        current_petra = self.get_scan_data('curpetra')
-        current_petra = current_petra / np.round(np.average(current_petra))
-        if self.img_per_point == 'one':
-            for i in range(self.npoints):
-                pathimg = self.path_eiger_img % (self.p10_file, self.scan, i // 2000 + 1)
-                f = h5py.File(pathimg, "r")
-                image = np.array(f['entry/data/data'][i % 2000, :, :], dtype=float)
-                image = self.eiger_mask_correction(image)
-                dataset[i, :, :] = image[roi[0]:roi[1], roi[2]:roi[3]] / current_petra[i]
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
-        elif self.img_per_point == 'multiple':
-            for i in range(self.npoints):
-                f = h5py.File(self.path_eiger_img % (self.p10_file, self.scan, i + 1), "r")
-                image = np.sum(f['entry/data/data'], axis=0, dtype=float)
-                image = self.eiger_mask_correction(image)
-                dataset[i, :, :] = image[roi[0]:roi[1], roi[2]:roi[3]] / current_petra[i]
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
+        ion_bl_int = self.get_scan_data('ion_bl')
+        ion_bl_int = ion_bl_int / np.round(np.average(ion_bl_int))
+
+        for i in range(self.npoints):
+            pathimg = self.path_eiger_img % (self.p08_file, self.scan, i // 2000 + 1)
+            f = h5py.File(pathimg, "r")
+            image = np.array(f['entry/data/data'][i % 2000, :, :], dtype=float)
+            image = self.eiger_mask_correction(image)
+            dataset[i, :, :] = image[roi[0]:roi[1], roi[2]:roi[3]] / ion_bl_int[i]
+            sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
+            sys.stdout.flush()
         print()
 
         roi_int = np.sum(dataset, axis=(1, 2))
@@ -441,6 +422,7 @@ class P10EigerScan(P10Scan):
 
         """
         print('Loading data....')
+        assert (len(width) == 2 or len(width) == 4), 'The cut width must contain either two or four integer numbers!'
         dataset = np.zeros((self.npoints, self.detector_size[0], self.detector_size[1]))
         if roi is None:
             roi = [0, self.detector_size[0], 0, self.detector_size[1]]
@@ -450,25 +432,18 @@ class P10EigerScan(P10Scan):
             roi = self.eiger_roi_check(roi)
 
         pch = np.zeros(3, dtype=int)
-        current_petra = self.get_scan_data('curpetra')
-        current_petra = current_petra / np.round(np.average(current_petra))
-        if self.img_per_point == 'one':
-            for i in range(self.npoints):
-                pathimg = self.path_eiger_img % (self.p10_file, self.scan, i // 2000 + 1)
-                f = h5py.File(pathimg, "r")
-                image = np.array(f['entry/data/data'][i % 2000, :, :], dtype=float)
-                image = self.eiger_mask_correction(image)
-                dataset[i, :, :] = image / current_petra[i]
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
-        elif self.img_per_point == 'multiple':
-            for i in range(self.npoints):
-                f = h5py.File(self.path_eiger_img % (self.p10_file, self.scan, i + 1), "r")
-                image = np.sum(f['entry/data/data'], axis=0, dtype=float)
-                image = self.eiger_mask_correction(image)
-                dataset[i, :, :] = image / current_petra[i]
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
+        ion_bl_int = self.get_scan_data('ion_bl')
+        ion_bl_int = ion_bl_int / np.round(np.average(ion_bl_int))
+
+        for i in range(self.npoints):
+            pathimg = self.path_eiger_img % (self.p08_file, self.scan, i // 2000 + 1)
+            f = h5py.File(pathimg, "r")
+            image = np.array(f['entry/data/data'][i % 2000, :, :], dtype=float)
+            image = self.eiger_mask_correction(image)
+            dataset[i, :, :] = image / ion_bl_int[i]
+            sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
+            sys.stdout.flush()
+
         print()
         if show_cen_image:
             plt.imshow(np.log10(dataset[int(self.npoints / 2), :, :] + 1.0), cmap='jet')
@@ -534,34 +509,19 @@ class P10EigerScan(P10Scan):
         img_sum = np.zeros((self.detector_size[0], self.detector_size[1]))
         rois_int = np.zeros((self.npoints, num_of_rois + 1))
 
-        if self.img_per_point == 'one':
-            for i in range(self.npoints):
-                pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, i // 2000 + 1)
-                f = h5py.File(pathimg, "r")
-                dataset = f['entry/data/data']
-                image = np.array(dataset[i % 2000, :, :], dtype=float)
-                image = self.eiger_mask_correction(image)
-                rois_int[i, 0] = np.sum(image[:, :])
-                for j in range(num_of_rois):
-                    roi = rois[j, :]
-                    rois_int[i, j + 1] = np.sum(image[roi[0]:roi[1], roi[2]:roi[3]])
-                img_sum += image
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
-        elif self.img_per_point == 'multiple':
-            for i in range(self.npoints):
-                pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, i + 1)
-                f = h5py.File(pathimg, "r")
-                dataset = f['entry/data/data']
-                image = np.sum(f['entry/data/data'], axis=0)
-                image = self.eiger_mask_correction(image)
-                rois_int[i, 0] = np.sum(image[:, :])
-                for j in range(num_of_rois):
-                    roi = rois[j, :]
-                    rois_int[i, j + 1] = np.sum(image[roi[0]:roi[1], roi[2]:roi[3]])
-                img_sum += image
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
+        for i in range(self.npoints):
+            pathimg = (self.path_eiger_img) % (self.p08_file, self.scan, i // 2000 + 1)
+            f = h5py.File(pathimg, "r")
+            dataset = f['entry/data/data']
+            image = np.array(dataset[i % 2000, :, :], dtype=float)
+            image = self.eiger_mask_correction(image)
+            rois_int[i, 0] = np.sum(image[:, :])
+            for j in range(num_of_rois):
+                roi = rois[j, :]
+                rois_int[i, j + 1] = np.sum(image[roi[0]:roi[1], roi[2]:roi[3]])
+            img_sum += image
+            sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
+            sys.stdout.flush()
 
         print('')
         self.add_scan_data('%s_full' % self.detector, rois_int[:, 0])
@@ -594,26 +554,15 @@ class P10EigerScan(P10Scan):
         if sum_img_num is None:
             sum_img_num = self.npoints
 
-        if self.img_per_point == 'one':
-            for i in range(sum_img_num):
-                pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, i // 2000 + 1)
-                f = h5py.File(pathimg, "r")
-                dataset = f['entry/data/data']
-                image = np.array(dataset[i % 2000, :, :], dtype=float)
-                image = self.eiger_mask_correction(image)
-                img_sum += image
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
-        elif self.img_per_point == 'multiple':
-            for i in range(sum_img_num):
-                pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, i + 1)
-                f = h5py.File(pathimg, "r")
-                dataset = f['entry/data/data']
-                image = np.sum(f['entry/data/data'], axis=0)
-                image = self.eiger_mask_correction(image)
-                img_sum += image
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
+        for i in range(sum_img_num):
+            pathimg = (self.path_eiger_img) % (self.p08_file, self.scan, i // 2000 + 1)
+            f = h5py.File(pathimg, "r")
+            dataset = f['entry/data/data']
+            image = np.array(dataset[i % 2000, :, :], dtype=float)
+            image = self.eiger_mask_correction(image)
+            img_sum += image
+            sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
+            sys.stdout.flush()
 
         print('')
         if self.pathsave != '' and save_img_sum:
@@ -648,42 +597,25 @@ class P10EigerScan(P10Scan):
         Y_pos = np.zeros(self.npoints)
         int_ar = np.zeros(self.npoints)
         img_sum = np.zeros((2 * cut_width[0] + 1, 2 * cut_width[1] + 1))
-        if self.img_per_point == 'one':
-            for i in range(self.npoints):
-                pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, i // 2000 + 1)
-                f = h5py.File(pathimg, "r")
-                dataset = f['entry/data/data']
-                image = np.array(dataset[i % 2000, :, :], dtype=float)
-                image = self.eiger_mask_correction(image)
-                Y_pos[i], X_pos[i] = np.unravel_index(np.argmax(image), image.shape)
-                Y_pos[i] = np.clip(Y_pos[i], cut_width[0], self.detector_size[0] - cut_width[0] - 1)
-                X_pos[i] = np.clip(X_pos[i], cut_width[1], self.detector_size[1] - cut_width[1] - 1)
-                Y_shift, X_shift = measurements.center_of_mass(image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)])
-                Y_pos[i] = Y_pos[i] + Y_shift - cut_width[0]
-                X_pos[i] = X_pos[i] + X_shift - cut_width[1]
-                if save_img_sum:
-                    img_sum += image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)]
-                int_ar[i] = np.sum(image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)])
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
-        elif self.img_per_point == 'multiple':
-            for i in range(self.npoints):
-                pathimg = (self.path_eiger_img) % (self.p10_file, self.scan, i + 1)
-                f = h5py.File(pathimg, "r")
-                dataset = f['entry/data/data']
-                image = np.sum(f['entry/data/data'], axis=0)
-                image = self.eiger_mask_correction(image)
-                Y_pos[i], X_pos[i] = np.unravel_index(np.argmax(image), image.shape)
-                Y_pos[i] = np.clip(Y_pos[i], cut_width[0], self.detector_size[0] - cut_width[0] - 1)
-                X_pos[i] = np.clip(X_pos[i], cut_width[1], self.detector_size[1] - cut_width[1] - 1)
-                Y_shift, X_shift = measurements.center_of_mass(image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)])
-                Y_pos[i] = Y_pos[i] + Y_shift - cut_width[0]
-                X_pos[i] = X_pos[i] + X_shift - cut_width[1]
-                if save_img_sum:
-                    img_sum += image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)]
-                int_ar[i] = np.sum(image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)])
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
+
+        for i in range(self.npoints):
+            pathimg = (self.path_eiger_img) % (self.p08_file, self.scan, i // 2000 + 1)
+            f = h5py.File(pathimg, "r")
+            dataset = f['entry/data/data']
+            image = np.array(dataset[i % 2000, :, :], dtype=float)
+            image = self.eiger_mask_correction(image)
+            Y_pos[i], X_pos[i] = np.unravel_index(np.argmax(image), image.shape)
+            Y_pos[i] = np.clip(Y_pos[i], cut_width[0], self.detector_size[0] - cut_width[0] - 1)
+            X_pos[i] = np.clip(X_pos[i], cut_width[1], self.detector_size[1] - cut_width[1] - 1)
+            Y_shift, X_shift = measurements.center_of_mass(image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)])
+            Y_pos[i] = Y_pos[i] + Y_shift - cut_width[0]
+            X_pos[i] = X_pos[i] + X_shift - cut_width[1]
+            if save_img_sum:
+                img_sum += image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)]
+            int_ar[i] = np.sum(image[int(Y_pos[i] - cut_width[0]):int(Y_pos[i] + cut_width[0] + 1), int(X_pos[i] - cut_width[1]):int(X_pos[i] + cut_width[1] + 1)])
+            sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
+            sys.stdout.flush()
+
         print()
         if self.pathsave != '' and save_img_sum:
             np.save(self.path_eiger_imgsum, img_sum)
@@ -725,25 +657,17 @@ class P10EigerScan(P10Scan):
 
         roi_int = np.zeros(self.npoints)
         pch = np.zeros(3)
-        current_petra = self.get_scan_data('curpetra')
-        current_petra = current_petra / np.round(np.average(current_petra))
-        if self.img_per_point == 'one':
-            for i in range(self.npoints):
-                pathimg = self.path_eiger_img % (self.p10_file, self.scan, i // 2000 + 1)
-                f = h5py.File(pathimg, "r")
-                image = np.array(f['entry/data/data'][i % 2000, :, :], dtype=float)
-                image = self.eiger_mask_correction(image)
-                roi_int[i] = np.sum(image[roi[0]:roi[1], roi[2]:roi[3]] / current_petra[i])
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
-        elif self.img_per_point == 'multiple':
-            for i in range(self.npoints):
-                f = h5py.File(self.path_eiger_img % (self.p10_file, self.scan, i + 1), "r")
-                image = np.sum(f['entry/data/data'], axis=0, dtype=float)
-                image = self.eiger_mask_correction(image)
-                roi_int[i] = np.sum(image[roi[0]:roi[1], roi[2]:roi[3]] / current_petra[i])
-                sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
-                sys.stdout.flush()
+        ion_bl_int = self.get_scan_data('ion_bl')
+        ion_bl_int = ion_bl_int / np.round(np.average(ion_bl_int))
+
+        for i in range(self.npoints):
+            pathimg = self.path_eiger_img % (self.p08_file, self.scan, i // 2000 + 1)
+            f = h5py.File(pathimg, "r")
+            image = np.array(f['entry/data/data'][i % 2000, :, :], dtype=float)
+            image = self.eiger_mask_correction(image)
+            roi_int[i] = np.sum(image[roi[0]:roi[1], roi[2]:roi[3]] / ion_bl_int[i])
+            sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
+            sys.stdout.flush()
 
         pch[0] = int(np.argmax(roi_int))
         image = self.eiger_load_single_image(pch[0])
@@ -778,12 +702,12 @@ class P10EigerScan(P10Scan):
         None.
 
         """
-        path_save_cxi = os.path.join(self.pathsave, '%s_%05d.cxi' % (self.p10_file, self.scan))
+        path_save_cxi = os.path.join(self.pathsave, '%s_%05d.cxi' % (self.p08_file, self.scan))
         print('Create cxi file: %s' % path_save_cxi)
         f = h5py.File(path_save_cxi, "w")
         f.attrs['file_name'] = path_save_cxi
         f.attrs['file_time'] = self.get_start_time().strftime("%Y-%m-%dT%H:%M:%S")
-        f.attrs['creator'] = 'p10'
+        f.attrs['creator'] = 'p08'
         f.attrs['HDF5_Version'] = h5py.version.hdf5_version
         f.attrs['h5py_version'] = h5py.version.version
         f.attrs['default'] = 'entry_1'
@@ -835,7 +759,7 @@ class P10EigerScan(P10Scan):
         else:
             iobs = detector_1.create_dataset("data", (int(np.sum(index_array)), cut_width[0] * 2, cut_width[1] * 2), chunks=(1, cut_width[0] * 2, cut_width[1] * 2), shuffle=True, compression="gzip")
         cut_width = self.eiger_cut_check(cen, cut_width)
-        petra_current = self.get_scan_data('curpetra')
+        petra_current = self.get_scan_data('ion_bl')
         petra_current = petra_current / np.round(np.average(petra_current))
         if index_array is None:
             for i in range(self.npoints):

@@ -34,21 +34,21 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"E:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00152\scan_0152_information.txt"
+path_scan_infor = r"E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\align_AuNP_00096\scan_0096_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
 data_description = 'cutqz'
-pathsave = r'E:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00152\cutqz'
+pathsave = r'E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\align_AuNP_00096\cutqz'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
-# algorithm = "(DIF**50)**2*(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**30"
-algorithm = "DIF**200*(RAAR**50*ER**10)**20"
+algorithm = "(DIF**50)**2*(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**30"
+# algorithm = "DIF**200*(RAAR**50*ER**10)**20"
 
 # Input: parameters for creating the initial suppport.
 # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-support_type = 'support_selected'
-support_from_trial = 1
+support_type = 'auto_correlation'
+support_from_trial = 0
 
 # If support_type is 'auto_correlation'
 auto_corr_thrpara = 0.004
@@ -62,7 +62,7 @@ modulus_smooth_width = 0.5
 path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00087\cutqz\Trial02.npz'
 
 # Input: starting image inherented from trial
-start_trial_num = 1
+start_trial_num = 0
 
 # Input: parameters for the free Log likelihood
 Free_LLK = False
@@ -75,9 +75,9 @@ threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
 thrpara_min = 0.08
-thrpara_max = 0.11
+thrpara_max = 0.12
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 1.0
+support_smooth_width_end = 0.9
 
 # Input: parameters for flipping the images to remove the trival solutions.
 # flip_condition = 'Support'
@@ -89,7 +89,7 @@ first_seed_flip = False
 further_analysis_selected = 10
 
 # Input: Parameters determining the display of the images
-display_range = [400, 400]
+display_range = [500, 500]
 display_image_num = 10
 # %% Load the image data and the mask
 
@@ -156,7 +156,7 @@ pr_file.plot_2D_result('Average_All', array_names, voxel_size, display_range,
                        'Average results of %d runs' % pr_file.get_para('nb_run'),
                        save_image=True, filename="Trial%d" % (trial_num))
 pr_file.plot_2D_intensity(save_image=True, filename="Intensity_difference_Trial%d.png" % (trial_num))
-pr_file.plot_error_matrix(save_image=True, filename="Error_Trial%d.png" % (trial_num))
+pr_file.plot_error_matrix(unit, save_image=True, filename="Error_Trial%d.png" % (trial_num))
 
 # %%Orthonormalization
 if data_description == 'cuty':
@@ -173,7 +173,7 @@ if data_description == 'cuty':
 pr_file.further_analysis(further_analysis_selected, error_type='Fourier space error')
 voxel_size = ((2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
 array_names = ('select_Modulus_sum', 'select_Phase_sum', 'select_Support_sum')
-pr_file.plot_2D_result('Selected_average', array_names, voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('selected_image_num'), save_image=True, filename="Trial%02d_selected_average" % trial_num)
+pr_file.plot_2D_result('Selected_average', array_names, voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected'), save_image=True, filename="Trial%02d_selected_average" % trial_num)
 if pr_file.get_para('further_analysis_method') == 'SVD':
     evalue = pr_file.get_dataset("SVD_analysis/evalue")
     array_names = ('Mode1_Modulus', 'Mode1_Phase', 'Mode2_Modulus', 'Mode2_Phase', 'Mode3_Modulus', 'Mode3_Phase')
@@ -185,7 +185,7 @@ if data_description == 'cuty':
     pr_file.ortho_2D_transform('Selected_average', array_names)
     Ortho_unit = pr_file.get_para('Ortho_unit')
     array_names = ('Ortho_select_Modulus_sum', 'Ortho_select_Phase_sum', 'Ortho_select_Support_sum')
-    pr_file.plot_2D_result('Ortho', array_names, Ortho_voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('selected_image_num'), save_image=True, filename="Trial%02d_ortho_selected_average" % trial_num)
+    pr_file.plot_2D_result('Ortho', array_names, Ortho_voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected'), save_image=True, filename="Trial%02d_ortho_selected_average" % trial_num)
     if pr_file.get_para('further_analysis_method') == 'SVD':
         array_names = ('Mode1_Modulus', 'Mode1_Phase', 'Mode2_Modulus', 'Mode2_Phase', 'Mode3_Modulus', 'Mode3_Phase')
         pr_file.ortho_2D_transform('SVD_analysis', array_names)
@@ -197,13 +197,13 @@ ending_time = time.time()
 pr_file.add_para('total_calculation_time', ending_time - starting_time)
 pr_file.save_para_list()
 section = 'General Information'
-pr_infor.add_para('total_trial_num', section, trial_num)
-pr_infor.infor_writer()
 para_name_list = [
     'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'data_description', 'omega',
     'delta', 'omegastep', 'detector_distance', 'energy', 'pixelsize', 'intensity_file',
-    'mask_file', 'pathsave', 'RSM_unit', 'DC_unit']
+    'mask_file', 'pathsave', 'RSM_unit', 'DC_unit', 'pynx_box_size']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
+pr_infor.add_para('total_trial_num', section, trial_num)
+pr_infor.infor_writer()
 
 section = 'Trial %02d' % trial_num
 para_name_list = [
@@ -216,5 +216,5 @@ para_name_list = [
     'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
     'support_update_loops', 'support_threshold_min', 'support_threshold_max',
     'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-    'further_analysis_selected', 'selected_image_num', 'further_analysis_method']
+    'further_analysis_selected', 'further_analysis_method']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)

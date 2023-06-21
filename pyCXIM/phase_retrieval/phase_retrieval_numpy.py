@@ -79,16 +79,20 @@ class PhaseRetrievalFuns():
         self.holderimg_RAAR = np.zeros_like(self.ModulusFFT, dtype=complex)
 
         if starting_img is not None:
+            print('Given starting image used.')
             self.img = np.array(starting_img, dtype=complex)
         else:
+            print('Random starting image used.')
             np.random.seed(seed=Seed)
-            self.img = np.fft.ifft2(np.multiply(self.ModulusFFT, np.exp(1j * np.random.rand(*self.ModulusFFT.shape) * 2 * np.pi)))
+            self.img = np.fft.ifftn(np.multiply(self.ModulusFFT, np.exp(1j * np.random.rand(*self.ModulusFFT.shape) * 2 * np.pi)))
 
         if support is not None:
+            print('Given starting support used.')
             self.support = np.array(support, dtype=float)
         else:
+            print('Starting support estimated from the autocorrelation function.')
             self.support = np.zeros_like(self.ModulusFFT, dtype=float)
-            Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fft2(self.intensity)))
+            Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
             threshold = 4.0 / 100.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
             self.support[Startautocorrelation >= threshold] = 1.0
 
@@ -206,9 +210,9 @@ class PhaseRetrievalFuns():
 
         for i in range(num_ER_loop):
             self.img = self.support * self.img
-            AmpFFT = np.fft.fft2(self.img)
+            AmpFFT = np.fft.fftn(self.img)
             AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * AmpFFT
-            self.img = np.fft.ifft2(AmpFFT)
+            self.img = np.fft.ifftn(AmpFFT)
         return
 
     def HIO(self, num_HIO_loop):
@@ -236,9 +240,9 @@ class PhaseRetrievalFuns():
 
         for i in range(num_HIO_loop):
             self.holderimg_HIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_HIO - self.img * para)
-            AmpFFT = np.fft.fft2(self.holderimg_HIO)
-            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fft2(self.support * self.img)
-            self.img = np.fft.ifft2(AmpFFT)
+            AmpFFT = np.fft.fftn(self.holderimg_HIO)
+            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fftn(self.support * self.img)
+            self.img = np.fft.ifftn(AmpFFT)
         return
 
     def NHIO(self, num_NHIO_loop):
@@ -268,9 +272,9 @@ class PhaseRetrievalFuns():
             self.holderimg_HIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_HIO - self.img * para)
             zero_select_con = np.logical_and(self.support == 0, np.abs(self.holderimg_HIO) < 3.0 * self.std_noise)
             self.holderimg_HIO[zero_select_con] = 0
-            AmpFFT = np.fft.fft2(self.holderimg_HIO)
-            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fft2(self.support * self.img)
-            self.img = np.fft.ifft2(AmpFFT)
+            AmpFFT = np.fft.fftn(self.holderimg_HIO)
+            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fftn(self.support * self.img)
+            self.img = np.fft.ifftn(AmpFFT)
         return
 
     def RAAR(self, num_RAAR_loop):
@@ -299,9 +303,9 @@ class PhaseRetrievalFuns():
         for i in range(num_RAAR_loop):
             para = para0 + (1.0 - para0) * (1.0 - np.exp(-(i / 12.0) ** 3.0))
             self.holderimg_RAAR = self.support * self.img + (1 - self.support) * (para * self.holderimg_RAAR + (1 - 2.0 * para) * self.img)
-            AmpFFT = np.fft.fft2(self.holderimg_RAAR)
-            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fft2(self.support * self.img)
-            self.img = np.fft.ifft2(AmpFFT)
+            AmpFFT = np.fft.fftn(self.holderimg_RAAR)
+            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fftn(self.support * self.img)
+            self.img = np.fft.ifftn(AmpFFT)
         return
 
     def ModulusProj(self, point):
@@ -319,9 +323,9 @@ class PhaseRetrievalFuns():
             Updated imaged after modulus projection (data with complex type).
 
         """
-        AmpFFT = np.fft.fft2(point)
+        AmpFFT = np.fft.fftn(point)
         AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * AmpFFT
-        point = np.fft.ifft2(AmpFFT)
+        point = np.fft.ifftn(AmpFFT)
         return point
 
     def SupProj(self, point):
@@ -446,7 +450,7 @@ class PhaseRetrievalFuns():
             Modulus of the reconstructed intensity (data with float type).
 
         """
-        return np.abs(np.fft.fftshift(np.fft.fft2(self.img * self.support)))
+        return np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support)))
 
     def get_FFT_amplitude(self):
         """
@@ -461,7 +465,7 @@ class PhaseRetrievalFuns():
             Amplitude of the reconstructed intensity (data with complex type).
 
         """
-        return np.fft.fftshift(np.fft.fft2(self.img * self.support))
+        return np.fft.fftshift(np.fft.fftn(self.img * self.support))
 
     def get_intensity(self):
         """
@@ -476,7 +480,7 @@ class PhaseRetrievalFuns():
             The reconstructed intensity (data with float type).
 
         """
-        return np.square(np.abs(np.fft.fftshift(np.fft.fft2(self.img * self.support))))
+        return np.square(np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support))))
 
     def get_support_size(self):
         """
@@ -503,7 +507,7 @@ class PhaseRetrievalFuns():
             Fourier space error of the result reconstruction.
 
         """
-        error = np.sum(np.square(np.abs(np.fft.fft2(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / np.sum(np.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
+        error = np.sum(np.square(np.abs(np.fft.fftn(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / np.sum(np.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
         return error
 
     def get_Poisson_Likelihood(self):
