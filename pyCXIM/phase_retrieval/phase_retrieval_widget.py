@@ -499,6 +499,9 @@ class PhaseRetrievalWidget():
 
         """
         imgfile = h5py.File(self.pathsaveimg, "r+")
+        image = np.array(imgfile["Input/intensity"], dtype=float)
+        MaskFFT = np.array(imgfile["Input/mask"], dtype=float)
+
         SeedNum = self.para_dict['nb_run']
         if further_analysis_selected <= SeedNum:
             selected_image_num = int(further_analysis_selected)
@@ -535,6 +538,8 @@ class PhaseRetrievalWidget():
             Mode3 = np.zeros(data_shape, dtype=complex)
             Avr_Modulus = np.zeros(data_shape, dtype=float)
             Avr_Phase = np.zeros(data_shape, dtype=float)
+            Avr_Img = np.zeros(data_shape, dtype=np.complex128)
+            Avr_intensity = np.zeros(data_shape, dtype=float)
 
             for i, Seed in enumerate(Seed_selected):
                 Img = np.array(imgfile['Solutions/Seed%03d/image' % Seed], dtype=complex)
@@ -543,6 +548,8 @@ class PhaseRetrievalWidget():
                 result_matrix[:, i] = np.multiply(Modulus, np.exp(1j * Phase))[support == 1]
                 Avr_Modulus = Avr_Modulus + Modulus
                 Avr_Phase = Avr_Phase + Phase
+                Avr_Img = Avr_Img + np.multiply(Modulus, np.exp(1j * Phase))
+                Avr_intensity = Avr_intensity + np.square(np.abs(np.fft.fftshift(np.fft.fftn(Img * support))))
 
             try:
                 import torch
@@ -568,12 +575,19 @@ class PhaseRetrievalWidget():
             evalue = evalue / np.sum(evalue)
             Avr_Modulus = Avr_Modulus / selected_image_num
             Avr_Phase = Avr_Phase / selected_image_num
+            Avr_Img = Avr_Img / selected_image_num
+            Avr_intensity = Avr_intensity / selected_image_num
+            PRTF = pp.cal_PRTF(image, Avr_Img, MaskFFT)
 
             self.para_dict['further_analysis_selected'] = selected_image_num
             self.para_dict['further_analysis_method'] = further_analysis_method
-            imgfile.create_dataset("Selected_average/select_Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("Selected_average/select_Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("Selected_average/select_Support_sum", data=support, dtype='float', chunks=chunks_size, compression="gzip")
+            self.para_dict['error_for_further_analysis_selection'] = error_type
+            imgfile.create_dataset("Selected_average/Img_sum", data=Avr_Img, dtype='complex128', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/Support_sum", data=support, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/intensity_sum", data=Avr_intensity, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/phase_retrieval_transfer_function", data=PRTF, dtype='float')
             imgfile.create_dataset("SVD_analysis/Mode1_Modulus", data=Mode1_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("SVD_analysis/Mode1_Phase", data=Mode1_Phase, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("SVD_analysis/Mode2_Modulus", data=Mode2_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
@@ -586,6 +600,8 @@ class PhaseRetrievalWidget():
             Avr_Modulus = np.zeros(data_shape, dtype=float)
             Avr_Phase = np.zeros(data_shape, dtype=float)
             Avr_support = np.zeros(data_shape, dtype=float)
+            Avr_Img = np.zeros(data_shape, dtype=np.complex128)
+            Avr_intensity = np.zeros(data_shape, dtype=float)
 
             for Seed in Seed_selected:
                 Img = np.array(imgfile['Solutions/Seed%03d/image' % Seed], dtype=complex)
@@ -595,16 +611,25 @@ class PhaseRetrievalWidget():
                 Avr_Modulus = Avr_Modulus + Modulus
                 Avr_Phase = Avr_Phase + Phase
                 Avr_support = Avr_support + support
+                Avr_Img = Avr_Img + np.multiply(Modulus, np.exp(1j * Phase))
+                Avr_intensity = Avr_intensity + np.square(np.abs(np.fft.fftshift(np.fft.fftn(Img * support))))
 
             Avr_Modulus = Avr_Modulus / selected_image_num
             Avr_Phase = Avr_Phase / selected_image_num
             Avr_support = Avr_support / selected_image_num
+            Avr_Img = Avr_Img / selected_image_num
+            Avr_intensity = Avr_intensity / selected_image_num
+            PRTF = pp.cal_PRTF(image, Avr_Img, MaskFFT)
 
             self.para_dict['further_analysis_selected'] = selected_image_num
             self.para_dict['further_analysis_method'] = further_analysis_method
-            imgfile.create_dataset("Selected_average/select_Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("Selected_average/select_Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("Selected_average/select_Support_sum", data=Avr_support, dtype='float', chunks=chunks_size, compression="gzip")
+            self.para_dict['error_for_further_analysis_selection'] = error_type
+            imgfile.create_dataset("Selected_average/Img_sum", data=Avr_Img, dtype='complex128', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/Support_sum", data=support, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/intensity_sum", data=Avr_intensity, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/phase_retrieval_transfer_function", data=PRTF, dtype='float')
         imgfile.close()
         return
 
@@ -673,7 +698,7 @@ class PhaseRetrievalWidget():
             Ortho_result, Ortho_unit = pp.Orth3D(input_array, omega, omegastep, delta, distance, pixelsize, energy)
 
             nz, ny, nx = Ortho_result.shape
-            imgfile.create_dataset("Ortho/Ortho_%s" % (input_name), data=Ortho_result, dtype='f', chunks=(1, ny, nx), compression="gzip")
+            imgfile.create_dataset("Ortho/%s/Ortho_%s" % (input_group, input_name), data=Ortho_result, dtype='f', chunks=(1, ny, nx), compression="gzip")
         self.para_dict['Ortho_unit'] = Ortho_unit
         imgfile.close()
         return
@@ -698,6 +723,40 @@ class PhaseRetrievalWidget():
         dataset = np.array(imgfile[dataset_group])
         imgfile.close()
         return dataset
+
+    def add_dataset(self, dataset, dataset_group, dtype='float'):
+        """
+        Add dataset in the file.
+
+        Parameters
+        ----------
+        dataset : ndarray
+            The dataset to be added.
+        dataset_group : str
+            The path of the dataset in the h5 file.
+        dtype : str, optional
+            The data type of the array. The default is 'float'.
+
+        Returns
+        -------
+        None.
+
+        """
+        # Determining how the data should be compressed.
+        data_shape = dataset.shape
+
+        imgfile = h5py.File(self.pathsaveimg, "r+")
+        if (dataset_group in imgfile):
+            del imgfile[dataset_group]
+
+        if len(data_shape) == 3:
+            imgfile.create_dataset(dataset_group, data=dataset, dtype=dtype, chunks=(1, data_shape[1], data_shape[2]), compression="gzip")
+        elif len(data_shape) == 2:
+            imgfile.create_dataset(dataset_group, data=dataset, dtype=dtype, chunks=(data_shape[0], data_shape[1]), compression="gzip")
+        else:
+            imgfile.create_dataset(dataset_group, data=dataset, dtype=dtype)
+        imgfile.close()
+        return
 
     def save_dataset(self, dataset_group, filename):
         """
@@ -1061,12 +1120,14 @@ class PhaseRetrievalWidget():
         imgfile.close()
         return
 
-    def plot_3D_intensity(self, save_image=True, filename=''):
+    def plot_3D_intensity(self, array_group='Average_All', save_image=True, filename=''):
         """
         Plot the calculated intensity and the measured intensity from the phase retrieval results.
 
         Parameters
         ----------
+        array_group : str, optional
+            The group name in the h5 file, where the average intensity is stored.
         save_image : bool, optional
             If ture, the image will be saved in the pathsave folder. The default is True.
         filename : str, optional
@@ -1079,7 +1140,7 @@ class PhaseRetrievalWidget():
         """
         imgfile = h5py.File(self.pathsaveimg, "r+")
         measured_intensity = np.array(imgfile["Input/intensity"], dtype=float)
-        calculated_intensity = np.array(imgfile["Average_All/intensity_sum"], dtype=float)
+        calculated_intensity = np.array(imgfile["%s/intensity_sum" % array_group], dtype=float)
         imgfile.close()
         zd, yd, xd = measured_intensity.shape
         fig, axs = plt.subplots(3, 3, figsize=(24, 24))
@@ -1129,7 +1190,7 @@ class PhaseRetrievalWidget():
             plt.show()
         return
 
-    def plot_2D_intensity(self, save_image=True, filename=''):
+    def plot_2D_intensity(self, array_group='Average_All', save_image=True, filename=''):
         """
         Plot the calculated intensity and the measured intensity from the phase retrieval results.
 
@@ -1147,7 +1208,7 @@ class PhaseRetrievalWidget():
         """
         imgfile = h5py.File(self.pathsaveimg, "r+")
         measured_intensity = np.array(imgfile["Input/intensity"], dtype=float)
-        calculated_intensity = np.array(imgfile["Average_All/intensity_sum"], dtype=float)
+        calculated_intensity = np.array(imgfile["%s/intensity_sum" % array_group], dtype=float)
         imgfile.close()
         yd, xd = measured_intensity.shape
         fig, axs = plt.subplots(1, 3, figsize=(24, 8))
@@ -1194,26 +1255,46 @@ class PhaseRetrievalWidget():
         imgfile = h5py.File(self.pathsaveimg, "r+")
         err_ar = np.array(imgfile["Error/error"], dtype=float)
         PRTF = np.array(imgfile["Average_All/phase_retrieval_transfer_function"], dtype=float)
-        imgfile.close()
+        if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
+            err_ar = self.get_dataset("Error/error")[()]
+            error_type = self.get_para('error_for_further_analysis_selection')
+            further_analysis_selected = self.get_para('further_analysis_selected')
+            PRTF_selected = self.get_dataset("Selected_average/phase_retrieval_transfer_function")[()]
+            if (error_type == 'Fourier space error') or (error_type is None):
+                Seed_selected = np.argsort(err_ar[:, 2])[:int(further_analysis_selected)]
+            elif error_type == 'Poisson logLikelihood':
+                Seed_selected = np.argsort(err_ar[:, 3])[:int(further_analysis_selected)]
+            elif error_type == 'Free logLikelihood':
+                Seed_selected = np.argsort(err_ar[:, 4])[:int(further_analysis_selected)]
+
         if self.para_dict['support_update']:
             fig, axs = plt.subplots(2, 2, figsize=(16, 16))
-            axs[0, 0].plot(err_ar[:, 1], err_ar[:, 2], 'r.')
+            axs[0, 0].plot(err_ar[:, 1], err_ar[:, 2], 'r.', label='All solutions')
             axs[0, 0].set_title('Fourier space error', fontsize=24)
             axs[0, 0].set_xlabel('total support pixel', fontsize=24)
             axs[0, 0].set_ylabel('Fourier space error', fontsize=24)
-            axs[0, 1].plot(err_ar[:, 1], err_ar[:, 3], 'r.')
+            axs[0, 1].plot(err_ar[:, 1], err_ar[:, 3], 'r.', label='All solutions')
             axs[0, 1].set_title('Log likelihood', fontsize=24)
             axs[0, 1].set_xlabel('total support pixel', fontsize=24)
             axs[0, 1].set_ylabel('Log likelihood', fontsize=24)
-            axs[1, 0].plot(err_ar[:, 1], err_ar[:, 4], 'r.')
+            axs[1, 0].plot(err_ar[:, 1], err_ar[:, 4], 'r.', label='All solutions')
             axs[1, 0].set_title('Free Log likelihood', fontsize=24)
             axs[1, 0].set_xlabel('total support pixel', fontsize=24)
             axs[1, 0].set_ylabel('Free Log likelihood', fontsize=24)
-            axs[1, 1].plot(RSM_unit * np.arange(len(PRTF)), PRTF, 'r.')
+            axs[1, 1].plot(RSM_unit * np.arange(len(PRTF)), PRTF, 'r.', label='All solutions')
             axs[1, 1].set_ylim(0, 1.05)
             axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
             axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
             axs[1, 1].set_ylabel('PRTF', fontsize=24)
+            if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
+                axs[0, 0].plot(err_ar[Seed_selected, 1], err_ar[Seed_selected, 2], 'b.', label='Selected solutions')
+                axs[0, 0].legend()
+                axs[0, 1].plot(err_ar[Seed_selected, 1], err_ar[Seed_selected, 3], 'b.', label='Selected solutions')
+                axs[0, 1].legend()
+                axs[1, 0].plot(err_ar[Seed_selected, 1], err_ar[Seed_selected, 4], 'b.', label='Selected solutions')
+                axs[1, 0].legend()
+                axs[1, 1].plot(RSM_unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
+                axs[1, 1].legend()
             fig.tight_layout()
         else:
             fig, axs = plt.subplots(2, 2, figsize=(20, 20))
@@ -1233,7 +1314,11 @@ class PhaseRetrievalWidget():
             axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
             axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
             axs[1, 1].set_ylabel('PRTF', fontsize=24)
-        fig.tight_layout()
+            if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
+                axs[1, 1].plot(RSM_unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
+                axs[1, 1].legend()
+            fig.tight_layout()
+        imgfile.close()
         if filename == '':
             filename = "Error_Trial%d.png" % (self.para_dict['trial_num'])
         if save_image:

@@ -52,8 +52,10 @@ class P10EigerScan(P10Scan):
         assert os.path.exists(self.path_eiger_folder), 'The image folder for %s images %s does not exist, please check the path again!' % (self.detector, self.path_eiger_folder)
         if self.detector == 'e4m':
             self.detector_size = (2167, 2070)
+            self.pixel_size = 75e-3
         elif self.detector == 'e500':
             self.detector_size = (514, 1030)
+            self.pixel_size = 75e-3
         self.eiger_load_mask(pathmask)
         if len(os.listdir(self.path_eiger_folder)) == (self.npoints // 2000 + 2) or len(os.listdir(self.path_eiger_folder)) == 3:
             self.img_per_point = 'one'
@@ -168,7 +170,7 @@ class P10EigerScan(P10Scan):
 
         """
         self.eiger_mask_circle(cen, r0)
-        self.img_correction = np.ones_like(self.mask)
+        self.img_correction = np.ones_like(self.mask, dtype=float)
         self.img_correction[self.mask == 1] = 0
         self.img_correction[large_abs_pos[0]:(large_abs_pos[1] + 1), large_abs_pos[2]:(large_abs_pos[3] + 1)] = self.img_correction[large_abs_pos[0]:(large_abs_pos[1] + 1), large_abs_pos[2]:(large_abs_pos[3] + 1)] / trans1
         self.img_correction[small_abs_pos[0]:(small_abs_pos[1] + 1), small_abs_pos[2]:(small_abs_pos[3] + 1)] = self.img_correction[small_abs_pos[0]:(small_abs_pos[1] + 1), small_abs_pos[2]:(small_abs_pos[3] + 1)] / trans2
@@ -754,7 +756,7 @@ class P10EigerScan(P10Scan):
         print("peak position on the detector (Z, Y, X): " + str(pch))
         return pch
 
-    def eiger_ptycho_cxi(self, cen, cut_width, detector_distance=5.0, pixel_size=75e-6, index_array=None):
+    def eiger_ptycho_cxi(self, cen, cut_width, detector_distance=5000.0, index_array=None):
         """
         Convert the 2D Scans with Eiger 4M to the CXI format to generate the input for PyNX.
 
@@ -767,9 +769,7 @@ class P10EigerScan(P10Scan):
         cut_width : list
             The half width for cutting around the direct beam position.
         detector_distance : float, optional
-            The detector distance in meter. The default is 5.0.
-        pixel_size : float, optional
-            The pixel_size of the detector in meter. The default is 75e-6.
+            The detector distance in millimeter. The default is 5000.0.
         index_array : ndarray, optional
             1D boolen array indicating which images should be used for the ptychography calculation. The default is None.
 
@@ -841,24 +841,24 @@ class P10EigerScan(P10Scan):
             for i in range(self.npoints):
                 image = self.eiger_load_single_image(i)
                 print(i)
-                iobs[i, :, :] = self.eiger_mask_correction(image)[(cen[0] - cut_width[0]):(cen[0] + cut_width[0]), (cen[1] - cut_width[1]):(cen[1] + cut_width[1])] / petra_current[i]
+                iobs[i, :, :] = image[(cen[0] - cut_width[0]):(cen[0] + cut_width[0]), (cen[1] - cut_width[1]):(cen[1] + cut_width[1])] / petra_current[i]
         else:
             for i, num in enumerate(np.arange(self.npoints)[index_array]):
                 image = self.eiger_load_single_image(num)
                 print(num)
-                iobs[i, :, :] = self.eiger_mask_correction(image)[(cen[0] - cut_width[0]):(cen[0] + cut_width[0]), (cen[1] - cut_width[1]):(cen[1] + cut_width[1])] / petra_current[num]
-        detector_1.create_dataset("distance", data=detector_distance)
+                iobs[i, :, :] = image[(cen[0] - cut_width[0]):(cen[0] + cut_width[0]), (cen[1] - cut_width[1]):(cen[1] + cut_width[1])] / petra_current[num]
+        detector_1.create_dataset("distance", data=detector_distance * 1.0e-3)
         detector_1["distance"].attrs['units'] = 'm'
-        detector_1.create_dataset("x_pixel_size", data=pixel_size)
+        detector_1.create_dataset("x_pixel_size", data=self.pixel_size * 1.0e-3)
         detector_1["x_pixel_size"].attrs['units'] = 'm'
-        detector_1.create_dataset("y_pixel_size", data=pixel_size)
+        detector_1.create_dataset("y_pixel_size", data=self.pixel_size * 1.0e-3)
         detector_1["y_pixel_size"].attrs['units'] = 'm'
         mask_cut = self.mask[(cen[0] - cut_width[0]):(cen[0] + cut_width[0]), (cen[1] - cut_width[1]):(cen[1] + cut_width[1])]
         detector_1.create_dataset("mask", data=mask_cut, chunks=True, shuffle=True, compression="gzip")
         detector_1["mask"].attrs['note'] = "Mask of invalid pixels, applying to each frame"
         basis_vectors = np.zeros((2, 3), dtype=np.float32)
-        basis_vectors[0, 1] = -pixel_size
-        basis_vectors[1, 0] = -pixel_size
+        basis_vectors[0, 1] = -self.pixel_size * 1.0e-3
+        basis_vectors[1, 0] = -self.pixel_size * 1.0e-3
         detector_1.create_dataset("basis_vectors", data=basis_vectors)
 
         detector_1["translation"] = h5py.SoftLink('/entry_1/sample_1/geometry_1/translation')

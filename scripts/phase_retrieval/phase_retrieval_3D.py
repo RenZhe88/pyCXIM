@@ -15,10 +15,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-pathsave = r'E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\pynxpre\reciprocal_space_map'
-intensity_file = 'scan0144.npz'
-mask_file = 'scan0144_mask.npz'
-path_scan_infor = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\scan_0144_information.txt"
+pathsave = r'E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00296\pynxpre\reciprocal_space_map'
+intensity_file = 'scan0296.npz'
+mask_file = 'scan0296_mask.npz'
+path_scan_infor = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00296\scan_0296_information.txt"
 data_description = 'reciprocal_space_map'
 # data_description = 'stacked_detector_images'
 
@@ -41,7 +41,7 @@ path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\
 # Input: starting image inherented from trial
 start_trial_num = 0
 SeedNum = 100
-algorithm = "(HIO**40*Sup*ConvexSup)**10*(RAAR**60*ER**10*Sup*ConvexSup)**30"
+algorithm = "(DIF**50)**2*(HIO**40*Sup)**20*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40"
 # algorithm = "DIF**200*(RAAR**50*ER**10)**20"
 
 # Input: parameters for the free Log likelihood
@@ -67,6 +67,7 @@ first_seed_flip = False
 
 # Input: The number of images selected for further analysis like SVD and average
 further_analysis_selected = 10
+error_type_for_selection = 'Fourier space error'
 
 # Input: Parameters determining the display of the images
 display_range = [400, 400, 400]
@@ -130,8 +131,8 @@ array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
 pr_file.plot_3D_result('Average_All', array_names, voxel_size, display_range,
                        'Average results of %d runs' % pr_file.get_para('nb_run'),
                        True, "Trial%d" % (trial_num), save_as_vti=True)
-pr_file.plot_3D_intensity(filename="Intensity_difference_Trial%d.png" % (trial_num))
-pr_file.plot_error_matrix(unit, filename="Error_Trial%d.png" % (trial_num))
+pr_file.plot_3D_intensity(array_group='Average_All', save_image=True, filename="Intensity_difference_Trial%d.png" % (trial_num))
+
 
 # %% Transforming into Orthoganol coordinates
 if data_description == 'stacked_detector_images':
@@ -141,15 +142,15 @@ if data_description == 'stacked_detector_images':
     Ortho_voxel_size = (Ortho_unit, Ortho_unit, Ortho_unit)
     pr_file.add_para('Ortho_voxel_size', Ortho_voxel_size)
     array_names = ('Ortho_Modulus_sum', 'Ortho_Phase_sum', 'Ortho_Support_sum')
-    pr_file.plot_3D_result('Ortho', array_names, Ortho_voxel_size, display_range,
+    pr_file.plot_3D_result('Ortho/Average_All', array_names, Ortho_voxel_size, display_range,
                            save_image=True, filename="Trial%d_orthonormalized" % (trial_num),
                            save_as_vti=True)
 
 # %% select results for SVD analysis or averaging
-pr_file.further_analysis(further_analysis_selected, error_type='Fourier space error')
+pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)
 voxel_size = ((2.0 * np.pi / zd / unit / 10.0), (2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
-array_names = ('select_Modulus_sum', 'select_Phase_sum', 'select_Support_sum')
-pr_file.plot_3D_result('Selected_average', array_names, voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected '), save_image=True, filename="Trial%02d_selected_average" % trial_num, save_as_vti=True)
+array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
+pr_file.plot_3D_result('Selected_average', array_names, voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected'), save_image=True, filename="Trial%02d_selected_average" % trial_num, save_as_vti=True)
 if pr_file.get_para('further_analysis_method') == 'SVD':
     evalue = pr_file.get_dataset("SVD_analysis/evalue")
     array_names = ('Mode1_Modulus', 'Mode1_Phase')
@@ -157,13 +158,15 @@ if pr_file.get_para('further_analysis_method') == 'SVD':
     array_names = ('Mode2_Modulus', 'Mode2_Phase')
     pr_file.plot_3D_result('SVD_analysis', array_names, voxel_size, display_range=display_range, title='SVD Mode2 %.2f%%' % (evalue[1] * 100), save_image=True, filename="Trial%02d_svd_mode2" % trial_num, save_as_vti=False)
 
+pr_file.plot_3D_intensity(array_group='Selected_average', save_image=True, filename="Selected_intensity_difference_Trial%d.png" % (trial_num))
+pr_file.plot_error_matrix(unit, filename="Error_Trial%d.png" % (trial_num))
 # %% Transforming into Orthoganol coordinates
 if data_description == 'stacked_detector_images':
-    array_names = ('select_Modulus_sum', 'select_Phase_sum', 'select_Support_sum')
+    array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
     pr_file.ortho_3D_transform('Selected_average', array_names)
     Ortho_unit = pr_file.get_para('Ortho_unit')
-    array_names = ('Ortho_select_Modulus_sum', 'Ortho_select_Phase_sum', 'Ortho_select_Support_sum')
-    pr_file.plot_3D_result('Ortho', array_names, Ortho_voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected '), save_image=True, filename="Trial%02d_ortho_selected_average" % trial_num, save_as_vti=True)
+    array_names = ('Ortho_Modulus_sum', 'Ortho_Phase_sum', 'Ortho_Support_sum')
+    pr_file.plot_3D_result('Ortho/Selected_average', array_names, Ortho_voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected '), save_image=True, filename="Trial%02d_ortho_selected_average" % trial_num, save_as_vti=True)
 
     if pr_file.get_para('further_analysis_method') == 'SVD':
         array_names = ('Mode1_Modulus', 'Mode1_Phase', 'Mode2_Modulus', 'Mode2_Phase', 'Mode3_Modulus', 'Mode3_Phase')
@@ -197,5 +200,5 @@ para_name_list = [
     'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
     'support_update_loops', 'support_threshold_min', 'support_threshold_max',
     'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-    'further_analysis_selected', 'further_analysis_method']
+    'further_analysis_selected', 'further_analysis_method', 'error_for_further_analysis_selection']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)

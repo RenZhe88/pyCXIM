@@ -42,7 +42,7 @@ pathsave = r'E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\a
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
-algorithm = "(DIF**50)**2*(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**30"
+algorithm = "(DIF**50)**2*(HIO**50*Sup*ConvexSup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup*ConvexSup)**30"
 # algorithm = "DIF**200*(RAAR**50*ER**10)**20"
 
 # Input: parameters for creating the initial suppport.
@@ -87,6 +87,7 @@ first_seed_flip = False
 
 # Input: Parameters for further analysis like SVD and average
 further_analysis_selected = 10
+error_type_for_selection = 'Fourier space error'
 
 # Input: Parameters determining the display of the images
 display_range = [500, 500]
@@ -155,8 +156,7 @@ array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
 pr_file.plot_2D_result('Average_All', array_names, voxel_size, display_range,
                        'Average results of %d runs' % pr_file.get_para('nb_run'),
                        save_image=True, filename="Trial%d" % (trial_num))
-pr_file.plot_2D_intensity(save_image=True, filename="Intensity_difference_Trial%d.png" % (trial_num))
-pr_file.plot_error_matrix(unit, save_image=True, filename="Error_Trial%d.png" % (trial_num))
+pr_file.plot_2D_intensity(array_group='Average_All', save_image=True, filename="Intensity_difference_Trial%d.png" % (trial_num))
 
 # %%Orthonormalization
 if data_description == 'cuty':
@@ -170,18 +170,21 @@ if data_description == 'cuty':
                            pathsave=pathsave, filename="Trial%d_orthonormalized" % (trial_num))
 
 # %% select results for SVD analysis or averaging
-pr_file.further_analysis(further_analysis_selected, error_type='Fourier space error')
+pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)
 voxel_size = ((2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
-array_names = ('select_Modulus_sum', 'select_Phase_sum', 'select_Support_sum')
+array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
 pr_file.plot_2D_result('Selected_average', array_names, voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected'), save_image=True, filename="Trial%02d_selected_average" % trial_num)
 if pr_file.get_para('further_analysis_method') == 'SVD':
     evalue = pr_file.get_dataset("SVD_analysis/evalue")
     array_names = ('Mode1_Modulus', 'Mode1_Phase', 'Mode2_Modulus', 'Mode2_Phase', 'Mode3_Modulus', 'Mode3_Phase')
     pr_file.plot_2D_result('SVD_analysis', array_names, voxel_size, display_range=display_range, title='SVD Mode1 %.2f%%, Mode2 %.2f%%, Mode3 %.2f%%' % (evalue[0] * 100, evalue[1] * 100, evalue[2] * 100), subplot_config=(3, 2), save_image=True, filename="Trial%02d_svd" % trial_num)
 
+pr_file.plot_error_matrix(unit, save_image=True, filename="Error_Trial%d.png" % (trial_num))
+pr_file.plot_2D_intensity(array_group='Selected_average', save_image=True, filename="Selected_intensity_difference_Trial%d.png" % (trial_num))
+
 # %%Orthonormalization2
 if data_description == 'cuty':
-    array_names = ('select_Modulus_sum', 'select_Phase_sum', 'select_Support_sum')
+    array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
     pr_file.ortho_2D_transform('Selected_average', array_names)
     Ortho_unit = pr_file.get_para('Ortho_unit')
     array_names = ('Ortho_select_Modulus_sum', 'Ortho_select_Phase_sum', 'Ortho_select_Support_sum')
@@ -216,5 +219,5 @@ para_name_list = [
     'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
     'support_update_loops', 'support_threshold_min', 'support_threshold_max',
     'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-    'further_analysis_selected', 'further_analysis_method']
+    'further_analysis_selected', 'further_analysis_method', 'error_for_further_analysis_selection']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)

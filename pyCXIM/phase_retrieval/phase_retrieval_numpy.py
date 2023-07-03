@@ -69,6 +69,7 @@ class PhaseRetrievalFuns():
     """
 
     def __init__(self, measured_intensity, Seed, starting_img=None, support=None, MaskFFT=None):
+        print('Seed %04d' % Seed)
         self.intensity = np.array(measured_intensity, dtype=float)
         self.ModulusFFT = np.fft.fftshift(np.sqrt(measured_intensity))
 
@@ -87,10 +88,8 @@ class PhaseRetrievalFuns():
             self.img = np.fft.ifftn(np.multiply(self.ModulusFFT, np.exp(1j * np.random.rand(*self.ModulusFFT.shape) * 2 * np.pi)))
 
         if support is not None:
-            print('Given starting support used.')
             self.support = np.array(support, dtype=float)
         else:
-            print('Starting support estimated from the autocorrelation function.')
             self.support = np.zeros_like(self.ModulusFFT, dtype=float)
             Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
             threshold = 4.0 / 100.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)

@@ -18,6 +18,7 @@ import re
 import torch
 from skimage.morphology import convex_hull_image
 
+
 class PhaseRetrievalFuns():
     """
     Functions for the phase retrieval process.
@@ -70,6 +71,7 @@ class PhaseRetrievalFuns():
     """
 
     def __init__(self, measured_intensity, Seed, starting_img=None, support=None, MaskFFT=None):
+        print('Seed %04d' % Seed)
         self.intensity = np.array(measured_intensity, dtype=float)
         self.ModulusFFT = np.fft.fftshift(np.sqrt(measured_intensity))
         self.dim = self.intensity.ndim
@@ -93,10 +95,8 @@ class PhaseRetrievalFuns():
 
         # generate according to the autocorrelation or import the starting support
         if support is not None:
-            print('Given starting support used.')
             self.support = np.array(support, dtype=float)
         else:
-            print('Starting support estimated from the autocorrelation function.')
             self.support = np.zeros_like(self.ModulusFFT, dtype=float)
             Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
             threshold = 4.0 / 1000.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
