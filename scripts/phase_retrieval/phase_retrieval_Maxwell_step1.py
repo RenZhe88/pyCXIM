@@ -61,6 +61,7 @@ def phase_retrieval_main():
 
     # Input: The number of images selected for further analysis like SVD and average
     further_analysis_selected = 10
+    error_type_for_selection = 'Fourier space error'
 
     # Input: Parameters determining the display of the images
     display_image_num = 10
@@ -82,7 +83,7 @@ def phase_retrieval_main():
                                  flip_condition, first_seed_flip, display_image_num)
 
     # %% select results for SVD analysis or averaging
-    pr_file.further_analysis(further_analysis_selected, error_type='Fourier space error')
+    pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)
     ending_time = time.time()
     pr_file.add_para('total_calculation_time', ending_time - starting_time)
     pr_file.save_para_list()

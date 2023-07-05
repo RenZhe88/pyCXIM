@@ -16,7 +16,7 @@ import sys
 from scipy.special import gammaln
 import re
 import torch
-from skimage.morphology import convex_hull_image
+# from skimage.morphology import convex_hull_image
 
 
 class PhaseRetrievalFuns():
@@ -311,11 +311,11 @@ class PhaseRetrievalFuns():
                 self.img[:, :, int(xd / 2):] = 0
         return
 
-    def ConvexSup(self):
-        self.support = self.support.cpu().numpy()
-        self.support = np.array(convex_hull_image(self.support), dtype=float)
-        self.support = torch.from_numpy(self.support).to(self.device)
-        return
+    # def ConvexSup(self):
+    #     self.support = self.support.cpu().numpy()
+    #     self.support = np.array(convex_hull_image(self.support), dtype=float)
+    #     self.support = torch.from_numpy(self.support).to(self.device)
+    #     return
 
     def HIO(self, num_HIO_loop):
         """
