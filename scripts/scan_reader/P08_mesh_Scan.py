@@ -27,7 +27,7 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = range(541, 561)
+scan_num_ar = range(623, 642)
 p08_file = "PTO_STO_DSO_730"
 motor1 = 'xs'
 motor2 = 'ys'
@@ -108,7 +108,7 @@ for counter in counter_select:
         plt.figure(figsize=(8, 8))
     plt.contourf(motor1_pos, motor2_pos, np.log10(intensity + 1.0), 150, cmap="jet")
     plt.axis('scaled')
-    plt.xlabel("%s (um)" % motor1)
-    plt.ylabel("%s (um)" % motor2)
+    plt.xlabel("%s (mm)" % motor1)
+    plt.ylabel("%s (mm)" % motor2)
     plt.savefig(os.path.join(pathsavefolder, '%s_scan%05d_%05d_%s.png' % (scan.get_p08_file(), scan_num_ar[0], scan_num_ar[-1] - 1, counter)))
     plt.show()

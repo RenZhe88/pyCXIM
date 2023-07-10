@@ -1,0 +1,12 @@
+numpy>=1.21.5
+scipy>=1.9.1
+matplotlib>=3.5.2
+pandas>=1.4.4
+h5py>=3.7.0
+hd5fplugin>=3.3.1
+skimage>=0.19.2
+pytorch>=1.13.0
+vtk>=9.0.3
+
+
+

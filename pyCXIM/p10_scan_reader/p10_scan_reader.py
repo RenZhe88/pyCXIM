@@ -882,7 +882,7 @@ def spec_writer(beamtimeID, path, p10_file, pathsave):
 
     for scan in range(1, 10000):
         if os.path.exists(os.path.join(pathsave, r"%s_%05d.fio" % (p10_file, scan))) or os.path.exists(os.path.join(path, r"%s_%05d\%s_%05d.fio" % (p10_file, scan, p10_file, scan))) or os.path.exists(os.path.join(path, r"%s\%s_%05d.fio" % (p10_file, p10_file, scan))):
-            scan_data = p10_scan(path, p10_file, scan, pathsave, creat_save_folder=False)
+            scan_data = P10Scan(path, p10_file, scan, pathsave, creat_save_folder=False)
             if scan_data.get_command is not None:
                 list_of_lines = list_of_lines + (scan_data.fio_to_spec(list_of_motors))
         else:
@@ -897,7 +897,7 @@ def test():
     scan_num = 20
     pathsave = r'E:\Work place 3\sample\XRD\Test'
 
-    scan = p10_scan(path, p10_newfile, scan_num, pathsave=pathsave, creat_save_folder=True)
+    scan = P10Scan(path, p10_newfile, scan_num, pathsave=pathsave, creat_save_folder=True)
     print(scan.load_motor_pos_list(['hexary', 'fmbenergy', 'hpy', 'abs']))
 #    xcen, FWHM=scan.knife_edge_estimation('diffdio', smooth=True, plot=True)
     scan.get_absorber()
