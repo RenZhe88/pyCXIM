@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['pyCXIM\\p10_scan_reader\\p10_eiger_reader.py', 'scripts\\phase_retrieval\\phase_retrieval_2D.py', 'scripts\\RSM_conversion\\P10_BCDI_preparation_2C.py', 'pyCXIM\\RSM\\RSM_post_processing.py', 'pyCXIM\\phase_retrieval\\phase_retrieval_widget.py', 'scripts\\phase_retrieval\\phase_retrieval_Maxwell_step1.py', '..\\test\\Bihang_Ivan_special_request.py']
+recent_files = ['scripts\\RSM_conversion\\NanoMAX_3D_RSM_2C.py', '..\\test\\P08_single_image_reader.py', 'pyCXIM\\p08_scan_reader\\p08_eiger_reader.py', 'pyCXIM\\p10_scan_reader\\p10_eiger_reader.py', 'pyCXIM\\nanomax_scan_reader\\nanomax_merlin_reader.py', 'pyCXIM\\nanomax_scan_reader\\nanomax_scan_reader.py']
 
 [main]
 version = 0.2.0

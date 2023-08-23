@@ -271,7 +271,7 @@ def RSM2vti(pathsave, RSM_dataset, filename, RSM_unit, origin=(0, 0, 0)):
     imdata.SetSpacing(RSM_unit, RSM_unit, RSM_unit)
     imdata.SetDimensions(RSM_dataset.shape)
 
-    RSM_vtk = numpy_to_vtk(np.ravel(np.transpose(RSM_dataset)), deep=True, array_type=vtk.VTK_DOUBLE)
+    RSM_vtk = numpy_to_vtk(np.ravel(np.transpose(np.log10(RSM_dataset + 1.0))), deep=True, array_type=vtk.VTK_DOUBLE)
 
     imdata.GetPointData().SetScalars(RSM_vtk)
     writer = vtk.vtkXMLImageDataWriter()

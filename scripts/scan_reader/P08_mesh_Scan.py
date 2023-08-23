@@ -27,8 +27,8 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = range(623, 642)
-p08_file = "PTO_STO_DSO_730"
+scan_num_ar = range(906, 935)
+p08_file = "PTO_STO_DSO_732_1"
 motor1 = 'xs'
 motor2 = 'ys'
 

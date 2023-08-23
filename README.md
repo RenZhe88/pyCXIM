@@ -10,7 +10,7 @@
 ## pyCXIM as a python toolkit
  pyCXIM can be used as a python library with the following main modules:
 	1. :mod: 'p08_scan_reader': Read the scan information from p08 beamline, Desy.
-	1. :mod: 'p08_scan_reader': Read the scan information from p10 beamline, Desy.
+	1. :mod: 'p10_scan_reader': Read the scan information from p10 beamline, Desy.
 	1. :mod: 'RSM': Convert the two dimensional detector images in the rocking curve to the three dimensional reciprocal space maps.
 	1. :mod: 'phase_retrieval': Perform the phase retrieval and simple post processing of the solutions.
 	1. :mod: 'Common': Generate the information file.

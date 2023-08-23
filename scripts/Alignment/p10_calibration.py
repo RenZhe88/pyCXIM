@@ -19,31 +19,31 @@ from pyCXIM.RSM.RC2RSM import RC2RSM_6C
 def calibration():
     # Inputs: general information
     year = "2022"
-    beamtimeID = "11014572"
+    beamtimeID = "11013631"
     pixelsize = 0.075
     detector = 'e4m'
-    Calibration_type = 'detector'
-    # Calibration_type = 'single Bragg 6C'
+    # Calibration_type = 'detector'
+    Calibration_type = 'single Bragg 6C'
 
     # Inputs:Detector parameters
     if Calibration_type == 'detector':
-        p10_file = r"det_cal_02"
-        scan_num = 1
+        p10_file = r"det_cal"
+        scan_num = 2
 
     # Inputs:Simple calibration with symmetric diffraction peak
     if Calibration_type == 'single Bragg 6C':
-        p10_file = r"B12SYNS1P1"
-        scan_num = 13
+        p10_file = r"PTO_STO_DSO_28"
+        scan_num = 62
         geometry = 'out_of_plane'
-        peak = np.array([0, 0, 12])
-        lattice_constants = [4.7597, 4.7597, 12.993]
+        peak = np.array([-1, 0, 3])
+        lattice_constants = [3.951, 3.947, 3.947]
         # omega, delta, chi, phi, det_rot, energy
-        error_source = ['omega', 'delta', 'chi']
+        error_source = ['omega', 'delta', 'phi']
 
     # Inputs: paths
-    path = r"E:\Data2\XRD raw\20221014 P10 CTR BFO Ptycho\raw"
-    pathsave = r"G:\Work place 3\sample\XRD\20221018 Longfei"
-    pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e4m_mask.npy'
+    path = r"E:\Data2\XRD raw\20220608 P10 PTO BFO\raw"
+    pathsave = r"E:\Work place 3\sample\XRD\20220608 Inhouse PTO film BFO islands\PTO_STO\PTO_STO_DSO_28"
+    pathmask = r'E:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
     pathinfor = os.path.join(pathsave, "calibration.txt")
     section_ar = ['General Information', 'Detector calibration', 'Bragg peak calibration %s']
 
@@ -158,9 +158,9 @@ def calibration():
                 para_selected.append(1)
             else:
                 para_selected.append(0)
-                if infor.get_para_value('%s_error' % element) is not None:
-                    parameters[i] = parameters[i] + infor.get_para_value('%s_error' % element)
-                    para_offsets_full[i] = infor.get_para_value('%s_error' % element)
+                if infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 2]') is not None:
+                    parameters[i] = parameters[i] + infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 2]')
+                    para_offsets_full[i] = infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 2]')
         para_selected = np.array(para_selected, dtype='bool')
 
         offsets = fsolve(cal_q_error_single_peak, [0.1, 0.1, 0.1], args=(scan_motor_ar, geometry, para_selected, parameters, pixelsize, pch, cch, expected_q))

@@ -19,8 +19,8 @@ def BCDI_preparation():
     # Inputs: general information
     year = "2023"
     beamtimeID = "11014617"
-    p08_newfile = r"PTO_STO_DSO_730"
-    scan_num = 622
+    p08_newfile = r"PTO_STO_DSO_732_1"
+    scan_num = 905
     detector = 'eiger1m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'

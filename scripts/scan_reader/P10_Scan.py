@@ -114,7 +114,7 @@ for i, scan_num in enumerate(scan_num_ar):
     if command_infor['scan_type'] in ['dmesh', 'mesh']:
         mesh_scan_num.append(scan_num)
 
-# Plot line sccans
+# Plot line scans
 if len(line_scan_num) > 0:
     plt_y = int(np.sqrt(len(counter_select)))
     plt_x = len(counter_select) // plt_y
