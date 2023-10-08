@@ -32,8 +32,8 @@ def calibration():
 
     # Inputs:Simple calibration with symmetric diffraction peak
     if Calibration_type == 'single Bragg 6C':
-        p10_file = r"PTO_STO_DSO_28"
-        scan_num = 62
+        p10_file = r"PTO_STO_DSO_732"
+        scan_num = 35
         geometry = 'out_of_plane'
         peak = np.array([-1, 0, 3])
         lattice_constants = [3.951, 3.947, 3.947]
@@ -42,7 +42,7 @@ def calibration():
 
     # Inputs: paths
     path = r"E:\Data2\XRD raw\20220608 P10 PTO BFO\raw"
-    pathsave = r"E:\Work place 3\sample\XRD\20220608 Inhouse PTO film BFO islands\PTO_STO\PTO_STO_DSO_28"
+    pathsave = r"E:\Work place 3\sample\XRD\20220608 Inhouse PTO film BFO islands\PTO_STO\PTO_STO_DSO_732"
     pathmask = r'E:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
     pathinfor = os.path.join(pathsave, "calibration.txt")
     section_ar = ['General Information', 'Detector calibration', 'Bragg peak calibration %s']
@@ -158,9 +158,9 @@ def calibration():
                 para_selected.append(1)
             else:
                 para_selected.append(0)
-                if infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 2]') is not None:
-                    parameters[i] = parameters[i] + infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 2]')
-                    para_offsets_full[i] = infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 2]')
+                if infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 3]') is not None:
+                    parameters[i] = parameters[i] + infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 3]')
+                    para_offsets_full[i] = infor.get_para_value('%s_error' % element, 'Bragg peak calibration [0 0 3]')
         para_selected = np.array(para_selected, dtype='bool')
 
         offsets = fsolve(cal_q_error_single_peak, [0.1, 0.1, 0.1], args=(scan_motor_ar, geometry, para_selected, parameters, pixelsize, pch, cch, expected_q))

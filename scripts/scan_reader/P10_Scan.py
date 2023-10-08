@@ -28,11 +28,11 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [9]
-p10_file = ["cell2_p01_c1"]
+scan_num_ar = [2]
+p10_file = ["det_cal"]
 
 # path information
-path = r"T:\2022\data\11013125\raw"
+path = r"E:\Data2\XRD raw\20221103 P10 BFO PTO\raw"
 path_e4m_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e4m_mask.npy'
 path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e500_mask.npy'
 pathsavefolder = r"E:\Work place 3\sample\XRD\Test"
@@ -43,7 +43,7 @@ e4m_roi2 = [1264, 1464, 1278, 1478]
 e4m_roi3 = [1630, 1660, 950, 1000]
 e4m_roi4 = [400, 600, 300, 500]
 
-cal_e4m_roi = []
+cal_e4m_roi = [e4m_roi1]
 
 # The rois for the Eiger500 detector
 e500_roi1 = [300, 800, 100, 600]
@@ -56,7 +56,7 @@ fluo_06 = [1020, 1374]
 cal_fluo_channels = []
 
 # Plot selection
-counter_select = ['curpetra']
+counter_select = ['e4m_full']
 scale = 'Linear'
 # scale = 'Normalized'
 # scale = 'Log'

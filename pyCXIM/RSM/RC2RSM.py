@@ -357,11 +357,6 @@ class RC2RSM_2C():
         The detector distance value in mm. The default is 1830.
     pixelsize : float, optional
         The pixelsize of the detector in mm. The default is 0.075.
-    geometry : str, optional
-        The geometry can be either 'out_of_plane' or 'in_plane'.
-        If geometry is 'out_of_plane', the scan motor should be om.
-        If geometry is 'in_plane', the scan motor should be phi.
-        The default is 'out_of_plane'.
 
     Returns
     -------
@@ -369,11 +364,10 @@ class RC2RSM_2C():
 
     """
 
-    def __init__(self, scan_motor_ar, two_theta, energy=8000, distance=1830, pixelsize=0.075, geometry='out_of_plane'):
+    def __init__(self, scan_motor_ar, two_theta, energy=8000, distance=1830, pixelsize=0.075):
         self.scan_motor_ar = np.deg2rad(scan_motor_ar)
         self.scan_step = np.deg2rad((scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1))
         self.two_theta = np.deg2rad(two_theta)
-        self.geometry = geometry
         self.distance = distance
         self.pixelsize = pixelsize
         self.energy = energy
@@ -397,7 +391,7 @@ class RC2RSM_2C():
         Returns
         -------
         float
-            The units of the reciprocal space map.
+            The units of the reciprocal space map in inverse angstrom.
 
         """
         return (self.units * rebinfactor)
@@ -425,20 +419,12 @@ class RC2RSM_2C():
 
         """
         self.peak_angle = self.scan_motor_ar[int(pch[0])]
-        if self.geometry == 'out_of_plane':
-            q_vector = np.array([(cch[0] - pch[1]), (cch[1] - pch[2]), self.distance / self.pixelsize])
-            delta_transform = np.array([[np.cos(self.two_theta), 0, np.sin(self.two_theta)], [0, 1, 0], [-np.sin(self.two_theta), 0, np.cos(self.two_theta)]])
-            q_vector = np.dot(delta_transform, q_vector)
-            q_vector = q_vector - np.array([0, 0, self.distance / self.pixelsize])
-            omega_transform = np.array([[np.cos(self.peak_angle), 0, -np.sin(self.peak_angle)], [0, 1, 0], [np.sin(self.peak_angle), 0, np.cos(self.peak_angle)]])
-            q_vector = np.dot(omega_transform, q_vector)
-        elif self.geometry == 'in_plane':
-            q_vector = np.array([(cch[0] - pch[1]), (cch[1] - pch[2]), self.distance / self.pixelsize])
-            gamma_transform = np.array([[1, 0, 0], [0, np.cos(self.two_theta), np.sin(self.two_theta)], [0, -np.sin(self.two_theta), np.cos(self.two_theta)]])
-            q_vector = np.dot(gamma_transform, q_vector)
-            q_vector = q_vector - np.array([0, 0, self.distance / self.pixelsize])
-            phi_transform = np.array([[1, 0, 0], [0, np.cos(self.peak_angle), np.sin(self.peak_angle)], [0, -np.sin(self.peak_angle), np.cos(self.peak_angle)]])
-            q_vector = np.dot(phi_transform, q_vector)
+        q_vector = np.array([(cch[0] - pch[1]), (cch[1] - pch[2]), self.distance / self.pixelsize])
+        delta_transform = np.array([[np.cos(self.two_theta), 0, np.sin(self.two_theta)], [0, 1, 0], [-np.sin(self.two_theta), 0, np.cos(self.two_theta)]])
+        q_vector = np.dot(delta_transform, q_vector)
+        q_vector = q_vector - np.array([0, 0, self.distance / self.pixelsize])
+        omega_transform = np.array([[np.cos(self.peak_angle), 0, -np.sin(self.peak_angle)], [0, 1, 0], [np.sin(self.peak_angle), 0, np.cos(self.peak_angle)]])
+        q_vector = np.dot(omega_transform, q_vector)
         return q_vector
 
     def cal_rebinfactor(self):
@@ -480,12 +466,8 @@ class RC2RSM_2C():
 
         """
         step_C = self.distance * self.scan_step / self.pixelsize
-        if self.geometry == 'out_of_plane':
-            transformation_matrix = np.array([[(np.cos(self.peak_angle) - np.cos(self.two_theta - self.peak_angle)) * step_C, -np.cos(self.two_theta - self.peak_angle)],
-                                              [(np.sin(self.two_theta - self.peak_angle) + np.sin(self.peak_angle)) * step_C, np.sin(self.two_theta - self.peak_angle)]])
-        elif self.geometry == 'in_plane':
-            transformation_matrix = np.array([[(np.cos(self.peak_angle + self.two_theta) - np.cos(self.peak_angle)) * step_C, -np.cos(self.two_theta + self.peak_angle)],
-                                              [(np.sin(self.peak_angle) - np.sin(self.peak_angle + self.two_theta)) * step_C, np.sin(self.peak_angle + self.two_theta)]])
+        transformation_matrix = np.array([[(np.cos(self.peak_angle) - np.cos(self.two_theta - self.peak_angle)) * step_C, -np.cos(self.two_theta - self.peak_angle)],
+                                          [(np.sin(self.two_theta - self.peak_angle) + np.sin(self.peak_angle)) * step_C, np.sin(self.two_theta - self.peak_angle)]])
         transformation_matrix = transformation_matrix / rebinfactor
         return transformation_matrix
 
@@ -533,9 +515,6 @@ class RC2RSM_2C():
         new_shape = (np.ptp(corners_q, axis=0) / rebinfactor).astype(int)
         RSM_unit = self.units * rebinfactor
 
-        if self.geometry == 'in_plane':
-            q_origin[[0, 1]] = q_origin[[1, 0]]
-            new_shape[[0, 1]] = new_shape[[1, 0]]
         print("number of points for the reciprocal space:")
         print(" qz  qy  qx")
         print(new_shape)
@@ -572,22 +551,15 @@ class RC2RSM_2C():
         Coords_transform = self.cal_transformation_matrix(rebinfactor)
         inv_Coords_transform = np.linalg.inv(Coords_transform)
         intensityfinal = np.zeros((nz, ny, nx))
-        if self.geometry == 'out_of_plane':
-            offset = np.array([zd / 2.0, yd / 2.0]) - np.dot(inv_Coords_transform, np.array([nz / 2.0, nx / 2.0]))
-            for X in np.arange(ny):
-                intensity2d = dataset[:, :, int((ny - 1 - X) * rebinfactor + (xd / 2) % rebinfactor)]
-                intensity2dinterpolation = affine_transform(intensity2d, inv_Coords_transform, offset=offset, output_shape=(nz, nx), order=3, mode='constant', cval=cval, output=float, prefilter=prefilter)
-                intensityfinal[:, X, :] = intensity2dinterpolation
-                sys.stdout.write('\rprogress:%d%%' % ((X + 1) * 100.0 / ny))
-                sys.stdout.flush()
-        elif self.geometry == 'in_plane':
-            offset = np.array([zd / 2.0, xd / 2.0]) - np.dot(inv_Coords_transform, np.array([nz / 2.0, nx / 2.0]))
-            for Y in np.arange(ny):
-                intensity2d = dataset[:, int((ny - 1 - Y) * rebinfactor + (yd / 2) % rebinfactor), :]
-                intensity2dinterpolation = affine_transform(intensity2d, inv_Coords_transform, offset=offset, output_shape=(nz, nx), order=3, mode='constant', cval=cval, output=float, prefilter=prefilter)
-                intensityfinal[:, Y, :] = intensity2dinterpolation
-                sys.stdout.write('\rprogress:%d%%' % ((Y + 1) * 100.0 / ny))
-                sys.stdout.flush()
+
+        offset = np.array([zd / 2.0, yd / 2.0]) - np.dot(inv_Coords_transform, np.array([nz / 2.0, nx / 2.0]))
+        for X in np.arange(ny):
+            intensity2d = dataset[:, :, int((ny - 1 - X) * rebinfactor + (xd / 2) % rebinfactor)]
+            intensity2dinterpolation = affine_transform(intensity2d, inv_Coords_transform, offset=offset, output_shape=(nz, nx), order=3, mode='constant', cval=cval, output=float, prefilter=prefilter)
+            intensityfinal[:, X, :] = intensity2dinterpolation
+            sys.stdout.write('\rprogress:%d%%' % ((X + 1) * 100.0 / ny))
+            sys.stdout.flush()
+
         print('')
         intensityfinal = np.clip(intensityfinal, 0, 1.0e7)
         return intensityfinal

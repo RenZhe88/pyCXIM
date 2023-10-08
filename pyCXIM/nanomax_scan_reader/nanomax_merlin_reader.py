@@ -24,7 +24,7 @@ class NanoMaxMerlinScan(NanoMaxScan):
     ----------
     path : str
         The path for the raw file folder.
-    nanomax_file : str
+    sample_name : str
         The name of the sample defined by nanomax.
     scan : int
         The scan number.
@@ -43,10 +43,10 @@ class NanoMaxMerlinScan(NanoMaxScan):
 
     """
 
-    def __init__(self, path, nanomax_file, scan, detector='merlin', pathsave='', pathmask='', creat_save_folder=True):
-        super().__init__(path, nanomax_file, scan, pathsave, creat_save_folder)
+    def __init__(self, path, sample_name, scan, detector='merlin', pathsave='', pathmask='', creat_save_folder=True):
+        super().__init__(path, sample_name, scan, pathsave, creat_save_folder)
         self.detector = detector
-        self.path_merlin_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.nanomax_file, self.scan, 'merlin'))
+        self.path_merlin_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, 'merlin'))
 
         scanfile = h5py.File(self.pathh5, 'r')
         assert ('entry/measurement/merlin/frames') in scanfile, 'Merlin detector data does not exists, please check it again!'

@@ -53,7 +53,7 @@ def BCDI_preparation():
     # the folder that stores the raw data of the beamtime
     path = r"E:\Data2\XRD raw\20211004 P10 BFO Pt\raw"
     # the aimed saving folder
-    pathsavefolder = r"E:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands"
+    pathsavefolder = r"E:\Work place 3\sample\XRD\Test"
     # the path for the mask file for the detector
     pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e4m_mask.npy'
 

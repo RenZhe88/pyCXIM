@@ -247,7 +247,6 @@ class PhaseRetrievalWidget():
         elif len(data_shape) == 2:
             chunks_size = (data_shape[0], data_shape[1])
             plt_result_2D_simple((support,), ('Initial support',))
-
         imgfile.create_dataset("Initial_support/support", data=support, dtype='f', chunks=chunks_size, compression="gzip")
         imgfile.close()
         return

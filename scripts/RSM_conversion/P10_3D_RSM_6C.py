@@ -22,24 +22,24 @@ start_time = time.time()
 # Inputs: general information
 year = "2022"
 beamtimeID = "11013631"
-p10_file = r"PTO_STO_DSO_28"
-scan_num = 33
+p10_file = r"PTO_STO_DSO_732"
+scan_num = 15
 detector = 'e4m'
 geometry = 'out_of_plane'
 
 # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-roi = [584, 1384, 1245, 1845]
+roi = [546, 1346, 1351, 1951]
 
 # distance of the detector
-distance = 1829.0518805745921
+distance = 1828.843759875664
 pixelsize = 0.075
 # Direct beam position on the detector Y, X
 cch = [1046, 1341]
-det_rot = 0.6579914120476287
-omega_offset = -0.11212434100115953
-delta_offset = -0.05317783930952746
-chi_offset = -0.9056682493438566
-phi_offset = 3.8444261387711585
+det_rot = 0.6572915858960032
+omega_offset = -0.30112815199929277
+delta_offset = -0.13598697405430998
+chi_offset = -0.7813658301396613
+phi_offset = -0.2
 gam_offset = 0
 energy_offset = 0
 
@@ -49,7 +49,7 @@ generating_3D_vtk_file = False
 
 # Inputs: paths
 path = r"E:\Data2\XRD raw\20220608 P10 PTO BFO\raw"
-pathsave = r"E:\Work place 3\sample\XRD\Test"
+pathsave = r"E:\Work place 3\sample\XRD\20220608 Inhouse PTO film BFO islands\PTO_STO\PTO_STO_DSO_732"
 pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\general_mask.npy'
 
 print("#################")

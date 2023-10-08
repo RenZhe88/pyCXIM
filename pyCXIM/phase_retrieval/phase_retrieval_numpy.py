@@ -552,13 +552,13 @@ class PhaseRetrievalFuns():
 
         Parameters
         ----------
-        algorithm0 : TYPE
-            DESCRIPTION.
+        algorithm0 : str
+            The algorithm chain defining the Phase retrieval process.
 
         Example
         -------
         Algorithm_expander((HIO**50)**2*ER**10*Sup)
-        [(HIO, 50), (HIO, 50), (ER, 10), (Sup, 0), (End, 0)]
+        [(HIO, 50), (HIO, 50), (ER, 10), (Sup, 1), (End, 1)]
 
         Returns
         -------
@@ -567,16 +567,20 @@ class PhaseRetrievalFuns():
 
         """
         steps = []
-        pattern0 = r'(\w+\*\*\d+)|(\(.+?\)\*\*\d+)|(\w+)'                          # Matches all three types of pattern like RAAR**50, (HIO**20*ER**20)**20, Sup
-        pattern1 = r'(\w+)\*\*(\d+)'                                               # Matches pattern like RAAR**50
-        pattern2 = r'(\w+)'                                                        # Matches pattern like Sup
-        pattern3 = r'\((.+?)\)\*\*(\d+)'                                           # Matches pattern like (HIO**20*ER**20)**20
+        # Pattern 0 matches all three types of pattern like RAAR**50, (HIO**20*ER**20)**20, Sup
+        pattern0 = r'(\w+\*\*\d+)|(\(.+?\)\*\*\d+)|(\w+)'
+        # Pattern 1 matches pattern like RAAR**50
+        pattern1 = r'(\w+)\*\*(\d+)'
+        # Pattern 2 matches pattern like Sup
+        pattern2 = r'(\w+)'
+        # Pattern 3 matches pattern like (HIO**20*ER**20)**20
+        pattern3 = r'\((.+?)\)\*\*(\d+)'
 
         for level0 in re.finditer(pattern0, algorithm0):
             if bool(re.match(pattern1, level0.group())):
                 steps.append((re.findall(pattern1, level0.group())[0][0], int(re.findall(pattern1, level0.group())[0][1])))
             elif bool(re.match(pattern2, level0.group())):
-                steps.append((re.findall(pattern2, level0.group())[0], 0))
+                steps.append((re.findall(pattern2, level0.group())[0], 1))
             elif bool(re.match(pattern3, level0.group())):
                 algorithm1, loopnum1 = re.findall(pattern3, level0.group())[0]
                 for i in range(int(loopnum1)):
@@ -584,10 +588,9 @@ class PhaseRetrievalFuns():
                         if bool(re.match(pattern1, level1.group())):
                             steps.append((re.findall(pattern1, level1.group())[0][0], int(re.findall(pattern1, level1.group())[0][1])))
                         elif bool(re.match(pattern2, level1.group())):
-                            steps.append((re.findall(pattern2, level1.group())[0], 0))
-        steps.append(('End', 0))
+                            steps.append((re.findall(pattern2, level1.group())[0], 1))
+        steps.append(('End', 1))
         return steps
-
 
 def Free_LLK_FFTmask(MaskFFT, percentage=0.04, r=3):
     """

@@ -28,21 +28,21 @@ import os
 import sys
 import h5py
 import time
-sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
+sys.path.append(r'F:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\align_AuNP_00096\scan_0096_information.txt"
+path_scan_infor = r"F:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00152\scan_0152_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
 data_description = 'cutqz'
-pathsave = r'E:\Work place 3\sample\XRD\20191123 Inhouse P10 desy\Scans_pyCXIM\align_AuNP_00096\cutqz'
+pathsave = r'F:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00152\cutqz'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
-algorithm = "(DIF**50)**2*(HIO**50*Sup*ConvexSup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup*ConvexSup)**30"
+algorithm = "(DIF**50)**2*(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**30"
 # algorithm = "DIF**200*(RAAR**50*ER**10)**20"
 
 # Input: parameters for creating the initial suppport.
@@ -75,7 +75,7 @@ threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
 thrpara_min = 0.08
-thrpara_max = 0.12
+thrpara_max = 0.14
 support_smooth_width_begin = 3.5
 support_smooth_width_end = 0.9
 

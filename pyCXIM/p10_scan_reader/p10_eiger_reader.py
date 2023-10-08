@@ -50,13 +50,16 @@ class P10EigerScan(P10Scan):
         self.path_eiger_img = os.path.join(self.path_eiger_folder, "%s_%05d_data_%06d.h5")
         self.path_eiger_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.p10_file, self.scan, self.detector))
         assert os.path.exists(self.path_eiger_folder), 'The image folder for %s images %s does not exist, please check the path again!' % (self.detector, self.path_eiger_folder)
+
         if self.detector == 'e4m':
             self.detector_size = (2167, 2070)
             self.pixel_size = 75e-3
         elif self.detector == 'e500':
             self.detector_size = (514, 1030)
             self.pixel_size = 75e-3
+
         self.eiger_load_mask(pathmask)
+
         if len(os.listdir(self.path_eiger_folder)) == (self.npoints // 2000 + 2) or len(os.listdir(self.path_eiger_folder)) == 3:
             self.img_per_point = 'one'
         elif len(os.listdir(self.path_eiger_folder)) == (self.npoints + 1):
