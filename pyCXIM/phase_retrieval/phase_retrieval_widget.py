@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 Description.
 
@@ -251,7 +250,11 @@ class PhaseRetrievalWidget():
         imgfile.close()
         return
 
-    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, Free_LLK=False, FLLK_percentage=1, FLLK_radius=3, threhold_update_method='exp_increase', support_para_update_precent=0.8, thrpara_min=0.1, thrpara_max=0.12, support_smooth_width_begin=3.5, support_smooth_width_end=1.0, flip_condition='Support', first_seed_flip=False, display_image_num=5):
+    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, Free_LLK=False,
+                             FLLK_percentage=1, FLLK_radius=3, threhold_update_method='exp_increase',
+                             support_para_update_precent=0.8, thrpara_min=0.1, thrpara_max=0.12,
+                             support_smooth_width_begin=3.5, support_smooth_width_end=1.0, detwin_axis=0,
+                             flip_condition='Support', first_seed_flip=False, phase_unwrap_method=6, display_image_num=5):
         """
         Perform the phase retrieval with the aimed algorithm.
 
@@ -283,13 +286,19 @@ class PhaseRetrievalWidget():
             The maximum threshold value to be used in the shrink wrap process. The default is 0.12.
         support_smooth_width_begin : float, optional
             The standard deviation of Gaussian kernal used at the begining of the shrink wrap process. The default is 3.5.
-        support_smooth_width_end : TYPE, optional
+        support_smooth_width_end : float, optional
             The standard deviation of Gaussian kernal to be reached at the end of the shrink wrap process. The default is 1.0.
+        detwin_axis : int|turple, optional
+            Axis for detwin operation. The default is 0.
         flip_condition : str, optional
             Determins which image is used to judge whether an image should be flip after the phase retrieval process.
             Opitions are 'Support', 'Modulus', 'Phase'. The default is 'Support'.
         first_seed_flip : bool, optional
             If true, the first image generated will be flipped, which will also flip all the solutions afterwards. The default is False.
+        phase_unwrap_method : int, optional
+            phase_unwrap_method now can be chosen from 0, 4, 6, 8
+            If phase_unwrap_method = 0, the phase unwrap will be performed with phase unwrap method in the skimage.
+            If phase_unwrap_method = 4, 6 or 8, the phase unwrap will be performed FFT method.
         display_image_num : int, optional
             The number of runs to be displayed during the run. The default is 5.
 
@@ -387,14 +396,14 @@ class PhaseRetrievalWidget():
                         elif threhold_update_method == 'lin_increase':
                             thrpara = thrpara + thr_increase_rate
                 elif method == 'DETWIN':
-                    PR_seed.DETWIN(axis=0)
+                    PR_seed.DETWIN(axis=detwin_axis)
                 elif method == 'ConvexSup':
                     PR_seed.ConvexSup()
                 elif method == 'End':
                     PR_seed.End()
                     Support_final = PR_seed.get_support()
                     Modulus_final = PR_seed.get_img_Modulus()
-                    Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support())
+                    Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support(), phase_unwrap_method)
                     intensity_sum = intensity_sum + PR_seed.get_intensity()
 
                     # removing the symmetrical cases by fliping the images
@@ -412,7 +421,7 @@ class PhaseRetrievalWidget():
                         PR_seed.flip_img()
                         Support_final = PR_seed.get_support()
                         Modulus_final = PR_seed.get_img_Modulus()
-                        Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support())
+                        Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support(), phase_unwrap_method)
                         err_ar[Seed, :] = np.array([Seed, np.sum(PR_seed.get_support()), PR_seed.get_Fourier_space_error(), PR_seed.get_Poisson_Likelihood(), PR_seed.get_Free_LogLikelihood(LLKmask), 1])
                         sys.stdout.write(', flip:1')
                     else:
@@ -461,8 +470,12 @@ class PhaseRetrievalWidget():
         else:
             self.para_dict['support_update'] = False
 
+        if int(algor_extend.count(('DETWIN', 1))) != 0:
+            self.para_dict['detwin_axis'] = detwin_axis
+
         self.para_dict['flip_condition'] = flip_condition
         self.para_dict['first_seed_flip'] = first_seed_flip
+        self.para_dict['phase_unwrap_method'] = phase_unwrap_method
 
         imgfile.create_dataset("Error/error", data=err_ar, dtype='float')
         imgfile['Error'].attrs['column_names'] = ['Seed', 'support_size', 'Fourier space error', 'Poisson logLikelihood', 'Free logLikelihood', 'Flip']
@@ -543,7 +556,7 @@ class PhaseRetrievalWidget():
             for i, Seed in enumerate(Seed_selected):
                 Img = np.array(imgfile['Solutions/Seed%03d/image' % Seed], dtype=complex)
                 Modulus = np.abs(Img)
-                Phase = pp.phase_corrector(np.angle(Img), support, 0)
+                Phase = pp.phase_corrector(np.angle(Img), support, 0, phase_unwrap_method)
                 result_matrix[:, i] = np.multiply(Modulus, np.exp(1j * Phase))[support == 1]
                 Avr_Modulus = Avr_Modulus + Modulus
                 Avr_Phase = Avr_Phase + Phase
@@ -565,11 +578,11 @@ class PhaseRetrievalWidget():
             Mode2[support == 1] = u_vector[:, 1]
             Mode3[support == 1] = u_vector[:, 2]
             Mode1_Modulus = np.abs(Mode1)
-            Mode1_Phase = pp.phase_corrector(np.angle(Mode1), support, 0)
+            Mode1_Phase = pp.phase_corrector(np.angle(Mode1), support, 0, phase_unwrap_method)
             Mode2_Modulus = np.abs(Mode2)
-            Mode2_Phase = pp.phase_corrector(np.angle(Mode2), support, 0)
+            Mode2_Phase = pp.phase_corrector(np.angle(Mode2), support, 0, phase_unwrap_method)
             Mode3_Modulus = np.abs(Mode3)
-            Mode3_Phase = pp.phase_corrector(np.angle(Mode3), support, 0)
+            Mode3_Phase = pp.phase_corrector(np.angle(Mode3), support, 0, phase_unwrap_method)
             evalue = np.square(evalue)
             evalue = evalue / np.sum(evalue)
             Avr_Modulus = Avr_Modulus / selected_image_num

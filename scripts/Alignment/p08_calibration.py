@@ -11,9 +11,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 import sys
-sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
+sys.path.append(r'F:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
-from pyCXIM.p08_scan_reader.p08_eiger_reader import P08EigerScan
+from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
 from pyCXIM.RSM.RC2RSM import RC2RSM_6C
 
 def calibration():
@@ -41,8 +41,8 @@ def calibration():
         error_source = ['omega', 'delta', 'chi']
 
     # Inputs: paths
-    path = r"U:\2023\data\11016147\raw"
-    pathsave = r"E:\Work place 3\sample\XRD\20230615 PTO_insitu"
+    path = r"F:\Raw Data\20230615_P08_PTO_STO_in_situ\raw"
+    pathsave = r"F:\Work place 4"
     pathmask = r''
     pathinfor = os.path.join(pathsave, "calibration.txt")
     section_ar = ['General Information', 'Detector calibration', 'Bragg peak calibration %s']
@@ -55,7 +55,7 @@ def calibration():
     infor.add_para('pathsave', section_ar[0], pathsave)
 
     if Calibration_type == 'detector':
-        scan = P08EigerScan(path, p08_file, scan_num, pathmask=pathmask)
+        scan = DesyEigerImporter('p08', path, p08_file, scan_num, detector, pathmask=pathmask)
         print(scan)
         command = scan.get_command()
         motor = str(command.split()[1])
@@ -124,7 +124,7 @@ def calibration():
         infor.add_para('error_source', section_ar[2] % (str(peak)), error_source)
         infor.add_para('geometry', section_ar[2] % (str(peak)), geometry)
 
-        scan = P08EigerScan(path, p08_file, scan_num, detector, pathmask=pathmask)
+        scan = DesyEigerImporter('p08', path, p08_file, scan_num, detector, pathmask=pathmask)
         print(scan)
         pch = scan.eiger_find_peak_position(cut_width=[50, 50])
         if geometry == 'out_of_plane':

@@ -52,7 +52,7 @@ class RC2RSM_6C():
 
     """
 
-    def __init__(self, scan_motor_ar, geometry='out_of_plane', omega=0, delta=0, chi=0, phi=0, gam=0, det_rot=0, energy=8000, distance=1830, pixelsize=0.075):
+    def __init__(self, scan_motor_ar, geometry='out_of_plane', omega=0, delta=0, chi=0, phi=0, gam=0, energy=8000, det_rot=0, distance=1830, pixelsize=0.075):
 
         self.scan_motor_ar = np.deg2rad(scan_motor_ar)
         self.scan_step = np.deg2rad((scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1.0))
@@ -92,11 +92,6 @@ class RC2RSM_6C():
             The calculated q_vector as [qz, qy, qx] in inverse angstrom.
 
         """
-        if self.geometry == 'out_of_plane':
-            self.omega = self.scan_motor_ar[int(pch[0])]
-        elif self.geometry == 'in_plane':
-            self.phi = self.scan_motor_ar[int(pch[0])]
-        # print('om=%f, delta=%.2f, chi=%.2f, phi=%.2f, gamma=%.2f' % (np.rad2deg(self.omega), np.rad2deg(self.delta), np.rad2deg(self.chi), np.rad2deg(self.phi), np.rad2deg(self.gamma)))
         pixel_distance = np.linalg.norm([self.distance, (pch[1] - cch[0]) * self.pixelsize, (pch[2] - cch[1]) * self.pixelsize])
         q_vector = np.array([(cch[0] - pch[1]), (cch[1] - pch[2]), self.distance / self.pixelsize])
         det_rot_transform = np.array([[np.cos(self.det_rot), -np.sin(self.det_rot), 0], [np.sin(self.det_rot), np.cos(self.det_rot), 0], [0, 0, 1.0]])
@@ -140,10 +135,6 @@ class RC2RSM_6C():
             The calculated q_vector as [qz, qy, qx] in inverse angstrom
 
         """
-        if self.geometry == 'out_of_plane':
-            self.omega = self.scan_motor_ar[int(pch[0])]
-        elif self.geometry == 'in_plane':
-            self.phi = self.scan_motor_ar[int(pch[0])]
         q_vector = np.array([(cch[0] - pch[1]), (cch[1] - pch[2]), self.distance / self.pixelsize])
         det_rot_transform = np.array([[np.cos(self.det_rot), -np.sin(self.det_rot), 0], [np.sin(self.det_rot), np.cos(self.det_rot), 0], [0, 0, 1.0]])
         q_vector = np.dot(det_rot_transform, q_vector)

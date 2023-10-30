@@ -16,7 +16,7 @@ import sys
 from scipy.special import gammaln
 import re
 import torch
-# from skimage.morphology import convex_hull_image
+from skimage.morphology import convex_hull_image
 
 
 class PhaseRetrievalFuns():
@@ -79,6 +79,7 @@ class PhaseRetrievalFuns():
         # loop index records number of loops performed for different algorithms
         self.loop_index = np.zeros(6)
         self.loop_index[0] = Seed
+        self.display_str = '\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d'
         # the array to hold the previous image during the HIO calculation
         self.holderimg_HIO = np.zeros_like(self.ModulusFFT, dtype=complex)
         # the array to hold the previous image during the HIO calculation
@@ -237,7 +238,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[5] += 1
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         # Update the support function according to the shrink wrap method
         Bluredimg = self.GaussianBlur(torch.abs(self.img), Gaussiandelta)
@@ -268,7 +269,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[1] += num_ER_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         for i in range(num_ER_loop):
             self.img = self.support * self.img
@@ -291,6 +292,7 @@ class PhaseRetrievalFuns():
         None.
 
         """
+        self.display_str = self.display_str + ', DETWIN'
         if isinstance(axis, int):
             axis = (axis,)
         if self.dim == 2:
@@ -311,11 +313,11 @@ class PhaseRetrievalFuns():
                 self.img[:, :, int(xd / 2):] = 0
         return
 
-    # def ConvexSup(self):
-    #     self.support = self.support.cpu().numpy()
-    #     self.support = np.array(convex_hull_image(self.support), dtype=float)
-    #     self.support = torch.from_numpy(self.support).to(self.device)
-    #     return
+    def ConvexSup(self):
+        self.support = self.support.cpu().numpy()
+        self.support = np.array(convex_hull_image(self.support), dtype=float)
+        self.support = torch.from_numpy(self.support).to(self.device)
+        return
 
     def HIO(self, num_HIO_loop):
         """
@@ -336,7 +338,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[2] += num_HIO_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         para = 0.9  # Parameter for the HIO
 
@@ -366,7 +368,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[2] += num_NHIO_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         para = 0.9  # Parameter for the HIO
 
@@ -398,7 +400,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[3] += num_RAAR_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         para0 = 0.75  # Starting parameter for the RAAR
 
@@ -467,7 +469,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[4] += num_DIF_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         para_dif = 0.9  # parameter for the difference map
         invpara = 1.0 / para_dif

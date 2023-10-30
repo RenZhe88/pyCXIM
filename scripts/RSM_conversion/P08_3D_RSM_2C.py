@@ -37,7 +37,7 @@ def BCDI_preparation():
     wxy = [350, 400, 350, 350]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
     roi = [100, 900, 100, 900]
-    # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight_center'
+    # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'maximum integration'
 
     # Half width of reciprocal space box size in pixels

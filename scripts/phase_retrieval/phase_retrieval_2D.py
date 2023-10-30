@@ -34,16 +34,16 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"F:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00152\scan_0152_information.txt"
+path_scan_infor = r"F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\scan_0144_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
-data_description = 'cutqz'
-pathsave = r'F:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00152\cutqz'
+data_description = 'cutqx'
+pathsave = r'F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\cutqx'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
-algorithm = "(DIF**50)**2*(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**30"
-# algorithm = "DIF**200*(RAAR**50*ER**10)**20"
+algorithm = "(HIO**50*Sup*ConvexSup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup*ConvexSup)**30"
+# algorithm = "DIF**200*(RAAR**50*ER**10)**40"
 
 # Input: parameters for creating the initial suppport.
 # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
@@ -75,22 +75,26 @@ threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
 thrpara_min = 0.08
-thrpara_max = 0.14
+thrpara_max = 0.10
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 0.9
+support_smooth_width_end = 1.0
+
+# Input: parameters for the detwin operation
+detwin_axis = 0
 
 # Input: parameters for flipping the images to remove the trival solutions.
-# flip_condition = 'Support'
-flip_condition = 'Phase'
+flip_condition = 'Support'
+# flip_condition = 'Phase'
 # flip_condition ='Modulus'
-first_seed_flip = False
+first_seed_flip = True
+phase_unwrap_method = 0
 
 # Input: Parameters for further analysis like SVD and average
 further_analysis_selected = 10
 error_type_for_selection = 'Fourier space error'
 
 # Input: Parameters determining the display of the images
-display_range = [500, 500]
+display_range = [400, 400]
 display_image_num = 10
 # %% Load the image data and the mask
 
@@ -147,7 +151,8 @@ pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, Free_LLK,
                              FLLK_percentage, FLLK_radius, threhold_update_method,
                              support_para_update_precent, thrpara_min, thrpara_max,
                              support_smooth_width_begin, support_smooth_width_end,
-                             flip_condition, first_seed_flip, display_image_num)
+                             detwin_axis, flip_condition, first_seed_flip,
+                             phase_unwrap_method, display_image_num)
 
 # %% plot and save the final results
 voxel_size = ((2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
@@ -219,5 +224,6 @@ para_name_list = [
     'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
     'support_update_loops', 'support_threshold_min', 'support_threshold_max',
     'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-    'further_analysis_selected', 'further_analysis_method', 'error_for_further_analysis_selection']
+    'detwin_axis', 'further_analysis_selected', 'further_analysis_method',
+    'phase_unwrap_method', 'error_for_further_analysis_selection']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)

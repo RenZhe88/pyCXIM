@@ -13,16 +13,18 @@ import sys
 import datetime
 
 
-class P08Scan:
+class DesyScanImporter:
     """
-    Read the p08 scan. Load the information from fio files, load the detector images with corresponding mask, and sum up the intensity in the corresponding rois.
+    Read and write fio files for the scan recorded at Desy beamlines.
 
     Parameters
     ----------
+    beamline : str
+        The name of the beamline. Please chose between 'p10' and 'p08'.
     path : str
         The path for the raw file folder.
-    p08_file : str
-        The name of the sample defined by the p08_newfile name in the system.
+    sample_name : str
+        The name of the sample defined by the p10_newfile or spec_newfile name in the system.
     scan : int
         The scan number.
     pathsave : str, optional
@@ -32,29 +34,69 @@ class P08Scan:
 
     """
 
-    def __init__(self, path, p08_file, scan, pathsave='', creat_save_folder=True):
-        self.p08_file = p08_file
+    def __init__(self, beamline, path, sample_name, scan, pathsave='', creat_save_folder=True):
+        self.beamline = beamline
+        self.sample_name = sample_name
         self.scan = scan
         assert os.path.exists(path), "The scan folder %s does not exist, please check it again!" % path
 
         if pathsave != '':
             assert os.path.exists(pathsave), "The save folder %s does not exist, please check it again!" % self.pathsave
-            self.pathsave = os.path.join(pathsave, '%s_%05d' % (p08_file, scan))
+            self.pathsave = os.path.join(pathsave, '%s_%05d' % (sample_name, scan))
             if (not os.path.exists(self.pathsave)) and creat_save_folder:
                 os.mkdir(self.pathsave)
         else:
             self.pathsave = pathsave
 
         # Try to locate the fio file, first look at the folder to save the results, then try to look at the folder in the raw data.
-        if os.path.exists(os.path.join(self.pathsave, r"%s_%05d.fio" % (p08_file, scan))):
-            self.path = os.path.join(path, r"%s_%05d" % (p08_file, scan))
-            self.pathfio = os.path.join(self.pathsave, r"%s_%05d.fio" % (p08_file, scan))
-        elif os.path.exists(os.path.join(path, r"%s_%05d.fio" % (p08_file, scan))):
-            self.path = os.path.join(path, r'%s_%05d' % (p08_file, scan))
-            self.pathfio = os.path.join(path, r"%s_%05d.fio" % (p08_file, scan))
+        if beamline == 'p10':
+            if os.path.exists(os.path.join(self.pathsave, r"%s_%05d.fio" % (sample_name, scan))):
+                self.path = os.path.join(path, r"%s_%05d" % (sample_name, scan))
+                self.pathfio = os.path.join(self.pathsave, r"%s_%05d.fio" % (sample_name, scan))
+            elif os.path.exists(os.path.join(path, r"%s_%05d\%s_%05d.fio" % (sample_name, scan, sample_name, scan))):
+                self.path = os.path.join(path, r'%s_%05d' % (sample_name, scan))
+                self.pathfio = os.path.join(self.path, r"%s_%05d.fio" % (sample_name, scan))
+            elif os.path.exists(os.path.join(path, r"%s\%s_%05d.fio" % (sample_name, sample_name, scan))):
+                self.path = os.path.join(path, r'%s' % (sample_name))
+                self.pathfio = os.path.join(self.path, r"%s_%05d.fio" % (sample_name, scan))
+            else:
+                raise IOError('Could not find the fio files please check the beamline, p10_newfile name, and the scan number again!')
+        elif beamline == 'p08':
+            if os.path.exists(os.path.join(self.pathsave, r"%s_%05d.fio" % (sample_name, scan))):
+                self.path = os.path.join(path, r"%s_%05d" % (sample_name, scan))
+                self.pathfio = os.path.join(self.pathsave, r"%s_%05d.fio" % (sample_name, scan))
+            elif os.path.exists(os.path.join(path, r"%s_%05d.fio" % (sample_name, scan))):
+                self.path = os.path.join(path, r'%s_%05d' % (sample_name, scan))
+                self.pathfio = os.path.join(path, r"%s_%05d.fio" % (sample_name, scan))
+            else:
+                raise IOError('Could not find the fio files please check the beamline, p08_newfile name, and the scan number again!')
         else:
-            assert False, 'Could not find the fio files please check the beamtime ID, p08_newfile name, and the scan number again!'
+            raise ValueError('Now the code only support two beamlines, please chose from p10 and p08! If you want to work with data from other beamlines, please contact the author! Email: renzhe@ihep.ac.cn')
 
+        self.read_fio()
+        return
+
+    def __str__(self):
+        """
+        Print the scan number, sample_name name and the command.
+
+        Returns
+        -------
+        str
+            The string containing the information of the scan.
+
+        """
+        return '%s_%05d: %s' % (self.sample_name, self.scan, self.get_command())
+
+    def read_fio(self):
+        """
+        Read the fio files, load the scan information.
+
+        Returns
+        -------
+        None.
+
+        """
         fiofile = open(self.pathfio, 'r')
         fiotext = fiofile.read()
         pattern0 = r'!\n! \w+\n!\n%\w\n'
@@ -66,10 +108,10 @@ class P08Scan:
             if section_name == 'Comments':
                 if section_infor != '':
                     self.command = section_infor.splitlines()[0]
-                    pattern1 = 'user p08user Acquisition started at (.+)'
+                    pattern1 = 'user %suser Acquisition started at (.+)' % self.beamline
                     self.start_time = re.findall(pattern1, section_infor.splitlines()[1])[0]
                 else:
-                    self.command = 'series'
+                    self.command = 'time_series'
                     self.start_time = None
             elif section_name == 'Parameter':
                 pattern2 = r'(\w+) = (.+)'
@@ -115,7 +157,7 @@ class P08Scan:
                 list_of_lines.append("%c\n")
                 list_of_lines.append(self.command + '\n')
                 if self.start_time is not None:
-                    list_of_lines.append('user p08user Acquisition started at %s\n' % self.start_time)
+                    list_of_lines.append('user %suser Acquisition started at %s\n' % (self.beamline, self.start_time))
             elif section_name == 'Parameter':
                 list_of_lines.append("%p\n")
                 for para_name in self.motor_position:
@@ -131,7 +173,7 @@ class P08Scan:
                     list_of_lines.append('! Acquisition ended at  %s\n' % self.end_time)
 
         if self.pathsave != '':
-            pathsave = os.path.join(self.pathsave, "%s_%05d.fio" % (self.p08_file, self.scan))
+            pathsave = os.path.join(self.pathsave, "%s_%05d.fio" % (self.sample_name, self.scan))
             with open(pathsave, 'w') as f:
                 f.writelines(list_of_lines)
         else:
@@ -182,6 +224,30 @@ class P08Scan:
             self.scan_infor[counter_name] = data_value
         return
 
+    def get_pathsave(self):
+        """
+        Get the path to save the results.
+
+        Returns
+        -------
+        str
+            The path to save the results.
+
+        """
+        return self.pathsave
+
+    def get_sample_name(self):
+        """
+        Get the sample name, which would be the name of p10_newfile or spec_newfile.
+
+        Returns
+        -------
+        str
+            The sample name.
+
+        """
+        return self.sample_name
+
     def get_command(self):
         """
         Get the command of the scan.
@@ -194,29 +260,18 @@ class P08Scan:
         """
         return self.command
 
-    def get_counter_names(self):
+    def get_scan_type(self):
         """
-        Get the counter names in the scan.
-
-        Returns
-        -------
-        list
-            The counter names that exists in the scan.
-
-        """
-        return list(self.scan_infor.columns)
-
-    def get_p08_file(self):
-        """
-        Get the p08_newfile name.
+        Get the scan type.
 
         Returns
         -------
         str
-            The p08_newfile name.
+            The scan type information in the command.
 
         """
-        return self.p08_file
+        command = self.command.split()
+        return command[0]
 
     def get_scan_motor(self):
         """
@@ -228,63 +283,78 @@ class P08Scan:
             The value of the corresponding motor.
 
         """
+        scan_type = self.get_scan_type()
         command = self.command.split()
-        if command[0] == 'dscan' or command[0] == 'ascan':
+        if scan_type == 'dscan' or scan_type == 'ascan':
             return command[1]
-        elif command[0] == 'd2scan' or command[0] == 'a2scan':
+        elif scan_type == 'd2scan' or scan_type == 'a2scan':
             return command[1], command[4]
-        elif command[0] == 'dmesh' or command[0] == 'mesh':
+        elif scan_type == 'dmesh' or scan_type == 'mesh':
             return command[1], command[5]
-        else:
-            print('Please check the scan type!')
+        elif scan_type == 'time_series':
+            print('The time series scan does not have any motors!')
             return ''
+        else:
+            raise RuntimeError('Unrecognized scan type!')
 
-    def get_command_infor(self):
+    def get_num_points(self):
         """
-        Get the information of the command line.
+        Get the number of points in the scan.
 
         Returns
         -------
-        command_infor : dict
-            command line information in the dictionary form.
+        int
+            The number of points in the scan.
 
         """
+        return self.npoints
+
+    def get_scan_shape(self):
+        """
+        Get the shape of the real scan data.
+
+        Returns
+        -------
+        tuple of ints
+            The shape of the scan data extracted from the command.
+
+        """
+        scan_type = self.get_scan_type()
         command = self.command.split()
-        command_infor = {}
-        if command[0] == 'dscan' or command[0] == 'ascan':
-            command_infor['scan_type'] = command[0]
-            command_infor['motor1_name'] = command[1]
-            command_infor['motor1_start_pos'] = command[2]
-            command_infor['motor1_end_pos'] = command[3]
-            command_infor['motor1_step_num'] = command[4]
-            command_infor['exposure'] = command[5]
-            return command_infor
-        elif command[0] == 'd2scan' or command[0] == 'a2scan':
-            command_infor['scan_type'] = command[0]
-            command_infor['motor1_name'] = command[1]
-            command_infor['motor1_start_pos'] = command[2]
-            command_infor['motor1_end_pos'] = command[3]
-            command_infor['motor2_name'] = command[4]
-            command_infor['motor2_start_pos'] = command[5]
-            command_infor['motor2_end_pos'] = command[6]
-            command_infor['motor1_step_num'] = command[7]
-            command_infor['exposure'] = command[8]
-            return command_infor
-        elif command[0] == 'dmesh' or command[0] == 'mesh':
-            command_infor['scan_type'] = command[0]
-            command_infor['motor1_name'] = command[1]
-            command_infor['motor1_start_pos'] = command[2]
-            command_infor['motor1_end_pos'] = command[3]
-            command_infor['motor1_step_num'] = command[4]
-            command_infor['motor2_name'] = command[5]
-            command_infor['motor2_start_pos'] = command[6]
-            command_infor['motor2_end_pos'] = command[7]
-            command_infor['motor2_step_num'] = command[8]
-            command_infor['exposure'] = command[9]
-            return command_infor
+        if scan_type == 'dscan' or scan_type == 'ascan':
+            return (int(command[4]) + 1,)
+        elif scan_type == 'd2scan' or scan_type == 'a2scan':
+            return (int(command[7]) + 1,)
+        elif scan_type == 'dmesh' or scan_type == 'mesh':
+            return (int(command[4]) + 1, int(command[8]) + 1)
+        elif scan_type == 'time_series':
+            return (self.npoints,)
         else:
-            command_infor['scan_type'] = 'time_series'
-            return command_infor
+            raise RuntimeError('Unrecognized scan type!')
+
+    def get_motor_names(self):
+        """
+        Get the motor names in the scan.
+
+        Returns
+        -------
+        list
+            The motor names that exists in the scan.
+
+        """
+        return self.motor_position.keys()
+
+    def get_counter_names(self):
+        """
+        Get the counter names in the scan.
+
+        Returns
+        -------
+        list
+            The counter names that exists in the scan.
+
+        """
+        return list(self.scan_infor.columns)
 
     def get_start_time(self):
         """
@@ -320,18 +390,6 @@ class P08Scan:
             print('The end time of the scan does not exist in the fio file of the series! Try to read the batch information first!')
             return
 
-    def get_pathsave(self):
-        """
-        Get the path to save the results.
-
-        Returns
-        -------
-        str
-            The path to save the results.
-
-        """
-        return self.pathsave
-
     def get_motor_pos(self, motor_name):
         """
         Get the motor positions in the fio file.
@@ -353,9 +411,9 @@ class P08Scan:
             print('motor %s does not exist in the fio file!' % motor_name)
             return None
 
-    def load_motor_pos_list(self, motor_name_list):
+    def get_motor_pos_list(self, motor_name_list):
         """
-        Load parameters in the list.
+        Given a list of motor names, get their values.
 
         Parameters
         ----------
@@ -372,6 +430,35 @@ class P08Scan:
         for motor_name in motor_name_list:
             motor_pos_list.append(self.get_motor_pos(motor_name))
         return motor_pos_list
+
+    def get_absorber(self):
+        """
+        Print the absorber used in the scan.
+
+        The corresponding transmission can be found at https://henke.lbl.gov/optical_constants/filter2.html.
+
+        Returns
+        -------
+        None.
+
+        """
+        assert self.beamline == 'p10', 'This function is only applied to beamline P10.'
+        abs1z = int(round(self.get_motor_pos('abs1z')) + 4)
+        abs2z = int(round(self.get_motor_pos('abs2z')) + 4)
+        if self.get_start_time() > datetime.datetime(2020, 11, 6):
+            abs1_Si = np.array([0, 2000, 500, 125, 0, 25, 100, 400, 1600])
+            abs2_Si = np.array([0, 4000, 1000, 250, 0, 50, 200, 800, 3200])
+            abs1_Ag = np.array([450, 0, 0, 0, 0, 0, 0, 0, 0])
+            abs2_Ag = np.array([900, 0, 0, 0, 0, 0, 0, 0, 0])
+        else:
+            abs1_Si = np.array([0, 0, 0, 0, 0, 25, 100, 400, 1600])
+            abs2_Si = np.array([0, 0, 0, 0, 0, 50, 200, 800, 3200])
+            abs1_Ag = np.array([800, 200, 50, 12.5, 0, 0, 0, 0, 0])
+            abs2_Ag = np.array([1600, 400, 100, 25, 0, 0, 0, 0, 0])
+        total_Si_thickness = abs1_Si[abs1z] + abs2_Si[abs2z]
+        total_Ag_thickness = abs1_Ag[abs1z] + abs2_Ag[abs2z]
+        print('Absorber used is %.1f um thick Si and %.1f um thick Ag' % (total_Si_thickness, total_Ag_thickness))
+        return total_Si_thickness, total_Ag_thickness
 
     def get_scan_data(self, counter_name):
         """
@@ -398,21 +485,9 @@ class P08Scan:
             nan_array[:] = np.NaN
             return nan_array
 
-    def get_num_points(self):
-        """
-        Get the number of points in the scan.
-
-        Returns
-        -------
-        int
-            The number of points in the scan.
-
-        """
-        return self.npoints
-
     def cal_diode_flux(self, counts, amplification=1.0e4, fmbenergy=None, thickness_Si=300.0):
         """
-        Calculate the flux based on the Si diode counts in p08.
+        Calculate the flux based on the Si diode counts in P10.
 
         Calculation performed according to paper:
             Determination of X-ray flux using silicon pin diodes.
@@ -464,6 +539,83 @@ class P08Scan:
 
         # X-ray flux
         flux = photocurrent_si * (ehp_si / (e_charge * fmbenergy * 1e03 * 1.6022e-19)) * (1 - np.exp(-silicon_pcs * thickness_Si * silicon_rho)) ** -1
+        return flux
+
+    def cal_cyberstar_flux(self, counts, pinhole_size=1.0, fmbenergy=None, distance=100, thickness=0.025, energy_corr=True):
+        """
+        Calculate the flux based on the cyberstar counts in P10.
+
+        Parameters
+        ----------
+        counts : Union[ndarray, float]
+            The counter of the cyberstar per second.
+        pinhole_size : float, optional
+            The openning size of the pinhole. The default is 1.0.
+        fmbenergy : float, optional
+            The energy of the X-ray beam in eV.
+            If None, the energy is imported from fio file. The default is None.
+        distance : float, optional
+            Distance between Kapton foil and pinhole in mm. The default is 100.
+        thickness : float, optional
+            The . The default is 0.025.
+        energy_corr : boolen, optional
+            If true, the flux calculated for energy above 10 eV will be corrected with some experimental factor. The default is True.
+
+        Returns
+        -------
+        flux : Union[ndarray, float]
+            The flux calculated.
+
+        """
+        assert self.beamline == 'p10', 'This function is only applied to beamline P10.'
+        if fmbenergy is None:
+            fmbenergy = self.get_motor_pos('fmbenergy')
+
+        fmbenergy = fmbenergy * 1.0e-3
+
+        # Thickness correction to account for the incident angle of 45deg
+        thickness = thickness / np.cos(np.deg2rad(45))
+
+        # Kapton cross section (5-25keV)
+        # these are materials constants
+        a0 = 6.21567e-07
+        a1 = -9.62581e-08
+        a2 = 7.86926e-09
+        a3 = -2.85194e-10
+        a4 = 3.78401e-12
+
+        b0 = -6.33669e-08
+        b1 = 0.629331
+        b2 = 3.25478
+        b3 = 0.110262
+        b4 = 2.72988
+
+        b5 = 7.8529e-09
+        b6 = 1.07227
+        b7 = -294.699
+        b8 = 0.0543647
+        b9 = 18.5207
+
+        C = 21175.44
+        # some shortcuts
+        A = a0 * fmbenergy ** 0 + a1 * fmbenergy ** 1 + a2 * fmbenergy ** 2 + a3 * fmbenergy ** 3 + a4 * fmbenergy ** 4
+        B1 = b0 * np.cos((fmbenergy / b1) - b2) * np.exp(-(b3 * fmbenergy) ** b4)
+        B2 = b5 * np.cos((fmbenergy / b6) - b7) * np.exp(-(b8 * fmbenergy) ** b9)
+        KCS = C * (A + B1 + B2)
+
+        # (half) cone opening angle
+        Omega = np.arctan(1.0 / 2.0 * pinhole_size * 1.0e-03 / (distance * 1.0e-03))
+        # solid angle of pinhole opening
+        dOmega = 2 * np.pi * (1 - np.cos(Omega))
+
+        efficiency = dOmega * KCS * thickness
+        flux = counts / efficiency
+
+        if energy_corr:
+            if fmbenergy >= 10.0:
+                flux = 1.152 * flux
+            elif fmbenergy >= 5.0 and fmbenergy < 10.0:
+                flux = (-0.1934 * fmbenergy + 3.045) * flux
         return flux
 
     def Gaussian_estimation(self, counter_name, sigma=1, normalize=True, plot=False):
@@ -659,34 +811,14 @@ class P08Scan:
         """
         return amp1 * np.exp(-(x - cen1) ** 2.0 / (2.0 * sigma1 ** 2.0)) + amp2 * np.exp(-(x - cen2) ** 2.0 / (2.0 * sigma2 ** 2.0))
 
-    def get_imgsum(self, det_type='eiger1m'):
-        """
-        Get the sum fo the corresponding images.
-
-        Parameters
-        ----------
-        det_type : str, optional
-            The type of the detect chosen, can be 'e4m', 'p300', 'e500'. The default is 'e4m'.
-
-        Returns
-        -------
-        ndarray
-            The sum of the corresponding detector images.
-
-        """
-        if det_type == 'eiger1m':
-            self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.p08_file, self.scan, det_type))
-            assert os.path.exists(self.path_imgsum), print('Could not find the summarized e4m detector images!')
-            return np.load(self.path_imgsum)
-
     def fio_to_spec(self, list_of_motors):
         """
         Convert the fio files to the spec format for a single scan, used in combination with spec writer function.
 
         Parameters
         ----------
-        list_of_motors : TYPE
-            DESCRIPTION.
+        list_of_motors : list
+            List of motors to be recorded in the spec file.
 
         Returns
         -------
@@ -720,31 +852,21 @@ class P08Scan:
         list_of_lines.append('\n')
         return list_of_lines
 
-    def __str__(self):
-        """
-        Print the scan number, p08_newfile name and the command.
 
-        Returns
-        -------
-        str
-            The string containing the information of the scan.
-
-        """
-        return '%s_%05d: %s' % (self.p08_file, self.scan, self.get_command())
-
-
-def spec_writer(beamtimeID, path, p08_file, pathsave):
+def spec_writer(beamline, beamtimeID, path, sample_name, pathsave):
     """
-    Generate the spec file for all the scans with the same p08_newfile name.
+    Generate the spec file for all the scans with the same sample_name name.
 
     Parameters
     ----------
+    beamline : str
+        The name of the beamline. Please chose between 'p10' and 'p08'.
     beamtimeID : int
         The beamtimeID of the scan.
     path : str
         The path for the raw file folder.
-    p08_file : str
-        The name of the sample defined by the p08_newfile name in the system.
+    sample_name : str
+        The name of the sample defined by the sample_name name in the system.
     pathsave : str, optional
         The folder to save the results.
 
@@ -754,13 +876,13 @@ def spec_writer(beamtimeID, path, p08_file, pathsave):
 
     """
     assert os.path.exists(pathsave), "The folder for the spec file %s does not exist, please check it again!" % pathsave
-    pathspec = os.path.join(pathsave, '%s.spec' % p08_file)
+    pathspec = os.path.join(pathsave, '%s.spec' % sample_name)
     list_of_motors = ['abs1z', 'abs2z', 'apiny', 'apinz', 'bpm_mon', 'bpmy', 'bpmz', 'chi', 'cryox', 'cryoy', 'cryoz', 'del', 'diffy', 'diffz', 'fmbenergy', 'fsz', 'gam', 'gslt1cx', 'gslt1cy', 'gslt1dx', 'gslt1dy', 'hexary', 'hexarz', 'hexax', 'hexay', 'hexaz', 'ipetra', 'mir1rz', 'mir1y', 'mir2rz', 'mir2y', 'mirz', 'mon1y', 'mu', 'om', 'ot1y', 'ot1z', 'phi', 'tomox', 'tomoy', 'undulator', 'undulatorgap', 'usamx', 'usamy', 'usamz', 'uslt1cx', 'uslt1cy', 'uslt1dx', 'uslt1dy', 'uslt2cx', 'uslt2cy', 'uslt2dx', 'uslt2dy', 'uty', 'utz']
     list_of_lines = []
     list_of_lines.append('#F %s' % (pathspec))
     list_of_lines.append('#E %d\n' % beamtimeID)
     list_of_lines.append('#D %s\n' % (datetime.datetime.now().strftime('%c')))
-    list_of_lines.append('#C User = p08_user\n')
+    list_of_lines.append('#C User = %s_user\n' % beamline)
     list_of_lines.append('\n')
     list_of_lines.append('\n')
 
@@ -774,8 +896,8 @@ def spec_writer(beamtimeID, path, p08_file, pathsave):
     list_of_lines.append('\n')
 
     for scan in range(1, 10000):
-        if os.path.exists(os.path.join(pathsave, r"%s_%05d.fio" % (p08_file, scan))) or os.path.exists(os.path.join(path, r"%s_%05d\%s_%05d.fio" % (p08_file, scan, p08_file, scan))) or os.path.exists(os.path.join(path, r"%s\%s_%05d.fio" % (p08_file, p08_file, scan))):
-            scan_data = P08Scan(path, p08_file, scan, pathsave, creat_save_folder=False)
+        if os.path.exists(os.path.join(pathsave, r"%s_%05d.fio" % (sample_name, scan))) or os.path.exists(os.path.join(path, r"%s_%05d\%s_%05d.fio" % (sample_name, scan, sample_name, scan))) or os.path.exists(os.path.join(path, r"%s\%s_%05d.fio" % (sample_name, sample_name, scan))):
+            scan_data = DesyScanImporter(beamline, path, sample_name, scan, pathsave, creat_save_folder=False)
             if scan_data.get_command is not None:
                 list_of_lines = list_of_lines + (scan_data.fio_to_spec(list_of_motors))
         else:
@@ -784,16 +906,18 @@ def spec_writer(beamtimeID, path, p08_file, pathsave):
         f.writelines(list_of_lines)
     return
 
-def test():       
-    path = r'E:\Data2\XRD raw\20221103 p08 BFO PTO\raw'
-    p08_newfile = r'align_02'
-    scan_num = 20
+def test():
+    beamline = 'p10'
+    path = r'E:\Work place 3\Temp'
+    p10_newfile = r'm017_soymilk_tofu_60C'
+    scan_num = 3
     pathsave = r'E:\Work place 3\sample\XRD\Test'
 
-    scan = P08Scan(path, p08_newfile, scan_num, pathsave=pathsave, creat_save_folder=True)
-    print(scan.load_motor_pos_list(['hexary', 'fmbenergy', 'hpy', 'abs']))
+    scan = DesyScanImporter(beamline, path, p10_newfile, scan_num, pathsave=pathsave, creat_save_folder=True)
+    print(scan)
+    print(scan.get_motor_names())
 #    xcen, FWHM=scan.knife_edge_estimation('diffdio', smooth=True, plot=True)
-    scan.get_absorber()
+    # scan.get_absorber()
     return
 
 if __name__ == '__main__':

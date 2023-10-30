@@ -8,8 +8,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.p10_scan_reader.p10_eiger_reader import P10EigerScan
+sys.path.append(r'F:\Work place 3\testprog\pyCXIM_master')
+from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
 
 
 def draw_rectangular(box_pos, margin):
@@ -73,7 +73,7 @@ pathsave = r"E:\Work place 3\sample\XRD\Test"
 pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\general_mask.npy'
 
 # %%Mask generator
-scan = P10EigerScan(path, p10_file, scan_num, detector, pathsave, pathmask)
+scan = DesyEigerImporter('p10', path, p10_file, scan_num, detector, pathsave, pathmask)
 img = scan.eiger_img_sum(sum_img_num=200)
 plt.subplot(2, 2, 1)
 plt.imshow(np.log10(img + 1.0), cmap='jet')

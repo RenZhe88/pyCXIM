@@ -76,6 +76,7 @@ class PhaseRetrievalFuns():
         # loop index records number of loops performed for different algorithms
         self.loop_index = np.zeros(6)
         self.loop_index[0] = Seed
+        self.display_str = '\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d'
         self.holderimg_HIO = np.zeros_like(self.ModulusFFT, dtype=complex)
         self.holderimg_RAAR = np.zeros_like(self.ModulusFFT, dtype=complex)
 
@@ -174,7 +175,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[5] += 1
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d , RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         # update the support function according to the shrink wrap method
         Bluredimg = gaussian_filter(np.absolute(self.img), sigma=Gaussiandelta)
@@ -205,13 +206,48 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[1] += num_ER_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d , RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         for i in range(num_ER_loop):
             self.img = self.support * self.img
             AmpFFT = np.fft.fftn(self.img)
             AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * AmpFFT
             self.img = np.fft.ifftn(AmpFFT)
+        return
+
+    def DETWIN(self, axis=0):
+        """
+        Remove part of the reconstructed image to reduce the effect of twinning in the reconstruction.
+
+        Parameters
+        ----------
+        axis : Union(int,turple), optional
+            The axis for half cutting the images. The default is 0.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.display_str = self.display_str + ', DETWIN'
+        if isinstance(axis, int):
+            axis = (axis,)
+        if self.dim == 2:
+            yd, xd = self.img.size()
+
+            if 0 in axis:
+                self.img[int(yd / 2):, :] = 0
+            if 1 in axis:
+                self.img[:, int(xd / 2):] = 0
+        elif self.dim == 3:
+            zd, yd, xd = self.img.size()
+
+            if 0 in axis:
+                self.img[int(zd / 2):, :, :] = 0
+            if 1 in axis:
+                self.img[:, int(yd / 2):, :] = 0
+            if 2 in axis:
+                self.img[:, :, int(xd / 2):] = 0
         return
 
     def HIO(self, num_HIO_loop):
@@ -233,7 +269,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[2] += num_HIO_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d , RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         para = 0.9  # parameter for the HIO
 
@@ -263,7 +299,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[2] += num_NHIO_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d , RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         para = 0.9  # parameter for the HIO
 
@@ -295,7 +331,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[3] += num_RAAR_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d , RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         para0 = 0.75  # parameter for the RAAR
 
@@ -364,7 +400,7 @@ class PhaseRetrievalFuns():
 
         """
         self.loop_index[4] += num_DIF_loop
-        sys.stdout.write('\rSeed%d: ER%d, HIO:%d , RAAR:%d, DIF:%d, Sup:%d' % (*self.loop_index,))
+        sys.stdout.write(self.display_str % (*self.loop_index,))
 
         para_dif = 0.9  # parameter for the difference map
         invpara = 1.0 / para_dif

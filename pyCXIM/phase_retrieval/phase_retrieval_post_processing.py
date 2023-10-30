@@ -14,6 +14,7 @@ Email: zhe.ren@desy.de, han.xu@desy.de or renzhetu001@gmail.com
 import numpy as np
 from scipy.ndimage import measurements
 from scipy.ndimage import affine_transform
+from skimage.restoration import unwrap_phase as unwrap_phase_fft0
 
 
 def cal_PRTF(intensity, Img_sum, MaskFFT=None):
@@ -98,35 +99,38 @@ def unwrap_phase(phase, number_of_ffts=6):
 
     """
     dim = len(phase.shape)
-    if dim == 2:
-        yd, xd = phase.shape
-        fy, fx = np.mgrid[0:yd, 0:xd]
-        fy = (fy - yd / 2 + 0.5) / yd
-        fx = (fx - xd / 2 + 0.5) / xd
-        K = np.square(fy) + np.square(fx) + np.finfo(float).eps
-    elif dim == 3:
-        zd, yd, xd = phase.shape
-        fz, fy, fx = np.mgrid[0:zd, 0:yd, 0:xd]
-        fz = (fz - zd / 2 + 0.5) / zd
-        fy = (fy - yd / 2 + 0.5) / yd
-        fx = (fx - xd / 2 + 0.5) / xd
-        K = np.square(fz) + np.square(fy) + np.square(fx) + np.finfo(float).eps
+    if number_of_ffts == 0:
+        estimated_psi = unwrap_phase_fft0(phase)
+    else:
+        if dim == 2:
+            yd, xd = phase.shape
+            fy, fx = np.mgrid[0:yd, 0:xd]
+            fy = (fy - yd / 2 + 0.5) / yd
+            fx = (fx - xd / 2 + 0.5) / xd
+            K = np.square(fy) + np.square(fx) + np.finfo(float).eps
+        elif dim == 3:
+            zd, yd, xd = phase.shape
+            fz, fy, fx = np.mgrid[0:zd, 0:yd, 0:xd]
+            fz = (fz - zd / 2 + 0.5) / zd
+            fy = (fy - yd / 2 + 0.5) / yd
+            fx = (fx - xd / 2 + 0.5) / xd
+            K = np.square(fz) + np.square(fy) + np.square(fx) + np.finfo(float).eps
 
-    K = np.fft.fftshift(K)
+        K = np.fft.fftshift(K)
 
-    if number_of_ffts == 4:
-        estimated_psi = (np.fft.ifftn(np.fft.fftn(np.imag(np.fft.ifftn(K * np.fft.fftn(np.exp(1j * phase))) / np.exp(1j * phase))) / K))
-    elif number_of_ffts == 6:
-        estimated_psi = (np.fft.ifftn(np.fft.fftn(((np.cos(phase) * np.fft.ifftn(K * np.fft.fftn(np.sin(phase))) - np.sin(phase) * np.fft.ifftn(K * np.fft.fftn(np.cos(phase)))))) / K))
-    elif number_of_ffts == 8:
-        estimated_psi = (np.fft.ifftn(np.fft.fftn(np.cos(phase) * (np.fft.ifftn(K * np.fft.fftn(np.sin(phase))))) / K) - np.fft.ifftn(np.fft.fftn(np.sin(phase) * (np.fft.ifftn(K * np.fft.fftn(np.cos(phase))))) / K))
+        if number_of_ffts == 4:
+            estimated_psi = (np.fft.ifftn(np.fft.fftn(np.imag(np.fft.ifftn(K * np.fft.fftn(np.exp(1j * phase))) / np.exp(1j * phase))) / K))
+        elif number_of_ffts == 6:
+            estimated_psi = (np.fft.ifftn(np.fft.fftn(((np.cos(phase) * np.fft.ifftn(K * np.fft.fftn(np.sin(phase))) - np.sin(phase) * np.fft.ifftn(K * np.fft.fftn(np.cos(phase)))))) / K))
+        elif number_of_ffts == 8:
+            estimated_psi = (np.fft.ifftn(np.fft.fftn(np.cos(phase) * (np.fft.ifftn(K * np.fft.fftn(np.sin(phase))))) / K) - np.fft.ifftn(np.fft.fftn(np.sin(phase) * (np.fft.ifftn(K * np.fft.fftn(np.cos(phase))))) / K))
 
     Q = np.around((np.real(estimated_psi) - phase) / (2 * np.pi))
     phase = phase + 2 * np.pi * Q
     return phase
 
 
-def phase_corrector(phase, support, cval=0.0):
+def phase_corrector(phase, support, cval=0.0, number_of_ffts=6):
     """
     Unwrap the phase and remove the phase offset.
 
@@ -138,6 +142,8 @@ def phase_corrector(phase, support, cval=0.0):
         The support of the retrieved image.
     cval : float, optional
         The phase offset, which the phase is aligned to. The default is 0.0.
+    number_of_ffts: int, optional
+        The number of ffts defining phase unwrap algorithm, can be 0, 4, 6, 8.
 
     Returns
     -------
@@ -146,7 +152,7 @@ def phase_corrector(phase, support, cval=0.0):
 
     """
     phase = phase * support
-    phase = unwrap_phase(phase)
+    phase = unwrap_phase(phase, number_of_ffts)
     phase = phase * support
     const = np.sum(phase) / np.sum(support)
     i = 0
@@ -154,7 +160,7 @@ def phase_corrector(phase, support, cval=0.0):
         phase = phase * support
         const = np.sum(phase) / np.sum(support)
         phase = (phase - const + cval) * support
-        phase = unwrap_phase(phase)
+        phase = unwrap_phase(phase, number_of_ffts)
         i = i + 1
     phase = phase * support
     return phase

@@ -79,7 +79,7 @@ def Cut_central(dataset, bs, cut_mode='maximum integration', peak_pos=None):
         bs = check_cut_box_size(bs, peak_pos, dataset.shape)
         intcut = np.array(dataset[(peak_pos[0] - bs[0]):(peak_pos[0] + bs[0]), (peak_pos[1] - bs[1]):(peak_pos[1] + bs[1]), (peak_pos[2] - bs[2]):(peak_pos[2] + bs[2])])
     elif cut_mode == 'weight center':
-        peak_pos = np.array(np.around(measurements.center_of_mass(dataset), dtype=int))
+        peak_pos = np.array(np.around(measurements.center_of_mass(dataset)), dtype=int)
         bs = check_cut_box_size(bs, peak_pos, dataset.shape)
         intcut = np.array(dataset[(peak_pos[0] - bs[0]):(peak_pos[0] + bs[0]), (peak_pos[1] - bs[1]):(peak_pos[1] + bs[1]), (peak_pos[2] - bs[2]):(peak_pos[2] + bs[2])])
         print('cut according to the weight center')

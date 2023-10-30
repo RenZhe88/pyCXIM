@@ -15,17 +15,17 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-pathsave = r'F:\Work place 3\sample\XRD\20201128 Longfei\B15_syn_S1_2_00024\pynxpre\reciprocal_space_map'
-intensity_file = 'scan0024.npz'
-mask_file = 'scan0024_mask.npz'
-path_scan_infor = r"F:\Work place 3\sample\XRD\20201128 Longfei\B15_syn_S1_2_00024\scan_0024_information.txt"
+pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_3_00086\pynxpre\reciprocal_space_map'
+intensity_file = 'scan0086.npz'
+mask_file = 'scan0086_mask.npz'
+path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_3_00086\scan_0086_information.txt"
 data_description = 'reciprocal_space_map'
 # data_description = 'stacked_detector_images'
 
 # Input: parameters for creating the initial suppport.
 # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-support_type = 'auto_correlation'
-support_from_trial = 0
+support_type = 'average'
+support_from_trial = 1
 
 # If support_type is 'auto_correlation'
 auto_corr_thrpara = 0.004
@@ -41,8 +41,8 @@ path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\
 # Input: starting image inherented from trial
 start_trial_num = 0
 SeedNum = 100
-algorithm = "(DIF**50)**3*(HIO**40*Sup)**10*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40"
-# algorithm = "DIF**200*(RAAR**50*ER**10)**20"
+# algorithm = "(HIO**50*Sup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
+algorithm = "DIF**200*(RAAR**50*ER**10)**25"
 
 # Input: parameters for the free Log likelihood
 Free_LLK = False
@@ -54,23 +54,27 @@ FLLK_radius = 3
 threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
-thrpara_min = 0.12
-thrpara_max = 0.178
+thrpara_min = 0.08
+thrpara_max = 0.12
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 0.55
+support_smooth_width_end = 1.0
+
+# Input: parameters for the detwin operation
+detwin_axis = 0
 
 # Input: parameters for flipping the images to remove the trival solutions.
 flip_condition = 'Support'
-# flip_condition ='Phase'
-# flip_condition ='Modulus'
+# flip_condition = 'Phase'
+# flip_condition = 'Modulus'
 first_seed_flip = False
+phase_unwrap_method = 0
 
 # Input: The number of images selected for further analysis like SVD and average
 further_analysis_selected = 10
 error_type_for_selection = 'Fourier space error'
 
 # Input: Parameters determining the display of the images
-display_range = [400, 400, 400]
+display_range = [500, 500, 500]
 display_image_num = 10
 # %% Load information file, image data and the mask
 
@@ -88,12 +92,14 @@ elif data_description == 'stacked_detector_images':
 
 path_retrieval_infor = os.path.join(pathsave, "Phase_retrieval_information.txt")
 pr_infor = InformationFileIO(path_retrieval_infor)
+
 if not os.path.exists(path_retrieval_infor):
     trial_num = 1
     start_trial_num = 0
     support_type = 'auto_correlation'
     if os.path.exists(path_scan_infor):
         scan_infor = InformationFileIO(path_scan_infor)
+        pr_infor.add_para('total_trial_num', 'General Information', 0)
         pr_infor.copy_para_file(scan_infor, para_name_list, 'General Information')
     else:
         print('Could not find the desired scan parameter file! Generate the file with desired parameters!')
@@ -122,7 +128,8 @@ pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, Free_LLK,
                              FLLK_percentage, FLLK_radius, threhold_update_method,
                              support_para_update_precent, thrpara_min, thrpara_max,
                              support_smooth_width_begin, support_smooth_width_end,
-                             flip_condition, first_seed_flip, display_image_num)
+                             detwin_axis, flip_condition, first_seed_flip,
+                             phase_unwrap_method, display_image_num)
 
 # %% plot and save the final results
 voxel_size = ((2.0 * np.pi / zd / unit / 10.0), (2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
@@ -200,5 +207,6 @@ para_name_list = [
     'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
     'support_update_loops', 'support_threshold_min', 'support_threshold_max',
     'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-    'further_analysis_selected', 'further_analysis_method', 'error_for_further_analysis_selection']
+    'detwin_axis', 'further_analysis_selected', 'further_analysis_method', 
+    'phase_unwrap_method', 'error_for_further_analysis_selection']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
