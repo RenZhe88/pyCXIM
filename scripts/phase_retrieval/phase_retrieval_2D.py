@@ -34,15 +34,15 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\scan_0144_information.txt"
+path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00065\scan_0065_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
-data_description = 'cutqx'
-pathsave = r'F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00144\cutqx'
+data_description = 'cutqz'
+pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00065\cutqz'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
-algorithm = "(HIO**50*Sup*ConvexSup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup*ConvexSup)**30"
+algorithm = "(HIO**50*Sup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**50"
 # algorithm = "DIF**200*(RAAR**50*ER**10)**40"
 
 # Input: parameters for creating the initial suppport.
@@ -75,7 +75,7 @@ threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
 thrpara_min = 0.08
-thrpara_max = 0.10
+thrpara_max = 0.12
 support_smooth_width_begin = 3.5
 support_smooth_width_end = 1.0
 

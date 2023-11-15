@@ -41,17 +41,22 @@ class InformationFileIO():
         for section, para_section in grouped_para:
             list_of_lines.append("#########%s#########\n" % section)
             for para_name, para in para_section.iterrows():
-                list_of_lines.append("%s = %s\n" % (para_name[1], str(para['value'])))
+                if type(para['value']) == str:
+                    if '\\' in repr(para['value']):
+                        list_of_lines.append("%s = r'%s'\n" % (para_name[1], para['value']))
+                    else:
+                        list_of_lines.append("%s = '%s'\n" % (para_name[1], para['value']))
+                else:
+                    list_of_lines.append("%s = %s\n" % (para_name[1], para['value']))
             list_of_lines.append("\n")
 
         with open(self.pathinfor, 'w') as f:
             f.writelines(list_of_lines)
-        f.close()
         return
 
     def infor_reader(self):
         """
-        Read the exist information file and load the parameters into memory.
+        Read existing information file and load parameters into memory.
 
         Returns
         -------
@@ -124,12 +129,10 @@ class InformationFileIO():
         """
         if self.para_list is None:
             index = pd.MultiIndex.from_tuples([(section, para_name)], names=['section', 'paraname'])
-            self.para_list = pd.DataFrame({'value': str(para_value)}, index=index)
-        elif (section, para_name) not in self.para_list.index:
-            index = pd.MultiIndex.from_tuples([(section, para_name)], names=['section', 'paraname'])
-            self.para_list = pd.concat([self.para_list, pd.DataFrame({'value': str(para_value)}, index=index)])
+            self.para_list = pd.DataFrame({'value': 'to be filled'}, index=index)
         else:
-            self.para_list.at[(section, para_name), 'value'] = para_value
+            self.para_list.at[(section, para_name), 'value'] = 'to be filled'
+        self.para_list.at[(section, para_name), 'value'] = para_value
         return
 
     def del_para_section(self, section):

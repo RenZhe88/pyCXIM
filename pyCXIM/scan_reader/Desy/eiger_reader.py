@@ -259,19 +259,6 @@ class DesyEigerImporter(DesyScanImporter):
         image = image * self.img_correction
         return image
 
-    def get_eiger_imgsum(self):
-        """
-        Get the eiger image sum.
-
-        Returns
-        -------
-        ndarray
-            The sum of the eiger 4M detector images.
-
-        """
-        assert os.path.exists(self.path_eiger_imgsum), print('Could not find the summarized eiger detector images!')
-        return np.load(self.path_eiger_imgsum)
-
     def eiger_roi_check(self, roi):
         """
         Check the roi size for the eiger detector.
@@ -821,7 +808,7 @@ class DesyEigerImporter(DesyScanImporter):
         if cut_width is not None:
             pch[-2:] = center_of_mass(image[int(pch[1] - cut_width[0]):int(pch[1] + cut_width[0]), int(pch[2] - cut_width[1]):int(pch[2] + cut_width[1])]) + np.array([int(pch[1] - cut_width[0]), int(pch[2] - cut_width[1])])
         print("")
-        print("peak position on the detector (Z, Y, X): " + str(pch))
+        print("peak position on the detector (Z, Y, X): " + str(np.around(pch, 2)))
         return pch
 
     def eiger_ptycho_cxi(self, cen, cut_width, detector_distance=5000.0, index_array=None):

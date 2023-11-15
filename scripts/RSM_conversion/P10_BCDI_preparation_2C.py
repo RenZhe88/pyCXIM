@@ -21,7 +21,7 @@ def BCDI_preparation():
     year = "2023"
     beamtimeID = "11017662"
     p10_newfile = r"LiNiMnO2_1_3"
-    scan_num = 86
+    scan_num = 66
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -37,14 +37,14 @@ def BCDI_preparation():
     # The half width of the detector roi in the order of [Y, X]
     wxy = [400, 400]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [1156, 1556, 300, 700]
+    roi = [1120, 1520, 345, 745]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'weight center'
     # Half size for the direct cut in pixels
     DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [70, 70, 70]
+    RSM_bs = [80, 80, 80]
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 

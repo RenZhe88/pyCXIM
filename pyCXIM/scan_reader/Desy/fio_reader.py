@@ -260,6 +260,49 @@ class DesyScanImporter:
         """
         return self.command
 
+    def get_command_infor(self):
+        """
+        Get the information of the command line.
+
+        Returns
+        -------
+        command_infor : dict
+            command line information in the dictionary form.
+        """
+        command = self.command.split()
+        command_infor = {}
+        if command[0] == 'dscan' or command[0] == 'ascan':
+            command_infor['scan_type'] = command[0]
+            command_infor['motor1_name'] = command[1]
+            command_infor['motor1_start_pos'] = command[2]
+            command_infor['motor1_end_pos'] = command[3]
+            command_infor['motor1_step_num'] = command[4]
+            command_infor['exposure'] = command[5]
+            return command_infor
+        elif command[0] == 'd2scan' or command[0] == 'a2scan':
+            command_infor['scan_type'] = command[0]
+            command_infor['motor1_name'] = command[1]
+            command_infor['motor1_start_pos'] = command[2]
+            command_infor['motor1_end_pos'] = command[3]
+            command_infor['motor2_name'] = command[4]
+            command_infor['motor2_start_pos'] = command[5]
+            command_infor['motor2_end_pos'] = command[6]
+            command_infor['motor1_step_num'] = command[7]
+            command_infor['exposure'] = command[8]
+            return command_infor
+        elif command[0] == 'dmesh' or command[0] == 'mesh':
+            command_infor['scan_type'] = command[0]
+            command_infor['motor1_name'] = command[1]
+            command_infor['motor1_start_pos'] = command[2]
+            command_infor['motor1_end_pos'] = command[3]
+            command_infor['motor1_step_num'] = command[4]
+            command_infor['motor2_name'] = command[5]
+            command_infor['motor2_start_pos'] = command[6]
+            command_infor['motor2_end_pos'] = command[7]
+            command_infor['motor2_step_num'] = command[8]
+            command_infor['exposure'] = command[9]
+            return command_infor
+
     def get_scan_type(self):
         """
         Get the scan type.
@@ -430,6 +473,26 @@ class DesyScanImporter:
         for motor_name in motor_name_list:
             motor_pos_list.append(self.get_motor_pos(motor_name))
         return motor_pos_list
+
+    def get_imgsum(self, det_type='e4m'):
+        """
+        Get the sum fo the corresponding images.
+
+        Parameters
+        ----------
+        det_type : str, optional
+            The type of the detect chosen, can be 'e4m', 'p300', 'e500'. The default is 'e4m'.
+
+        Returns
+        -------
+        ndarray
+            The sum of the corresponding detector images.
+
+        """
+        if det_type == 'e4m' or det_type == 'e500':
+            self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, det_type))
+            assert os.path.exists(self.path_imgsum), print('Could not find the summarized e4m detector images!')
+            return np.load(self.path_imgsum)
 
     def get_absorber(self):
         """

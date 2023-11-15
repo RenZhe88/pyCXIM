@@ -15,17 +15,17 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_3_00086\pynxpre\reciprocal_space_map'
-intensity_file = 'scan0086.npz'
-mask_file = 'scan0086_mask.npz'
-path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_3_00086\scan_0086_information.txt"
+pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_3_00066\pynxpre\reciprocal_space_map'
+intensity_file = 'scan0066.npz'
+mask_file = 'scan0066_mask.npz'
+path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_3_00066\scan_0066_information.txt"
 data_description = 'reciprocal_space_map'
 # data_description = 'stacked_detector_images'
 
 # Input: parameters for creating the initial suppport.
 # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-support_type = 'average'
-support_from_trial = 1
+support_type = 'auto_correlation'
+support_from_trial = 0
 
 # If support_type is 'auto_correlation'
 auto_corr_thrpara = 0.004
@@ -41,8 +41,8 @@ path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\
 # Input: starting image inherented from trial
 start_trial_num = 0
 SeedNum = 100
-# algorithm = "(HIO**50*Sup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
-algorithm = "DIF**200*(RAAR**50*ER**10)**25"
+algorithm = "(HIO**50*Sup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
+# algorithm = "DIF**200*(RAAR**50*ER**10)**25"
 
 # Input: parameters for the free Log likelihood
 Free_LLK = False
@@ -54,17 +54,17 @@ FLLK_radius = 3
 threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
-thrpara_min = 0.08
-thrpara_max = 0.12
+thrpara_min = 0.095
+thrpara_max = 0.14
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 1.0
+support_smooth_width_end = 0.9
 
 # Input: parameters for the detwin operation
 detwin_axis = 0
 
 # Input: parameters for flipping the images to remove the trival solutions.
 flip_condition = 'Support'
-# flip_condition = 'Phase'
+flip_con1dition = 'Phase'
 # flip_condition = 'Modulus'
 first_seed_flip = False
 phase_unwrap_method = 0

@@ -13,9 +13,8 @@ from scipy.optimize import fsolve
 from scipy.spatial.transform import Rotation as R
 from scipy.optimize import least_squares
 import sys
-sys.path.append(r'F:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.Common.Information_file_generator import InformationFileIO
-from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
+from Information_file_generator import InformationFileIO
+from pilatus_reader import BSRFPilatusImporter
 
 
 def B_matrix_cal(lattice_constants):
@@ -45,9 +44,9 @@ def aim_U_matrix_cal(surface_dir, inplane_dir, B_matrix):
     return aimed_U_matrix
 
 
-def load_peak_infor(path, p10_file, scan_num, pathinfor, pathmask,
-                    geometry='out_of_plane', detector='e4m'):
-    # Import the basic informaiton from p10 calibration scan
+def load_peak_infor(path, EWEA_file, scan_num, pathinfor, pathmask,
+                    geometry='out_of_plane', detector='pilatus'):
+    # Import the basic informaiton from EWEA calibration scan
     infor = InformationFileIO(pathinfor)
     infor.infor_reader()
     distance = infor.get_para_value('detector_distance')
@@ -56,21 +55,21 @@ def load_peak_infor(path, p10_file, scan_num, pathinfor, pathmask,
     det_rot = infor.get_para_value('detector_rotation')
 
     # Read the scan files and convert the peak position to the q_vector
-    scan = DesyEigerImporter('p10', path, p10_file, scan_num, detector, pathmask=pathmask)
+    scan = BSRFPilatusImporter('EWEA', path, EWEA_file, scan_num, detector, pathmask=pathmask)
     print(scan)
-    pch = scan.eiger_find_peak_position(cut_width=[50, 50])
+    pch = scan.pilatus_find_peak_position(cut_width=[50, 50])
     if geometry == 'out_of_plane':
-        scan_motor_ar = scan.get_scan_data('om')
+        scan_motor_ar = scan.get_scan_data('eta')
         omega = scan_motor_ar[int(pch[0])]
         phi = scan.get_motor_pos('phi')
     elif geometry == 'in_plane':
         scan_motor_ar = scan.get_scan_data('phi')
-        omega = scan.get_motor_pos('om')
+        omega = scan.get_motor_pos('eta')
         phi = scan_motor_ar[int(pch[0])]
     delta = scan.get_motor_pos('del')
-    chi = scan.get_motor_pos('chi') - 90.0
-    gamma = scan.get_motor_pos('gam')
-    energy = scan.get_motor_pos('fmbenergy')
+    chi = scan.get_motor_pos('chi')
+    gamma = scan.get_motor_pos('nu')
+    energy = 8016.564
 
     position_parameters = np.array([omega, delta, chi, phi, gamma, energy], dtype=float)
     calibration_parameters = np.array([det_rot, distance, pixelsize], dtype=float)
@@ -91,7 +90,7 @@ def cal_abs_q_pos(pixel_position, position_parameters, calibration_parameters,
     distance = calibration_parameters[1]
     pixelsize = calibration_parameters[2]
 
-    pixel_distance = np.linalg.norm([distance, (pixel_position[0]) * pixelsize, (pixel_position[1]) * pixelsize])
+    pixel_distance = np.linalg.norm([distance, (pixel_position[0]) * pixelsize, (pixel_position[0]) * pixelsize])
     q_vector = np.array([pixel_position[0], pixel_position[1], distance / pixelsize])
     det_rot_transform = np.array([[np.cos(det_rot), -np.sin(det_rot), 0],
                                   [np.sin(det_rot), np.cos(det_rot), 0],
@@ -137,7 +136,7 @@ def cal_q_error_single_peak(offsets, position_parameters, para_selected,
     return error_ar
 
 def cal_q_error_multiple_peak(euler_angles, B_matrix, hkl_ar, q_ar):
-    rotation_matrix = R.from_euler('yxz', euler_angles, degrees=True)
+    rotation_matrix = R.from_euler('zxy', euler_angles, degrees=True)
     additional_U_matrix = rotation_matrix.as_matrix()
     error_ar = np.array([])
     for i in np.arange(hkl_ar.shape[0]):
@@ -148,52 +147,53 @@ def cal_q_error_multiple_peak(euler_angles, B_matrix, hkl_ar, q_ar):
 
 def calibration():
     # Inputs: general information
-    year = 2022
-    beamtimeID = 11013631
-    pixelsize = 0.075
-    detector = 'e4m'
+    year = "2023"
+    beamtimeID = "G1W1A-231101-02"
+    pixelsize = 0.172
+    detector = 'pilatus'
     # Calibration_type = 'detector'
-    Calibration_type = 'single Bragg 6C'
-    # Calibration_type = 'multiple Bragg 6C'
+    # Calibration_type = 'single Bragg 6C'
+    Calibration_type = 'multiple Bragg 6C'
 
     # Inputs: paths
-    path = r"F:\Raw Data\20220608 P10 PTO BFO\raw"
-    pathsave = r"F:\Work place 3\sample\XRD"
-    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
+    path = r"Z:\G1W1A-231101-02\RENZHE"
+    pathsave = r"C:\Users\dell\Desktop\Special request EWEA\calibr"
+    pathmask = r''
 
     # Inputs:Detector parameters
     if Calibration_type == 'detector':
-        p10_file = r"det_cal"
-        scan_num = 2
+        EWEA_file = r"LVO_1"
+        scan_num = 1
 
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'single Bragg 6C':
-        p10_file = r"PTO_STO_DSO_730"
-        scan_num = 1
+        EWEA_file = r"LVO_1"
+        scan_num = 6
         geometry = 'out_of_plane'
-        peak = np.array([2, 2, 0], dtype=float)
-        surface_dir = np.array([1, 1, 0], dtype=float)
-        inplane_dir = np.array([0, 0, 1], dtype=float)
-        lattice_constants = [5.44, 5.71, 7.89, 90, 90, 90]
+        peak = np.array([1, 0, 3], dtype=float)
+        surface_dir = np.array([0, 0, 1], dtype=float)
+        inplane_dir = np.array([-1, 0, 0], dtype=float)
+        lattice_constants = [3.9050, 3.9050, 3.9050, 90, 90, 90]
         # omega, delta, chi, phi, gamma, energy
-        error_source = ['omega', 'delta', 'chi']
-        known_error_values = np.array([0, 0, 0, 0, 0, 0], dtype=float)
+        error_source = ['omega', 'delta', 'phi']
+        known_error_values = np.array([0, 0, -1.1852416506893633, 0, 0, 0], dtype=float)
 
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'multiple Bragg 6C':
-        p10_file = r"PTO_STO_DSO_730"
-        scan_num_ar = [1, 7, 17, 19]
+        EWEA_file = r"LVO_1"
+        scan_num_ar = [5, 6]
         geometry = 'out_of_plane'
-        peak_index_ar = np.array([[2, 2, 0], [3, 3, 2], [2, 2, 0], [4, 2, 0]], dtype=float)
-        surface_dir = np.array([1, 1, 0], dtype=float)
-        inplane_dir = np.array([0, 0, 1], dtype=float)
-        lattice_constants = [5.44, 5.71, 7.89, 90, 90, 90]
-        aimed_hkl = [4.0, 2., 0]
+        peak_index_ar = np.array([[0, 0, 2], [1, 0, 3]], dtype=float)
+        surface_dir = np.array([0, 0, 1], dtype=float)
+        inplane_dir = np.array([-1, 0, 0], dtype=float)
+        lattice_constants = [3.9050, 3.9050, 3.9050, 90, 90, 90]
+        # eta, delta, chi, phi, nu, energy
+        aimed_hkl = [1, 0, 3]
         rotation_source = ['omega', 'delta', 'phi']
-        fixed_values = np.array([0, 0, 0.20000000000000284, 0, 0, 13100.08922750442], dtype=float)
+        fixed_values = np.array([0, 0, 0, 0, 0, 8016.564], dtype=float)
 
     pathinfor = os.path.join(pathsave, "calibration.txt")
-    section_ar = ['General Information', 'Detector calibration', 'Bragg peak %s calibration scan %d', 'Calculated UB matrix']
+    section_ar = ['General Information', 'Detector calibration', 'Bragg peak %s calibration scan %d']
     infor = InformationFileIO(pathinfor)
     infor.add_para('year', section_ar[0], year)
     infor.add_para('beamtimeID', section_ar[0], beamtimeID)
@@ -202,14 +202,14 @@ def calibration():
     infor.add_para('pathsave', section_ar[0], pathsave)
 
     if Calibration_type == 'detector':
-        scan = DesyEigerImporter('p10', path, p10_file, scan_num, detector, pathmask=pathmask)
+        scan = BSRFPilatusImporter('EWEA', path, EWEA_file, scan_num, detector, pathmask=pathmask)
         print(scan)
         command = scan.get_command()
         motor = str(command.split()[1])
         angle_ar = scan.get_scan_data(motor)
 
         cch = np.zeros(2, dtype=int)
-        X_pos, Y_pos, int_ar = scan.eiger_peak_pos_per_frame()
+        X_pos, Y_pos, int_ar = scan.pilatus_peak_pos_per_frame()
         angle_ar = angle_ar[int_ar > np.amax(int_ar) * 0.5]
         X_pos = X_pos[int_ar > np.amax(int_ar) * 0.5]
         Y_pos = Y_pos[int_ar > np.amax(int_ar) * 0.5]
@@ -233,7 +233,7 @@ def calibration():
         plt.show()
 
         infor.add_para('path', section_ar[1], path)
-        infor.add_para('p10_newfile', section_ar[1], p10_file)
+        infor.add_para('1W1A_newfile', section_ar[1], EWEA_file)
         infor.add_para('scan_number', section_ar[1], scan_num)
         infor.add_para('direct_beam_position', section_ar[1], list(cch))
         infor.add_para('detector_distance', section_ar[1], distance)
@@ -254,25 +254,25 @@ def calibration():
         infor.infor_reader()
         infor.del_para_section(section_ar[2] % (str(peak), scan_num))
         infor.add_para('path', section_ar[2] % (str(peak), scan_num), path)
-        infor.add_para('p10_newfile', section_ar[2] % (str(peak), scan_num), p10_file)
+        infor.add_para('EWEA_newfile', section_ar[2] % (str(peak), scan_num), EWEA_file)
         infor.add_para('scan_number', section_ar[2] % (str(peak), scan_num), scan_num)
         infor.add_para('geometry', section_ar[2] % (str(peak), scan_num), geometry)
         infor.add_para('peak', section_ar[2] % (str(peak), scan_num), list(peak))
-        infor.add_para('surface_direction', section_ar[2] % (str(peak), scan_num), list(surface_dir))
-        infor.add_para('inplane_direction', section_ar[2] % (str(peak), scan_num), list(inplane_dir))
+        infor.add_para('surface_dir', section_ar[2] % (str(peak), scan_num), list(surface_dir))
+        infor.add_para('inplane_dir', section_ar[2] % (str(peak), scan_num), list(inplane_dir))
         infor.add_para('lattice_constants', section_ar[2] % (str(peak), scan_num), list(lattice_constants))
         infor.add_para('expected_q', section_ar[2] % (str(peak), scan_num), list(np.flip((expected_q))))
         infor.add_para('error_source', section_ar[2] % (str(peak), scan_num), error_source)
 
-        pixel_position, position_parameters, calibration_parameters = load_peak_infor(path, p10_file, scan_num, pathinfor, pathmask, geometry='out_of_plane', detector='e4m')
+        pixel_position, position_parameters, calibration_parameters = load_peak_infor(path, EWEA_file, scan_num, pathinfor, pathmask, geometry='out_of_plane', detector='pilatus')
         infor.add_para('omega', section_ar[2] % (str(peak), scan_num), position_parameters[0])
         infor.add_para('delta', section_ar[2] % (str(peak), scan_num), position_parameters[1])
         infor.add_para('chi', section_ar[2] % (str(peak), scan_num), position_parameters[2])
         infor.add_para('phi', section_ar[2] % (str(peak), scan_num), position_parameters[3])
-        infor.add_para('gamma', section_ar[2] % (str(peak), scan_num), position_parameters[4])
+        infor.add_para('mu', section_ar[2] % (str(peak), scan_num), position_parameters[4])
         infor.add_para('energy', section_ar[2] % (str(peak), scan_num), position_parameters[5])
 
-        paranames = ['omega', 'delta', 'chi', 'phi', 'gamma', 'energy']
+        paranames = ['omega', 'delta', 'chi', 'phi', 'mu', 'energy']
         para_selected = []
         for i, element in enumerate(paranames):
             if element in error_source:
@@ -297,18 +297,16 @@ def calibration():
 
         q_ar = np.zeros_like(peak_index_ar, dtype=float)
         for i in range(len(scan_num_ar)):
-            pixel_position, position_parameters, calibration_parameters = load_peak_infor(path, p10_file, scan_num_ar[i], pathinfor, pathmask, geometry='out_of_plane', detector='e4m')
+            pixel_position, position_parameters, calibration_parameters = load_peak_infor(path, EWEA_file, scan_num_ar[i], pathinfor, pathmask, geometry='out_of_plane', detector='pilatus')
             q_ar[i, :] = cal_abs_q_pos(pixel_position, position_parameters, calibration_parameters)
 
         U_matrix_angles = least_squares(cal_q_error_multiple_peak, np.array([10.0, 10.0, 10.0]), args=(B_matrix, peak_index_ar, q_ar))
         print('Find UB matrix?')
         remaining_error = cal_q_error_multiple_peak(U_matrix_angles.x, B_matrix, peak_index_ar, q_ar)
-        find_U_Matrix_indicator = np.allclose(remaining_error, np.zeros(len(remaining_error)), atol=0.01)
-        print(find_U_Matrix_indicator)
-        print('Remaining error for the fitting:')
         print(remaining_error)
+        print(np.allclose(remaining_error, np.zeros(len(remaining_error)), atol=0.01))
 
-        rotation_matrix = R.from_euler('yxz', U_matrix_angles.x, degrees=True)
+        rotation_matrix = R.from_euler('zxy', U_matrix_angles.x, degrees=True)
         U_matrix = rotation_matrix.as_matrix()
         print('measured UB matrix')
         print(np.around(U_matrix, 2))
@@ -319,33 +317,12 @@ def calibration():
         additional_rotation = np.dot(U_matrix, np.linalg.inv(expected_U_matrix))
         additional_rotation = R.from_matrix(additional_rotation)
         print('Angular deviations')
-        angular_deviations = additional_rotation.as_euler('yxz', degrees=True)
-        print(angular_deviations)
-
-        infor = InformationFileIO(pathinfor)
-        infor.infor_reader()
-        infor.del_para_section(section_ar[3])
-        infor.add_para('path', section_ar[3], path)
-        infor.add_para('p10_newfile', section_ar[3], p10_file)
-        infor.add_para('scan_num_list', section_ar[3], list(scan_num_ar))
-        infor.add_para('peak_index_list', section_ar[3], (peak_index_ar.tolist()))
-        infor.add_para('surface_direction', section_ar[3], list(surface_dir))
-        infor.add_para('inplane_direction', section_ar[3], list(inplane_dir))
-        infor.add_para('lattice_constants', section_ar[3], list(lattice_constants))
-        infor.add_para('peak_position_list', section_ar[3], q_ar.tolist())
-        infor.add_para('find_U_matrix', section_ar[3], find_U_Matrix_indicator)
-        infor.add_para('U_matrix', section_ar[3], U_matrix.tolist())
-        infor.add_para('expected_U_matrix', section_ar[3], expected_U_matrix.tolist())
-        infor.add_para('additional_rotation_matrix', section_ar[3], additional_rotation.as_matrix().tolist())
-        infor.add_para('angular_deviations_omega', section_ar[3], angular_deviations[0])
-        infor.add_para('angular_deviations_chi', section_ar[3], angular_deviations[1])
-        infor.add_para('angular_deviations_phi', section_ar[3], angular_deviations[2])
-        infor.infor_writer()
+        print(additional_rotation.as_euler('yxz', degrees=True))
 
         aimed_hkl = np.array(aimed_hkl, dtype=float)
         expected_q = np.flip(np.dot(U_matrix, np.dot(B_matrix, aimed_hkl)))
 
-        paranames = ['omega', 'delta', 'chi', 'phi', 'gamma', 'energy']
+        paranames = ['omega', 'delta', 'chi', 'phi', 'mu', 'energy']
         position_parameters = fixed_values
         para_selected = []
         for i, element in enumerate(paranames):
@@ -356,11 +333,15 @@ def calibration():
                 para_selected.append(0)
         para_selected = np.array(para_selected, dtype='bool')
 
-        offsets = least_squares(cal_q_error_single_peak, [10.0, 10.0, -10.0], bounds=([-4, 0, -180], [180, 180, 180]), args=(position_parameters, para_selected, [0.0, 0.0], calibration_parameters, np.zeros(6), expected_q))
-        # offsets = offsets - (offsets / 360).astype(int) * 360.0
-        position_parameters[para_selected] = offsets.x
+
+        offsets = fsolve(cal_q_error_single_peak, [10.0, 10.0, 10.0], args=(position_parameters, para_selected, [0.0, 0.0], calibration_parameters, np.zeros(6), expected_q))
+        print(cal_q_error_single_peak(offsets, position_parameters, para_selected, [0.0, 0.0], calibration_parameters, np.zeros(6), expected_q))
+        offsets = offsets - (offsets / 360).astype(int) * 360.0
+        position_parameters[para_selected] = offsets
+
         for i in range(6):
             print('%s = %.3f' % (paranames[i], position_parameters[i]))
+
     return
 
 
