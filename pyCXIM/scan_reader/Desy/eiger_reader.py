@@ -59,6 +59,8 @@ class DesyEigerImporter(DesyScanImporter):
             self.detector_size = (514, 1030)
         elif self.detector == 'eiger1m':
             self.detector_size = (1062, 1028)
+        else:
+            raise KeyError('Detector type not registered! Please check the detector type or contact the author! Email: renzhe@ihep.ac.cn')
         self.pixel_size = 75e-3
 
         self.eiger_load_mask(pathmask)
@@ -117,6 +119,18 @@ class DesyEigerImporter(DesyScanImporter):
         self.frame_time = f['/entry/instrument/detector/frame_time']
         f.close()
         return
+
+    def get_detector_pixelsize(self):
+        """
+        Get the pixel_size of the detector.
+
+        Returns
+        -------
+        float
+            The pixel size of defined detector.
+
+        """
+        return self.pixel_size
 
     def eiger_load_mask(self, pathmask="", threshold=1.0e7):
         """

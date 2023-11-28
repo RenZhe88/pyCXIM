@@ -13,8 +13,8 @@ from scipy.optimize import fsolve
 from scipy.spatial.transform import Rotation as R
 from scipy.optimize import least_squares
 import sys
-from Information_file_generator import InformationFileIO
-from pilatus_reader import BSRFPilatusImporter
+from pyCXIM.Common.Information_file_generator import InformationFileIO
+from pyCXIM.scan_reader.BSRF.pilatus_reader import BSRFPilatusImporter
 
 
 def B_matrix_cal(lattice_constants):
@@ -190,7 +190,7 @@ def calibration():
         # eta, delta, chi, phi, nu, energy
         aimed_hkl = [1, 0, 3]
         rotation_source = ['omega', 'delta', 'phi']
-        fixed_values = np.array([0, 0, 0, 0, 0, 8016.564], dtype=float)
+        fixed_values = np.array([0, 0, 10.0, 0, 0, 8016.564], dtype=float)
 
     pathinfor = os.path.join(pathsave, "calibration.txt")
     section_ar = ['General Information', 'Detector calibration', 'Bragg peak %s calibration scan %d']

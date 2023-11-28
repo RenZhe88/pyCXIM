@@ -28,8 +28,8 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [1, 610]
-p10_file = ["LiNiMnO2_1_1", "LBFOH2"]
+scan_num_ar = [1, 9]
+p10_file = ["LiNiMnO2_1_1"]
 
 # path information
 path = r"F:\Raw Data\20230925_P10_BFO_Pt_LiNiMnO2_AlScN\raw"
@@ -38,7 +38,7 @@ path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e
 pathsavefolder = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2"
 
 # The rois for the Eiger 4M detector
-e4m_roi1 = [100, 2000, 700, 1000]
+e4m_roi1 = [100, 2000, 948, 1148]
 e4m_roi2 = [100, 2000, 200, 500]
 e4m_roi3 = [1630, 1660, 950, 1000]
 e4m_roi4 = [400, 600, 300, 500]

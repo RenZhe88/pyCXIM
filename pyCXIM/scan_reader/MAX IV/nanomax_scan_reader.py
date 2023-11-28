@@ -15,7 +15,8 @@ from scipy.ndimage import median_filter
 import sys
 
 class NanoMaxScan:
-    def __init__(self, path, sample_name, scan, pathsave='', creat_save_folder=True):
+    def __init__(self, beamline, path, sample_name, scan, pathsave='', creat_save_folder=True):
+        self.beamline = beamline
         self.sample_name = sample_name
         self.scan = scan
         self.path = os.path.join(path, sample_name)

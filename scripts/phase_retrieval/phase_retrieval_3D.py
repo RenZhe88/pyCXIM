@@ -15,22 +15,22 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_3_00066\pynxpre\reciprocal_space_map'
-intensity_file = 'scan0066.npz'
-mask_file = 'scan0066_mask.npz'
-path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_3_00066\scan_0066_information.txt"
+pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\Pt\Pt001_00197\pynxpre\reciprocal_space_map'
+intensity_file = 'scan0197.npz'
+mask_file = 'scan0197_mask.npz'
+path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\Pt\Pt001_00197\scan_0197_information.txt"
 data_description = 'reciprocal_space_map'
 # data_description = 'stacked_detector_images'
 
 # Input: parameters for creating the initial suppport.
 # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-support_type = 'auto_correlation'
-support_from_trial = 0
+support_type = 'support_selected'
+support_from_trial = 1
 
 # If support_type is 'auto_correlation'
 auto_corr_thrpara = 0.004
 # If support_type is 'average', 'support_selected', or'modulus_selected'
-Initial_support_threshold = 0.8
+Initial_support_threshold = 0.7
 # If support_type is 'support_selected' or 'modulus_selected'
 percent_selected = 10
 # If support_type is 'modulus_selected'
@@ -41,8 +41,8 @@ path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\
 # Input: starting image inherented from trial
 start_trial_num = 0
 SeedNum = 100
-algorithm = "(HIO**50*Sup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
-# algorithm = "DIF**200*(RAAR**50*ER**10)**25"
+# algorithm = "(HIO**50*Sup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
+algorithm = "DIF**200*DETWIN*(RAAR**50*ER**10)**25"
 
 # Input: parameters for the free Log likelihood
 Free_LLK = False
@@ -64,10 +64,10 @@ detwin_axis = 0
 
 # Input: parameters for flipping the images to remove the trival solutions.
 flip_condition = 'Support'
-flip_con1dition = 'Phase'
+# flip_con1dition = 'Phase'
 # flip_condition = 'Modulus'
 first_seed_flip = False
-phase_unwrap_method = 0
+phase_unwrap_method = 6
 
 # Input: The number of images selected for further analysis like SVD and average
 further_analysis_selected = 10

@@ -34,11 +34,11 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00065\scan_0065_information.txt"
+path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00117\scan_0117_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
-data_description = 'cutqz'
-pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00065\cutqz'
+data_description = 'cutqx'
+pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00117\cutqx'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
@@ -86,7 +86,7 @@ detwin_axis = 0
 flip_condition = 'Support'
 # flip_condition = 'Phase'
 # flip_condition ='Modulus'
-first_seed_flip = True
+first_seed_flip = False
 phase_unwrap_method = 0
 
 # Input: Parameters for further analysis like SVD and average

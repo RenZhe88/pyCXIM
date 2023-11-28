@@ -11,9 +11,10 @@ from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
 import sys
 import datetime
+# from ..general_structure import GeneralScanStructure
 
 
-class DesyScanImporter:
+class DesyScanImporter(object):
     """
     Read and write fio files for the scan recorded at Desy beamlines.
 
@@ -32,6 +33,16 @@ class DesyScanImporter:
     creat_save_folder : boolen, optional
         Whether the save folder should be created. The default is True.
 
+    Raises
+        ------
+        IOError
+            If the code could not locate the fio file, then the IOError is reportted.
+        KeyError
+            Now the code only support beamline p10 or p08 if other beamlines are selected, then KeyError is reportted.
+
+    Returns
+    -------
+    None.
     """
 
     def __init__(self, beamline, path, sample_name, scan, pathsave='', creat_save_folder=True):
@@ -71,7 +82,7 @@ class DesyScanImporter:
             else:
                 raise IOError('Could not find the fio files please check the beamline, p08_newfile name, and the scan number again!')
         else:
-            raise ValueError('Now the code only support two beamlines, please chose from p10 and p08! If you want to work with data from other beamlines, please contact the author! Email: renzhe@ihep.ac.cn')
+            raise KeyError('Now the code only support two beamlines, please chose from p10 and p08! If you want to work with data from other beamlines, please contact the author! Email: renzhe@ihep.ac.cn')
 
         self.read_fio()
         return
@@ -542,7 +553,7 @@ class DesyScanImporter:
         """
         try:
             return np.array(self.scan_infor[counter_name])
-        except:
+        except KeyError:
             print('counter %s does not exist!' % counter_name)
             nan_array = np.empty(self.scan_infor.shape[0])
             nan_array[:] = np.NaN

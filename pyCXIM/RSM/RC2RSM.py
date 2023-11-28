@@ -13,6 +13,7 @@ import sys
 class RC2RSM_6C():
     """
     Convert the detector images to the three dimensional reciprocal space map at the 6 circle diffractometer.
+
     The final coordinates would be in sample coordinates.
     z direction is vertically upwards.
     x direction is along the beam.
@@ -92,6 +93,10 @@ class RC2RSM_6C():
             The calculated q_vector as [qz, qy, qx] in inverse angstrom.
 
         """
+        if self.geometry == 'out_of_plane':
+            self.omega = self.scan_motor_ar[int(pch[0])]
+        elif self.geometry == 'in_plane':
+            self.phi = self.scan_motor_ar[int(pch[0])]
         pixel_distance = np.linalg.norm([self.distance, (pch[1] - cch[0]) * self.pixelsize, (pch[2] - cch[1]) * self.pixelsize])
         q_vector = np.array([(cch[0] - pch[1]), (cch[1] - pch[2]), self.distance / self.pixelsize])
         det_rot_transform = np.array([[np.cos(self.det_rot), -np.sin(self.det_rot), 0], [np.sin(self.det_rot), np.cos(self.det_rot), 0], [0, 0, 1.0]])
@@ -135,6 +140,10 @@ class RC2RSM_6C():
             The calculated q_vector as [qz, qy, qx] in inverse angstrom
 
         """
+        if self.geometry == 'out_of_plane':
+            self.omega = self.scan_motor_ar[int(pch[0])]
+        elif self.geometry == 'in_plane':
+            self.phi = self.scan_motor_ar[int(pch[0])]
         q_vector = np.array([(cch[0] - pch[1]), (cch[1] - pch[2]), self.distance / self.pixelsize])
         det_rot_transform = np.array([[np.cos(self.det_rot), -np.sin(self.det_rot), 0], [np.sin(self.det_rot), np.cos(self.det_rot), 0], [0, 0, 1.0]])
         q_vector = np.dot(det_rot_transform, q_vector)

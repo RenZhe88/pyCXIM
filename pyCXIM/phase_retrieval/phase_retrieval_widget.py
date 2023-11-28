@@ -537,6 +537,8 @@ class PhaseRetrievalWidget():
         elif len(data_shape) == 2:
             chunks_size = (data_shape[0], data_shape[1])
 
+        phase_unwrap_method = self.para_dict['phase_unwrap_method']
+
         if (not self.para_dict['support_update']) and selected_image_num >= 3:
             further_analysis_method = 'SVD'
             support = np.array(imgfile["Initial_support/support"], dtype=float)

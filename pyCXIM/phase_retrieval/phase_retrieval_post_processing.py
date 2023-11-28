@@ -38,7 +38,7 @@ def cal_PRTF(intensity, Img_sum, MaskFFT=None):
     """
     if MaskFFT is None:
         MaskFFT = np.zeros_like(intensity)
-    PRTF = np.ma.masked_array((np.abs(np.fft.fftshift(np.fft.fftn(Img_sum)))) / (np.sqrt(intensity) + 0.1), mask=MaskFFT)
+    PRTF = np.ma.masked_array((np.abs(np.fft.fftshift(np.fft.fftn(Img_sum)))) / (np.sqrt(intensity) + 0.5), mask=MaskFFT)
     if intensity.ndim == 2:
         r_ar = np.linalg.norm(np.indices(intensity.shape) - np.array(intensity.shape)[:, np.newaxis, np.newaxis] / 2 + 0.5, axis=0)
     elif intensity.ndim == 3:

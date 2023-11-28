@@ -201,3 +201,21 @@ class InformationFileIO():
             self.add_para(para_name, section, para_value)
         self.infor_writer()
         return
+
+    def section_exists(self, section_name):
+        """
+        Check if the section already exist in the information file.
+
+        Parameters
+        ----------
+        section_name : str
+            The name of the section.
+
+        Returns
+        -------
+        bool
+            If the section exist, return true, else return false.
+
+        """
+        return (section_name in self.para_list.index.get_level_values('section'))
+

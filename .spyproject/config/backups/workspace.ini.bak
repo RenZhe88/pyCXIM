@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['scripts\\phase_retrieval\\phase_retrieval_2D.py', 'scripts\\phase_retrieval\\phase_retrieval_3D.py', '..\\test\\EWEA_calibration_test.py', 'scripts\\Alignment\\p10_calibration.py', 'pyCXIM\\scan_reader\\Desy\\fio_reader.py', '..\\test\\Data_pipline_1w1a.py', 'pyCXIM\\Common\\Information_file_generator.py', 'pyCXIM\\scan_reader\\BSRF\\pilatus_reader.py', 'pyCXIM\\scan_reader\\BSRF\\spec_reader.py']
+recent_files = ['scripts\\RSM_conversion\\P10_BCDI_preparation_2C.py', 'scripts\\phase_retrieval\\phase_retrieval_2D.py', 'scripts\\phase_retrieval\\phase_retrieval_3D.py', '..\\test\\Data_pipline_1w1a.py', 'pyCXIM\\scan_reader\\BSRF\\spec_reader.py', 'pyCXIM\\RSM\\RC2RSM.py']
 
 [main]
 version = 0.2.0

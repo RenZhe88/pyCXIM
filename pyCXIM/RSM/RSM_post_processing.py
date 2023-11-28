@@ -107,7 +107,7 @@ def Cut_central(dataset, bs, cut_mode='maximum integration', peak_pos=None):
     return intcut, peak_pos, bs
 
 
-def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
+def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([]), display_range=None):
     """
     Plot and save the diffraction pattern with correct units.
 
@@ -144,9 +144,12 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
         plt.contourf(qx, qy, np.log10(np.sum(RSM_int, axis=0) + 1.0), 150, cmap='jet')
     else:
         plt.contourf(qx, qy, np.log10(RSM_int[qmax[0], :, :] + 1.0), 150, cmap='jet')
-    plt.xlabel(r'Q$_x$ ($1/\AA$)', fontsize=14)
-    plt.ylabel(r'Q$_y$ ($1/\AA$)', fontsize=14)
+    plt.xlabel(r'Q$_x$ ($1/\AA$)', fontsize=18)
+    plt.ylabel(r'Q$_y$ ($1/\AA$)', fontsize=18)
     plt.axis('scaled')
+    if (display_range is not None) and (len(qmax) != 0):
+        plt.xlim(qmax[2] * unit + q_origin[2] - display_range[2], qmax[2] * unit + q_origin[2] + display_range[2])
+        plt.ylim(qmax[1] * unit + q_origin[1] - display_range[1], qmax[1] * unit + q_origin[1] + display_range[1])
     plt.savefig(pathsaveimg)
     plt.show()
     # plt.close()
@@ -157,9 +160,12 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
         plt.contourf(qx, qz, np.log10(np.sum(RSM_int, axis=1) + 1.0), 150, cmap='jet')
     else:
         plt.contourf(qx, qz, np.log10(RSM_int[:, qmax[1], :] + 1.0), 150, cmap='jet')
-    plt.xlabel(r'Q$_x$ ($1/\AA$)', fontsize=14)
-    plt.ylabel(r'Q$_z$ ($1/\AA$)', fontsize=14)
+    plt.xlabel(r'Q$_x$ ($1/\AA$)', fontsize=18)
+    plt.ylabel(r'Q$_z$ ($1/\AA$)', fontsize=18)
     plt.axis('scaled')
+    if (display_range is not None) and (len(qmax) != 0):
+        plt.xlim(qmax[2] * unit + q_origin[2] - display_range[2], qmax[2] * unit + q_origin[2] + display_range[2])
+        plt.ylim(qmax[0] * unit + q_origin[0] - display_range[0], qmax[0] * unit + q_origin[0] + display_range[0])
     plt.savefig(pathsaveimg)
     plt.show()
     # plt.close()
@@ -170,9 +176,12 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([])):
         plt.contourf(qy, qz, np.log10(np.sum(RSM_int, axis=2) + 1.0), 150, cmap='jet')
     else:
         plt.contourf(qy, qz, np.log10(RSM_int[:, :, qmax[2]] + 1.0), 150, cmap='jet')
-    plt.xlabel(r'Q$_y$ ($1/\AA$)', fontsize=14)
-    plt.ylabel(r'Q$_z$ ($1/\AA$)', fontsize=14)
+    plt.xlabel(r'Q$_y$ ($1/\AA$)', fontsize=18)
+    plt.ylabel(r'Q$_z$ ($1/\AA$)', fontsize=18)
     plt.axis('scaled')
+    if (display_range is not None) and (len(qmax) != 0):
+        plt.xlim(qmax[1] * unit + q_origin[1] - display_range[1], qmax[1] * unit + q_origin[1] + display_range[1])
+        plt.ylim(qmax[0] * unit + q_origin[0] - display_range[0], qmax[0] * unit + q_origin[0] + display_range[0])
     plt.savefig(pathsaveimg)
     plt.show()
     # plt.close()
