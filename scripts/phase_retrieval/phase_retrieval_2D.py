@@ -34,15 +34,15 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00117\scan_0117_information.txt"
+path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\BFO islands\Polarized BFO\BFO_9_42_polar_00114\scan_0114_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
-data_description = 'cutqx'
-pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00117\cutqx'
+data_description = 'cutqy'
+pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\BFO islands\Polarized BFO\BFO_9_42_polar_00114\cutqy'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
-algorithm = "(HIO**50*Sup)**10*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**50"
+algorithm = " (DIF**50)**2*(HIO**50*Sup)**20*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**30"
 # algorithm = "DIF**200*(RAAR**50*ER**10)**40"
 
 # Input: parameters for creating the initial suppport.
@@ -51,7 +51,7 @@ support_type = 'auto_correlation'
 support_from_trial = 0
 
 # If support_type is 'auto_correlation'
-auto_corr_thrpara = 0.004
+auto_corr_thrpara = 0.008
 # If support_type is 'average', 'support_selected', or'modulus_selected'
 Initial_support_threshold = 0.6
 # If support_type is 'support_selected' or 'modulus_selected'
@@ -74,19 +74,19 @@ FLLK_radius = 3
 threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
-thrpara_min = 0.08
-thrpara_max = 0.12
+thrpara_min = 0.12
+thrpara_max = 0.18
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 1.0
+support_smooth_width_end = 0.9
 
 # Input: parameters for the detwin operation
 detwin_axis = 0
 
 # Input: parameters for flipping the images to remove the trival solutions.
-flip_condition = 'Support'
-# flip_condition = 'Phase'
+# flip_condition = 'Support'
+flip_condition = 'Phase'
 # flip_condition ='Modulus'
-first_seed_flip = False
+first_seed_flip = True
 phase_unwrap_method = 0
 
 # Input: Parameters for further analysis like SVD and average

@@ -20,7 +20,7 @@ def BCDI_preparation():
     # Inputs: general information
     year = "2023"
     beamtimeID = "11017662"
-    p10_newfile = r"LiNiMnO2_1_1"
+    p10_newfile = 'LiNiMnO2_1_1'
     scan_num = 42
     detector = 'e4m'
     geometry = 'out_of_plane'

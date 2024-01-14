@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Mon Nov 27 21:53:27 2023
+
+@author: ren zhe
+@email: renzhe@ihep.ac.cn
+"""
 
 import os
 import numpy as np
@@ -9,14 +15,13 @@ import pandas as pd
 from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
-import sys
 import datetime
-# from ..general_structure import GeneralScanStructure
+from ..general_scan import GeneralScanStructure
 
 
-class DesyScanImporter(object):
+class DesyScanImporter(GeneralScanStructure):
     """
-    Read and write fio files for the scan recorded at Desy beamlines.
+    Read and write fio files for the scan recorded at Desy beamlines. It is a child class of general scan structures.
 
     Parameters
     ----------
@@ -30,15 +35,15 @@ class DesyScanImporter(object):
         The scan number.
     pathsave : str, optional
         The folder to save the results, if not given no results will be saved. The default is ''.
-    creat_save_folder : boolen, optional
+    creat_save_folder : bool, optional
         Whether the save folder should be created. The default is True.
 
     Raises
-        ------
-        IOError
-            If the code could not locate the fio file, then the IOError is reportted.
-        KeyError
-            Now the code only support beamline p10 or p08 if other beamlines are selected, then KeyError is reportted.
+    ------
+    IOError
+        If the code could not locate the fio file, then the IOError is reportted.
+    KeyError
+        Now the code only support beamline p10 or p08 if other beamlines are selected, then KeyError is reportted.
 
     Returns
     -------
@@ -46,18 +51,12 @@ class DesyScanImporter(object):
     """
 
     def __init__(self, beamline, path, sample_name, scan, pathsave='', creat_save_folder=True):
-        self.beamline = beamline
-        self.sample_name = sample_name
-        self.scan = scan
-        assert os.path.exists(path), "The scan folder %s does not exist, please check it again!" % path
-
-        if pathsave != '':
-            assert os.path.exists(pathsave), "The save folder %s does not exist, please check it again!" % self.pathsave
-            self.pathsave = os.path.join(pathsave, '%s_%05d' % (sample_name, scan))
-            if (not os.path.exists(self.pathsave)) and creat_save_folder:
-                os.mkdir(self.pathsave)
-        else:
-            self.pathsave = pathsave
+        super().__init__(beamline, path, sample_name, scan, pathsave, creat_save_folder)
+        self.add_section_func('Comments', self.load_scan_infor, self.write_scan_infor)
+        self.add_section_func('Parameter', self.load_motor_pos, self.write_motor_pos)
+        self.add_section_func('Data', self.load_scan_data, self.write_scan_data)
+        self.add_header_infor('pathfio')
+        self.add_command_description('time_series', ('scan_type', 'step_num', 'exposure'))
 
         # Try to locate the fio file, first look at the folder to save the results, then try to look at the folder in the raw data.
         if beamline == 'p10':
@@ -84,20 +83,11 @@ class DesyScanImporter(object):
         else:
             raise KeyError('Now the code only support two beamlines, please chose from p10 and p08! If you want to work with data from other beamlines, please contact the author! Email: renzhe@ihep.ac.cn')
 
-        self.read_fio()
+        if os.path.exists(self.save_infor_path):
+            self.load_scan()
+        else:
+            self.read_fio()
         return
-
-    def __str__(self):
-        """
-        Print the scan number, sample_name name and the command.
-
-        Returns
-        -------
-        str
-            The string containing the information of the scan.
-
-        """
-        return '%s_%05d: %s' % (self.sample_name, self.scan, self.get_command())
 
     def read_fio(self):
         """
@@ -113,19 +103,19 @@ class DesyScanImporter(object):
         pattern0 = r'!\n! \w+\n!\n%\w\n'
         section_texts = re.split(pattern0, fiotext)[1:]
         pattern0 = r'!\n! (\w+)\n!\n%\w\n'
-        self.section_names = re.findall(pattern0, fiotext)
+        self.sections = re.findall(pattern0, fiotext)
 
-        for section_name, section_infor in list(zip(self.section_names, section_texts)):
+        for section_name, section_infor in list(zip(self.sections, section_texts)):
             if section_name == 'Comments':
                 if section_infor != '':
                     self.command = section_infor.splitlines()[0]
                     pattern1 = 'user %suser Acquisition started at (.+)' % self.beamline
                     self.start_time = re.findall(pattern1, section_infor.splitlines()[1])[0]
+                    self.start_time = datetime.datetime.strptime(self.start_time, '%a %b %d %H:%M:%S %Y')
                 else:
                     self.command = 'time_series'
-                    self.start_time = None
             elif section_name == 'Parameter':
-                pattern2 = r'(\w+) = (.+)'
+                pattern2 = r'(\w+) = (.+)\n'
                 self.motor_position = dict(re.findall(pattern2, section_infor))
                 for parameter_name in self.motor_position:
                     try:
@@ -138,10 +128,10 @@ class DesyScanImporter(object):
                 section_infor = re.sub(pattern3, '', section_infor)
                 pattern4 = r'! Acquisition ended at (.+)\n'
                 self.end_time = re.findall(pattern4, section_infor)
-                if self.end_time == []:
-                    self.end_time = None
+                if self.end_time != []:
+                    self.end_time = datetime.datetime.strptime(self.end_time[0], '%a %b %d %H:%M:%S %Y')
                 else:
-                    self.end_time = self.end_time[0]
+                    delattr(self, 'end_time')
                 section_infor = re.sub(pattern4, '', section_infor)
                 scan_data = np.loadtxt(StringIO(section_infor))
                 self.scan_infor = pd.DataFrame(scan_data, columns=counters)
@@ -160,15 +150,15 @@ class DesyScanImporter(object):
 
         """
         list_of_lines = []
-        for section_name in self.section_names:
+        for section_name in self.sections:
             list_of_lines.append("!\n")
             list_of_lines.append("! %s\n" % section_name)
             list_of_lines.append("!\n")
             if section_name == 'Comments':
                 list_of_lines.append("%c\n")
                 list_of_lines.append(self.command + '\n')
-                if self.start_time is not None:
-                    list_of_lines.append('user %suser Acquisition started at %s\n' % (self.beamline, self.start_time))
+                if hasattr(self, 'start_time'):
+                    list_of_lines.append('user %suser Acquisition started at %s\n' % (self.beamline, self.start_time.strftime('%a %b %d %H:%M:%S %Y')))
             elif section_name == 'Parameter':
                 list_of_lines.append("%p\n")
                 for para_name in self.motor_position:
@@ -180,8 +170,8 @@ class DesyScanImporter(object):
                 data = self.scan_infor.to_string(header=False, index=False).split('\n')
                 for line in data:
                     list_of_lines.append(line + '\n')
-                if self.end_time is not None:
-                    list_of_lines.append('! Acquisition ended at  %s\n' % self.end_time)
+                if hasattr(self, 'end_time'):
+                    list_of_lines.append('! Acquisition ended at %s\n' % self.end_time.strftime('%a %b %d %H:%M:%S %Y'))
 
         if self.pathsave != '':
             pathsave = os.path.join(self.pathsave, "%s_%05d.fio" % (self.sample_name, self.scan))
@@ -190,300 +180,6 @@ class DesyScanImporter(object):
         else:
             print('The path for saving is not specified! Please specify this!')
         return
-
-    def add_motor_pos(self, motor_name, position):
-        """
-        Add motor position information in the fio file.
-
-        Parameters
-        ----------
-        motor_name : str
-            The name of the motors to be added.
-        position : object
-            The poisiotn of the aimed motor.
-
-        Returns
-        -------
-        None.
-
-        """
-        self.motor_position[motor_name] = position
-        return
-
-    def add_scan_data(self, counter_name, data_value):
-        """
-        Add a scan counter and data in the fio file.
-
-        Parameters
-        ----------
-        counter_name : str
-            The name of the counter to be added.
-        data_value : ndarray
-            The value of the counters.
-
-        Returns
-        -------
-        None.
-
-        """
-        if 'Data' not in self.section_names:
-            self.section_names.append('Data')
-            data_value = data_value[:, np.newaxis]
-            self.scan_infor = pd.DataFrame(data_value, columns=[counter_name])
-        else:
-            assert len(data_value) == self.npoints, 'The scan counter to be added has different dimension as in the original scan file! Please check it again!'
-            self.scan_infor[counter_name] = data_value
-        return
-
-    def get_pathsave(self):
-        """
-        Get the path to save the results.
-
-        Returns
-        -------
-        str
-            The path to save the results.
-
-        """
-        return self.pathsave
-
-    def get_sample_name(self):
-        """
-        Get the sample name, which would be the name of p10_newfile or spec_newfile.
-
-        Returns
-        -------
-        str
-            The sample name.
-
-        """
-        return self.sample_name
-
-    def get_command(self):
-        """
-        Get the command of the scan.
-
-        Returns
-        -------
-        str
-            the command of the scan.
-
-        """
-        return self.command
-
-    def get_command_infor(self):
-        """
-        Get the information of the command line.
-
-        Returns
-        -------
-        command_infor : dict
-            command line information in the dictionary form.
-        """
-        command = self.command.split()
-        command_infor = {}
-        if command[0] == 'dscan' or command[0] == 'ascan':
-            command_infor['scan_type'] = command[0]
-            command_infor['motor1_name'] = command[1]
-            command_infor['motor1_start_pos'] = command[2]
-            command_infor['motor1_end_pos'] = command[3]
-            command_infor['motor1_step_num'] = command[4]
-            command_infor['exposure'] = command[5]
-            return command_infor
-        elif command[0] == 'd2scan' or command[0] == 'a2scan':
-            command_infor['scan_type'] = command[0]
-            command_infor['motor1_name'] = command[1]
-            command_infor['motor1_start_pos'] = command[2]
-            command_infor['motor1_end_pos'] = command[3]
-            command_infor['motor2_name'] = command[4]
-            command_infor['motor2_start_pos'] = command[5]
-            command_infor['motor2_end_pos'] = command[6]
-            command_infor['motor1_step_num'] = command[7]
-            command_infor['exposure'] = command[8]
-            return command_infor
-        elif command[0] == 'dmesh' or command[0] == 'mesh':
-            command_infor['scan_type'] = command[0]
-            command_infor['motor1_name'] = command[1]
-            command_infor['motor1_start_pos'] = command[2]
-            command_infor['motor1_end_pos'] = command[3]
-            command_infor['motor1_step_num'] = command[4]
-            command_infor['motor2_name'] = command[5]
-            command_infor['motor2_start_pos'] = command[6]
-            command_infor['motor2_end_pos'] = command[7]
-            command_infor['motor2_step_num'] = command[8]
-            command_infor['exposure'] = command[9]
-            return command_infor
-
-    def get_scan_type(self):
-        """
-        Get the scan type.
-
-        Returns
-        -------
-        str
-            The scan type information in the command.
-
-        """
-        command = self.command.split()
-        return command[0]
-
-    def get_scan_motor(self):
-        """
-        Get the motor names of the scan.
-
-        Returns
-        -------
-        object
-            The value of the corresponding motor.
-
-        """
-        scan_type = self.get_scan_type()
-        command = self.command.split()
-        if scan_type == 'dscan' or scan_type == 'ascan':
-            return command[1]
-        elif scan_type == 'd2scan' or scan_type == 'a2scan':
-            return command[1], command[4]
-        elif scan_type == 'dmesh' or scan_type == 'mesh':
-            return command[1], command[5]
-        elif scan_type == 'time_series':
-            print('The time series scan does not have any motors!')
-            return ''
-        else:
-            raise RuntimeError('Unrecognized scan type!')
-
-    def get_num_points(self):
-        """
-        Get the number of points in the scan.
-
-        Returns
-        -------
-        int
-            The number of points in the scan.
-
-        """
-        return self.npoints
-
-    def get_scan_shape(self):
-        """
-        Get the shape of the real scan data.
-
-        Returns
-        -------
-        tuple of ints
-            The shape of the scan data extracted from the command.
-
-        """
-        scan_type = self.get_scan_type()
-        command = self.command.split()
-        if scan_type == 'dscan' or scan_type == 'ascan':
-            return (int(command[4]) + 1,)
-        elif scan_type == 'd2scan' or scan_type == 'a2scan':
-            return (int(command[7]) + 1,)
-        elif scan_type == 'dmesh' or scan_type == 'mesh':
-            return (int(command[4]) + 1, int(command[8]) + 1)
-        elif scan_type == 'time_series':
-            return (self.npoints,)
-        else:
-            raise RuntimeError('Unrecognized scan type!')
-
-    def get_motor_names(self):
-        """
-        Get the motor names in the scan.
-
-        Returns
-        -------
-        list
-            The motor names that exists in the scan.
-
-        """
-        return self.motor_position.keys()
-
-    def get_counter_names(self):
-        """
-        Get the counter names in the scan.
-
-        Returns
-        -------
-        list
-            The counter names that exists in the scan.
-
-        """
-        return list(self.scan_infor.columns)
-
-    def get_start_time(self):
-        """
-        Get the start time of the scan.
-
-        Returns
-        -------
-        time : datetime
-            The starting time of the scan.
-
-        """
-        if self.start_time is not None:
-            time = datetime.datetime.strptime(self.start_time, '%a %b %d %H:%M:%S %Y')
-            return time
-        else:
-            print('The starting time of the scan does not exist in the fio file of the series! Try to read the batch information first!')
-            return
-
-    def get_end_time(self):
-        """
-        Get the end time of the scan.
-
-        Returns
-        -------
-        time : datetime
-            The end time of the scan.
-
-        """
-        if self.end_time is not None:
-            time = datetime.datetime.strptime(self.end_time, '%a %b %d %H:%M:%S %Y')
-            return time
-        else:
-            print('The end time of the scan does not exist in the fio file of the series! Try to read the batch information first!')
-            return
-
-    def get_motor_pos(self, motor_name):
-        """
-        Get the motor positions in the fio file.
-
-        Parameters
-        ----------
-        motor_name : str
-            The name of the motor.
-
-        Returns
-        -------
-        object
-            The value of the motors. If the motor does not exist in the fio file, return None.
-
-        """
-        try:
-            return self.motor_position[motor_name]
-        except KeyError:
-            print('motor %s does not exist in the fio file!' % motor_name)
-            return None
-
-    def get_motor_pos_list(self, motor_name_list):
-        """
-        Given a list of motor names, get their values.
-
-        Parameters
-        ----------
-        motor_name_list : list
-            List of the parameter names.
-
-        Returns
-        -------
-        motor_pos_list : list
-            List of the corresponding parameter values.
-
-        """
-        motor_pos_list = []
-        for motor_name in motor_name_list:
-            motor_pos_list.append(self.get_motor_pos(motor_name))
-        return motor_pos_list
 
     def get_imgsum(self, det_type='e4m'):
         """
@@ -501,9 +197,13 @@ class DesyScanImporter(object):
 
         """
         if det_type == 'e4m' or det_type == 'e500':
-            self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, det_type))
-            assert os.path.exists(self.path_imgsum), print('Could not find the summarized e4m detector images!')
-            return np.load(self.path_imgsum)
+            if hasattr(self, 'path_eiger_imgsum'):
+                if os.path.exists(self.path_eiger_imgsum):
+                    return np.load(self.path_eiger_imgsum)
+                else:
+                    raise RuntimeError('Could not find the aimed eiger detector images')
+            else:
+                raise RuntimeError('The detector image sum does not exists!')
 
     def get_absorber(self):
         """
@@ -533,31 +233,6 @@ class DesyScanImporter(object):
         total_Ag_thickness = abs1_Ag[abs1z] + abs2_Ag[abs2z]
         print('Absorber used is %.1f um thick Si and %.1f um thick Ag' % (total_Si_thickness, total_Ag_thickness))
         return total_Si_thickness, total_Ag_thickness
-
-    def get_scan_data(self, counter_name):
-        """
-        Get the counter values in the scan.
-
-        If the counter does not exist, return an array with NaN.
-
-        Parameters
-        ----------
-        counter_name : str
-            The name of the counter.
-
-        Returns
-        -------
-        ndarray
-            The values of the counter in the scan.
-
-        """
-        try:
-            return np.array(self.scan_infor[counter_name])
-        except KeyError:
-            print('counter %s does not exist!' % counter_name)
-            nan_array = np.empty(self.scan_infor.shape[0])
-            nan_array[:] = np.NaN
-            return nan_array
 
     def cal_diode_flux(self, counts, amplification=1.0e4, fmbenergy=None, thickness_Si=300.0):
         """
@@ -979,20 +654,3 @@ def spec_writer(beamline, beamtimeID, path, sample_name, pathsave):
     with open(pathspec, 'w', newline='\n') as f:
         f.writelines(list_of_lines)
     return
-
-def test():
-    beamline = 'p10'
-    path = r'E:\Work place 3\Temp'
-    p10_newfile = r'm017_soymilk_tofu_60C'
-    scan_num = 3
-    pathsave = r'E:\Work place 3\sample\XRD\Test'
-
-    scan = DesyScanImporter(beamline, path, p10_newfile, scan_num, pathsave=pathsave, creat_save_folder=True)
-    print(scan)
-    print(scan.get_motor_names())
-#    xcen, FWHM=scan.knife_edge_estimation('diffdio', smooth=True, plot=True)
-    # scan.get_absorber()
-    return
-
-if __name__ == '__main__':
-    test()

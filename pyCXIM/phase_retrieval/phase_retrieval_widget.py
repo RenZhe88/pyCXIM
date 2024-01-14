@@ -288,7 +288,7 @@ class PhaseRetrievalWidget():
             The standard deviation of Gaussian kernal used at the begining of the shrink wrap process. The default is 3.5.
         support_smooth_width_end : float, optional
             The standard deviation of Gaussian kernal to be reached at the end of the shrink wrap process. The default is 1.0.
-        detwin_axis : int|turple, optional
+        detwin_axis : int|tuple, optional
             Axis for detwin operation. The default is 0.
         flip_condition : str, optional
             Determins which image is used to judge whether an image should be flip after the phase retrieval process.

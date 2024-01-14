@@ -9,7 +9,6 @@ import os
 import numpy as np
 import h5py
 import hdf5plugin
-import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
 import sys
@@ -32,9 +31,9 @@ class NanoMaxMerlinScan(NanoMaxScan):
         The name of the detecter. The default is 'merlin'.
     pathsave : str, optional
         The folder to save the results, if not given no results will be saved. The default is ''.
-    pathmask : TYPE, optional
+    pathmask : str, optional
         The path of the detector mask. If not given, an empty mask will be generated. The default is ''.
-    creat_save_folder : boolen, optional
+    creat_save_folder : bool, optional
         Whether the save folder should be created. The default is True.
 
     Returns
@@ -47,6 +46,7 @@ class NanoMaxMerlinScan(NanoMaxScan):
         super().__init__(path, sample_name, scan, pathsave, creat_save_folder)
         self.detector = detector
         self.path_merlin_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, 'merlin'))
+        self.add_header_infor('detector')
 
         scanfile = h5py.File(self.pathh5, 'r')
         assert ('entry/measurement/merlin/frames') in scanfile, 'Merlin detector data does not exists, please check it again!'
@@ -68,7 +68,7 @@ class NanoMaxMerlinScan(NanoMaxScan):
 
         Parameters
         ----------
-        pathmask : string, optional
+        pathmask : str, optional
             The path for the mask file. The default is "".
 
         Returns
@@ -144,13 +144,37 @@ class NanoMaxMerlinScan(NanoMaxScan):
             image = self.merlin_mask_correction(image, correction_mode)
         return image
 
-    def merlin_load_rois(self, roi=None, roi_order='YX', show_cen_image=False):
+    def merlin_load_rois(self, roi=None, show_cen_image=False):
+        """
+        Load the images with certain region of interest.
+
+        Parameters
+        ----------
+        roi : list, optional
+            The region of interest in [Ymin, Ymax, Xmin, Xmax] order.
+            If not given, the complete detector image will be loaded. The default is None.
+        show_cen_image : bool, optional
+            If true the central image in the scan will be shown to help select the rois. The default is False.
+
+        Returns
+        -------
+        dataset : ndarray
+            The 3D diffraction intensity in the region of interest.
+        mask_3D : ndarray
+            The corresponding mask.
+        pch : list
+            The position of the highest integrated diffraction intensity.
+            pch[0] corresponds to the frame with the maximum intensity in the rocking curve
+            pch[1] corresponds to the peak position Y on the detector
+            pch[2] corresponds to the peak position X on the detector
+        roi : list
+            The new roi.
+
+        """
         print('Loading data....')
         if roi is None:
             roi = [0, self.detector_size[0], 0, self.detector_size[1]]
         else:
-            if roi_order == 'XY':
-                roi = self.merlin_roi_converter(roi)
             roi = self.merlin_roi_check(roi)
 
         roi = np.array(roi, dtype=int)
@@ -174,19 +198,16 @@ class NanoMaxMerlinScan(NanoMaxScan):
         scanfile.close()
 
         roi_int = np.sum(dataset, axis=(1, 2))
-        self.merlin_roi_pos = pd.DataFrame(roi[:, np.newaxis], columns=['merlin_roi1'])
-        self.merlin_roi_infor = pd.DataFrame(roi_int, columns=['merlin_roi1'])
+        self.add_scan_data('%s_roi1' % self.detector, roi_int)
+        self.add_motor_pos('%s_roi1' % self.detector, list(roi))
 
         pch = np.array([np.argmax(np.sum(dataset, axis=(1, 2))), np.argmax(np.sum(dataset, axis=(0, 2))), np.argmax(np.sum(dataset, axis=(0, 1)))], dtype=int) + np.array([0, roi[0], roi[2]])
         print("maximum intensity of the scan find at %s" % str(pch))
 
         mask_3D = np.repeat(self.mask[np.newaxis, roi[0]:roi[1], roi[2]:roi[3]], self.npoints, axis=0)
-
-        if roi_order == 'XY':
-            roi = self.merlin_roi_converter(roi)
         return dataset, mask_3D, pch, roi
 
-    def merlin_load_images(self, roi=None, width=None, roi_order='YX', show_cen_image=False):
+    def merlin_load_images(self, roi=None, width=None, show_cen_image=False):
         """
         Load the merlin images in the scan.
 
@@ -196,11 +217,7 @@ class NanoMaxMerlinScan(NanoMaxScan):
         Parameters
         ----------
         roi : list, optional
-            The region of interest on the detector. The default is None.
-        roi_oder : str, optional
-            If roi_order is 'XY', the roi is described in [Xmin, Xmax, Ymin, Ymax] order
-            If roi_order is 'YX', the roi is described in [Ymin, Ymax, Xmin, Xmax] order
-            The default is 'YX'.
+            The region of interest on the detector. The roi is described in [Ymin, Ymax, Xmin, Xmax] order. The default is None.
         width : list, optional
             The half width for cutting around the highest intensity. The default is None.
         show_cen_image : bool, optional
@@ -226,12 +243,9 @@ class NanoMaxMerlinScan(NanoMaxScan):
         if roi is None:
             roi = [0, self.detector_size[0], 0, self.detector_size[1]]
         else:
-            if roi_order == 'XY':
-                roi = self.merlin_roi_converter(roi)
             roi = self.merlin_roi_check(roi)
 
         roi = np.array(roi, dtype=int)
-        print(roi)
         pch = np.zeros(3, dtype=int)
         normal_int = self.get_scan_data('1', detector_name='alba2')
         normal_int = normal_int / np.average(normal_int)
@@ -251,8 +265,8 @@ class NanoMaxMerlinScan(NanoMaxScan):
             plt.show()
 
         roi_int = np.sum(dataset[:, roi[0]:roi[1], roi[2]:roi[3]], axis=(1, 2))
-        self.merlin_roi_pos = pd.DataFrame(roi[:, np.newaxis], columns=['merlin_roi1'])
-        self.merlin_roi_infor = pd.DataFrame(roi_int, columns=['merlin_roi1'])
+        self.add_scan_data('%s_roi1' % self.detector, roi_int)
+        self.add_motor_pos('%s_roi1' % self.detector, list(roi))
 
         pch = np.array([np.argmax(roi_int), np.argmax(np.sum(dataset[:, roi[0]:roi[1], roi[2]:roi[3]], axis=(0, 2))), np.argmax(np.sum(dataset[:, roi[0]:roi[1], roi[2]:roi[3]], axis=(0, 1)))], dtype=int) + np.array([0, roi[0], roi[2]])
         print("maximum intensity of the scan find at " + str(pch))
@@ -260,16 +274,10 @@ class NanoMaxMerlinScan(NanoMaxScan):
         if width is None:
             width = [400, 400]
         if (len(width) == 2):
-            if (roi_order == 'XY'):
-                width = np.array(width, dtype=int)
-                width[[0, 1]] = width[[1, 0]]
             width = self.merlin_cut_check(pch[1:], width)
             dataset = dataset[:, (pch[1] - width[0]):(pch[1] + width[0]), (pch[2] - width[1]):(pch[2] + width[1])]
             mask_3D = np.repeat(self.mask[np.newaxis, (pch[1] - width[0]):(pch[1] + width[0]), (pch[2] - width[1]):(pch[2] + width[1])], self.npoints, axis=0)
         elif (len(width) == 4):
-            if (roi_order == 'XY'):
-                width = np.array(width, dtype=int)
-                width[[0, 1, 2, 3]] = width[[2, 3, 0, 1]]
             width = self.merlin_cut_check(pch[1:], width)
             dataset = dataset[:, (pch[1] - width[0]):(pch[1] + width[1]), (pch[2] - width[2]):(pch[2] + width[3])]
             mask_3D = np.repeat(self.mask[np.newaxis, (pch[1] - width[0]):(pch[1] + width[1]), (pch[2] - width[2]):(pch[2] + width[3])], self.npoints, axis=0)
@@ -277,14 +285,51 @@ class NanoMaxMerlinScan(NanoMaxScan):
         return dataset, mask_3D, pch, width
 
     def merlin_img_sum(self, sum_img_num=None, save_img_sum=True):
+        """
+        Get the sum of the merlin detector images.
+
+        Parameters
+        ----------
+        sum_img_num : int, optional
+            The number of images to be summed up. The default is None.
+        save_img_sum : bool, optional
+            Determines whether the image will be s. The default is True.
+
+        Returns
+        -------
+        image_sum : ndarray
+            DESCRIPTION.
+
+        """
+        if sum_img_num is None:
+            sum_img_num = self.npoints
+
         scanfile = h5py.File(self.pathh5, 'r')
         dataset = scanfile['entry/measurement/merlin/frames']
         image_sum = np.zeros((515, 515))
-        for i in range(self.npoints):
+        for i in range(sum_img_num):
             image_sum = image_sum + np.array(dataset[i, :, :], dtype=float)
+
+        if self.pathsave != '' and save_img_sum:
+            np.save(self.path_merlin_imgsum, image_sum)
+            self.add_scan_infor('path_merlin_imgsum')
         return image_sum
 
     def merlin_roi_check(self, roi):
+        """
+        Check the roi size for the merlin detector.
+
+        Parameters
+        ----------
+        roi : list
+            Region of interest in [Ymin, Ymax, Xmin, Xmax] form.
+
+        Returns
+        -------
+        roi : list
+            The new region of interest which fits on the detector.
+
+        """
         assert len(roi) == 4, 'The region of interest must be four integer numbers!'
         if roi is None:
             roi = [0, 0, 0, 0]
@@ -404,40 +449,12 @@ class NanoMaxMerlinScan(NanoMaxScan):
                 rois_int[:, j] = rois_int[:, j] / normal_int
 
         print('')
-        column_names = []
-        for j in range(num_of_rois + 1):
-            if j == 0:
-                column_names.append('merlin_full')
-            else:
-                column_names.append('merlin_roi%d' % j)
-        self.merlin_roi_pos = pd.DataFrame(rois.T, columns=column_names[1:])
-        self.merlin_roi_infor = pd.DataFrame(rois_int, columns=column_names)
+        self.add_scan_data('%s_full' % self.detector, rois_int[:, 0])
+        for j in range(num_of_rois):
+            self.add_motor_pos('%s_roi%d' % (self.detector, (j + 1)), list(rois[j, :]))
+            self.add_scan_data('%s_roi%d' % (self.detector, (j + 1)), rois_int[:, j + 1])
 
         if self.pathsave != '' and save_img_sum:
             np.save(self.path_merlin_imgsum, img_sum)
+            self.add_scan_infor('path_merlin_imgsum')
         return
-
-    def get_merlin_roi_pos(self, roi_name):
-        return np.array(self.merlin_roi_pos[roi_name])
-
-    def get_merlin_imgsum(self):
-        assert os.path.exists(self.path_merlin_imgsum), print('Could not find the summarized merlin detector images!')
-        return np.load(self.path_merlin_imgsum)
-
-
-
-def test():       
-    path = r'E:\Data2\XRD raw\20230623_PTO_STO_NanoMax\raw'
-    nanomax_newfile = r'PTO_STO_DSO_28'
-    scan_num = 303
-    pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\nanomax_merlin_mask.npy'
-    pathsave = r'E:\Work place 3\sample\XRD\Test'
-
-    scan = NanoMaxMerlinScan(path, nanomax_newfile, scan_num, 'merlin', pathsave, pathmask, True)
-    img = np.flip(scan.merlin_load_single_image(300).T)
-    plt.imshow(np.log10(img + 1.0), cmap='jet')
-    plt.show()
-    return
-
-if __name__ == '__main__':
-    test()

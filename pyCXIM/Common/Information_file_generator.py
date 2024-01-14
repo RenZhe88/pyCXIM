@@ -2,18 +2,18 @@
 """
 Reading, writing and modifying the information file for a typical BCDI scan and the phase retrieveal.
 """
-import os
 import ast
 import pandas as pd
+import os
 
 
 class InformationFileIO():
     """
-    Generate the information file to store the parameters during the BCDI data treatment.
+    Generate the information file to store the parameters during the BCDI datatreatment.
 
     Parameters
     ----------
-    pathinfor : string
+    pathinfor : str
         The path for the information file.
 
     Returns
@@ -43,9 +43,9 @@ class InformationFileIO():
             for para_name, para in para_section.iterrows():
                 if type(para['value']) == str:
                     if '\\' in repr(para['value']):
-                        list_of_lines.append("%s = r'%s'\n" % (para_name[1], para['value']))
+                        list_of_lines.append('%s = r"%s"\n' % (para_name[1], para['value']))
                     else:
-                        list_of_lines.append("%s = '%s'\n" % (para_name[1], para['value']))
+                        list_of_lines.append('%s = "%s"\n' % (para_name[1], para['value']))
                 else:
                     list_of_lines.append("%s = %s\n" % (para_name[1], para['value']))
             list_of_lines.append("\n")
@@ -87,9 +87,9 @@ class InformationFileIO():
 
         Parameters
         ----------
-        para_name : string
+        para_name : str
             The name of the aimed parameter.
-        section : string, optional
+        section : str, optional
             The section name to specify the non-unique parameter. The default is ''.
 
         Returns
@@ -115,9 +115,9 @@ class InformationFileIO():
 
         Parameters
         ----------
-        para_name : string
+        para_name : str
             The name of the parameter.
-        section : string
+        section : str
             The section of the parameter.
         para_value : object
             The value of the parameter.
@@ -218,4 +218,3 @@ class InformationFileIO():
 
         """
         return (section_name in self.para_list.index.get_level_values('section'))
-

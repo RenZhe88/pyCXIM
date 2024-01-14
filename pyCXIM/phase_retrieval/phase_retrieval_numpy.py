@@ -16,6 +16,7 @@ import sys
 from scipy.ndimage import gaussian_filter
 from scipy.ndimage import measurements
 from scipy.special import gammaln
+from skimage.morphology import convex_hull_image
 import re
 
 
@@ -38,14 +39,14 @@ class PhaseRetrievalFuns():
     support : ndarray, optional
         The array defining the starting support for phase retrieval (
         containing data with boolean type).
-        0(False) corresponds to the piexels outside the support area.
+        0(False) corresponds to the pixels outside the support area.
         1(True) corresponds to the pixels within the support area.
         if support is none, the autocorrelation function will be used to
         generate the initial support.
         The default is None.
     MaskFFT : ndarrary, optional
         The array defining the masked pixel.
-        0 corresponds to the piexels that are not masked.
+        0 corresponds to the pixels that are not masked.
         1 corresponds to the pixels that are masked.
         masked pixels should be let free during phase retrieval process.
         The default is None.
@@ -77,9 +78,12 @@ class PhaseRetrievalFuns():
         self.loop_index = np.zeros(6)
         self.loop_index[0] = Seed
         self.display_str = '\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d'
+        # the array to hold the previous image during the HIO calculation
         self.holderimg_HIO = np.zeros_like(self.ModulusFFT, dtype=complex)
+        # the array to hold the previous image during the RAAR calculation
         self.holderimg_RAAR = np.zeros_like(self.ModulusFFT, dtype=complex)
 
+        # generate or import the starting image for the phase retrieval process
         if starting_img is not None:
             print('Given starting image used.')
             self.img = np.array(starting_img, dtype=complex)
@@ -88,6 +92,7 @@ class PhaseRetrievalFuns():
             np.random.seed(seed=Seed)
             self.img = np.fft.ifftn(np.multiply(self.ModulusFFT, np.exp(1j * np.random.rand(*self.ModulusFFT.shape) * 2 * np.pi)))
 
+        # generate according to the autocorrelation or import the starting support
         if support is not None:
             self.support = np.array(support, dtype=float)
         else:
@@ -120,7 +125,7 @@ class PhaseRetrievalFuns():
 
     def flip_img(self):
         """
-        Flip and center the result image to remove the trivial solutions.
+        Flip the result image to remove the trivial solutions.
 
         Returns
         -------
@@ -130,11 +135,6 @@ class PhaseRetrievalFuns():
         self.img = np.flip(self.img)
         self.img = np.conjugate(self.img)
         self.support = np.flip(self.support)
-        # the center the support to the center of the image
-        support_shift = np.around(np.array(self.support.shape, dtype=float) / 2.0 - 0.5 - measurements.center_of_mass(self.support))
-        for i, shift in enumerate(support_shift):
-            self.support = np.roll(self.support, int(shift), axis=i)
-            self.img = np.roll(self.img, int(shift), axis=i)
         return
 
     def CenterSup(self):
@@ -177,7 +177,7 @@ class PhaseRetrievalFuns():
         self.loop_index[5] += 1
         sys.stdout.write(self.display_str % (*self.loop_index,))
 
-        # update the support function according to the shrink wrap method
+        # Update the support function according to the shrink wrap method
         Bluredimg = gaussian_filter(np.absolute(self.img), sigma=Gaussiandelta)
         threshold = thrpara * (np.amax(Bluredimg) - np.amin(Bluredimg)) + np.amin(Bluredimg)
         self.support = np.zeros_like(self.img, dtype=float)
@@ -210,9 +210,7 @@ class PhaseRetrievalFuns():
 
         for i in range(num_ER_loop):
             self.img = self.support * self.img
-            AmpFFT = np.fft.fftn(self.img)
-            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * AmpFFT
-            self.img = np.fft.ifftn(AmpFFT)
+            self.img = self.ModulusProj(self.img)
         return
 
     def DETWIN(self, axis=0):
@@ -221,7 +219,7 @@ class PhaseRetrievalFuns():
 
         Parameters
         ----------
-        axis : Union(int,turple), optional
+        axis : Union(int,tuple), optional
             The axis for half cutting the images. The default is 0.
 
         Returns
@@ -250,6 +248,10 @@ class PhaseRetrievalFuns():
                 self.img[:, :, int(xd / 2):] = 0
         return
 
+    def ConvexSup(self):
+        self.support = np.array(convex_hull_image(self.support), dtype=float)
+        return
+
     def HIO(self, num_HIO_loop):
         """
         Use hybrid input and output (HIO) method to update the image.
@@ -275,9 +277,7 @@ class PhaseRetrievalFuns():
 
         for i in range(num_HIO_loop):
             self.holderimg_HIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_HIO - self.img * para)
-            AmpFFT = np.fft.fftn(self.holderimg_HIO)
-            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fftn(self.support * self.img)
-            self.img = np.fft.ifftn(AmpFFT)
+            self.img = self.ModulusProj(self.holderimg_HIO)
         return
 
     def NHIO(self, num_NHIO_loop):
@@ -307,9 +307,7 @@ class PhaseRetrievalFuns():
             self.holderimg_HIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_HIO - self.img * para)
             zero_select_con = np.logical_and(self.support == 0, np.abs(self.holderimg_HIO) < 3.0 * self.std_noise)
             self.holderimg_HIO[zero_select_con] = 0
-            AmpFFT = np.fft.fftn(self.holderimg_HIO)
-            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fftn(self.support * self.img)
-            self.img = np.fft.ifftn(AmpFFT)
+            self.img = self.ModulusProj(self.holderimg_HIO)
         return
 
     def RAAR(self, num_RAAR_loop):
@@ -338,9 +336,7 @@ class PhaseRetrievalFuns():
         for i in range(num_RAAR_loop):
             para = para0 + (1.0 - para0) * (1.0 - np.exp(-(i / 12.0) ** 3.0))
             self.holderimg_RAAR = self.support * self.img + (1 - self.support) * (para * self.holderimg_RAAR + (1 - 2.0 * para) * self.img)
-            AmpFFT = np.fft.fftn(self.holderimg_RAAR)
-            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * np.fft.fftn(self.support * self.img)
-            self.img = np.fft.ifftn(AmpFFT)
+            self.img = self.ModulusProj(self.holderimg_RAAR)
         return
 
     def ModulusProj(self, point):
@@ -454,7 +450,7 @@ class PhaseRetrievalFuns():
             Modulus of the result reconstruction (data with float type).
 
         """
-        return np.abs(self.img)
+        return np.array(np.abs(self.img) * self.support, dtype=float)
 
     def get_img_Phase(self):
         """
@@ -470,7 +466,7 @@ class PhaseRetrievalFuns():
             Phase of the result reconstruction (data with float type).
 
         """
-        return np.angle(self.img) * self.support
+        return np.array(np.angle(self.img) * self.support, dtype=float)
 
     def get_FFT_Modulus(self):
         """

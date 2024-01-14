@@ -148,16 +148,16 @@ def cal_q_error_multiple_peak(euler_angles, B_matrix, hkl_ar, q_ar):
 
 def calibration():
     # Inputs: general information
-    year = 2022
-    beamtimeID = 11013631
+    year = 2023
+    beamtimeID = 11017662
     pixelsize = 0.075
     detector = 'e4m'
-    # Calibration_type = 'detector'
-    Calibration_type = 'single Bragg 6C'
+    Calibration_type = 'detector'
+    # Calibration_type = 'single Bragg 6C'
     # Calibration_type = 'multiple Bragg 6C'
 
     # Inputs: paths
-    path = r"F:\Raw Data\20220608 P10 PTO BFO\raw"
+    path = r"F:\Raw Data\20230925_P10_BFO_Pt_LiNiMnO2_AlScN\raw"
     pathsave = r"F:\Work place 3\sample\XRD"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 

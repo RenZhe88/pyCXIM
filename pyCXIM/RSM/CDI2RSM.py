@@ -11,7 +11,31 @@ import sys
 
 
 class CDI2RSM():
-    def __init__(self, phi_ar, half_roi_width_Y, half_roi_width_X, energy=8000, distance=4950, pixelsize=0.075):
+    """
+    Code to grid the CDI data into the orthogonal space.
+
+    Parameters
+    ----------
+    phi_ar : ndarray
+        The phi motor values. The typical value can be -5 to 185 with stepsize of 0.01 degree.
+    half_roi_width_Y : int
+        The half pixel width along the Y direction on the detector.
+    half_roi_width_X : int
+        The half pixel width along the X direction on the detector.
+    energy : float,
+        The energy of the X-ray beam in eV, e.g. 9000.
+    distance : float,
+        The sample detector distance in mm, e.g. 4950.
+    pixelsize : float,
+        The detector pixel size in mm, e.g. 0.075 for eiger detector.
+
+    Returns
+    -------
+    None.
+
+    """
+
+    def __init__(self, phi_ar, half_roi_width_Y, half_roi_width_X, energy, distance, pixelsize):
         self.phi_ar = np.deg2rad(phi_ar)
         self.npoints = len(phi_ar)
         self.phistep = np.deg2rad(phi_ar[-1] - phi_ar[0]) / (self.npoints - 1)
@@ -22,10 +46,19 @@ class CDI2RSM():
         self.unit = 2.0 * np.pi * pixelsize / wavelength / distance
 
     def cal_rebinfactor(self):
+        """
+        Suggest the possible rebin factors according to the step size of the scan.
+
+        Returns
+        -------
+        float
+            The suggested rebin factor.
+
+        """
         rebinfactor = self.radius * self.phistep
         print("the pixel size of the outer circle / the pixel size on the detector: %f" % rebinfactor)
         return np.round(rebinfactor)
-    
+
     def get_RSM_unit(self, rebinfactor=1):
         """
         Get the unit of the RSM.
@@ -46,6 +79,20 @@ class CDI2RSM():
         return (self.unit * rebinfactor)
 
     def cartesian2polar(self, rebinfactor=1):
+        """
+        Calculate the 2D Qx Qy slice of reciprocal space coordinates to the corresponding detector space coordinates.
+
+        Parameters
+        ----------
+        rebinfactor : int, optional
+            The rebinfactor used. The default is 1.
+
+        Returns
+        -------
+        ndarray
+            The position of the corresponding detector pixels.
+
+        """
         Y_ar, X_ar = np.mgrid[-(self.radius // rebinfactor):(self.radius // rebinfactor), -(self.radius // rebinfactor):(self.radius // rebinfactor)]
         Y_ar = np.ravel(Y_ar) * rebinfactor
         X_ar = np.ravel(X_ar) * rebinfactor
@@ -61,6 +108,28 @@ class CDI2RSM():
         return np.array([Ny, Nx])
 
     def grid_cdi(self, dataset, Npos, rebinfactor=1, cval=0, prefilter=False):
+        """
+        Transform the detector images into RSM.
+
+        Parameters
+        ----------
+        dataset : ndarray
+            The detector images.
+        Npos : ndarray
+            The ZX pixel position of the corrsponding Qx Qy slice.
+        rebinfactor : int, optional
+            The rebin factors. The default is 1.
+        cval : float, optional
+            The constant value filled for the missing boundaries. The default is 0.
+        prefilter : bool, optional
+            Whether prefilter is enabled during the interpolation. The default is False.
+
+        Returns
+        -------
+        intensityfinal : ndarray
+            The grided intensity in RSM.
+
+        """
         height = 2 * (self.half_height // rebinfactor)
         width = 2 * (self.radius // rebinfactor)
         intensityfinal = np.zeros((height, width, width))

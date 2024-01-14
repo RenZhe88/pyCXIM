@@ -22,7 +22,7 @@ def check_cut_box_size(bs, peak_pos, data_shape):
         The Half width of the boxsize in [Z, Y, X] order.
     peak_pos : list
         The peak position in the dataset.
-    data_shape : Unions(list|turple)
+    data_shape : Unions(list|tuple)
         The shape of the data to be cutted.
 
     Returns
@@ -138,15 +138,16 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([]), dis
     qx = np.arange(dx) * unit + q_origin[2]
     # save the qx qy qz cut of the 3D intensity
     print('Saving the qx qy qz cuts......')
-    plt.figure(figsize=(12, 12))
+    plt.figure(figsize=(12.5, 12))
     pathsaveimg = pathsavetmp % ('qz')
     if len(qmax) == 0:
         plt.contourf(qx, qy, np.log10(np.sum(RSM_int, axis=0) + 1.0), 150, cmap='jet')
     else:
         plt.contourf(qx, qy, np.log10(RSM_int[qmax[0], :, :] + 1.0), 150, cmap='jet')
-    plt.xlabel(r'Q$_x$ ($1/\AA$)', fontsize=18)
-    plt.ylabel(r'Q$_y$ ($1/\AA$)', fontsize=18)
+    plt.xlabel(r'Q$_x$ ($1/\AA$)', fontsize=28, fontstyle='italic', fontfamily='Arial', fontweight='bold')
+    plt.ylabel(r'Q$_y$ ($1/\AA$)', fontsize=28, fontstyle='italic', fontfamily='Arial', fontweight='bold')
     plt.axis('scaled')
+    plt.tick_params(axis='both', labelsize=28)
     if (display_range is not None) and (len(qmax) != 0):
         plt.xlim(qmax[2] * unit + q_origin[2] - display_range[2], qmax[2] * unit + q_origin[2] + display_range[2])
         plt.ylim(qmax[1] * unit + q_origin[1] - display_range[1], qmax[1] * unit + q_origin[1] + display_range[1])
@@ -160,9 +161,10 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([]), dis
         plt.contourf(qx, qz, np.log10(np.sum(RSM_int, axis=1) + 1.0), 150, cmap='jet')
     else:
         plt.contourf(qx, qz, np.log10(RSM_int[:, qmax[1], :] + 1.0), 150, cmap='jet')
-    plt.xlabel(r'Q$_x$ ($1/\AA$)', fontsize=18)
-    plt.ylabel(r'Q$_z$ ($1/\AA$)', fontsize=18)
+    plt.xlabel(r'Q$_x$ ($1/\AA$)', fontsize=28, fontstyle='italic', fontfamily='Arial', fontweight='bold')
+    plt.ylabel(r'Q$_z$ ($1/\AA$)', fontsize=28, fontstyle='italic', fontfamily='Arial', fontweight='bold')
     plt.axis('scaled')
+    plt.tick_params(axis='both', labelsize=28)
     if (display_range is not None) and (len(qmax) != 0):
         plt.xlim(qmax[2] * unit + q_origin[2] - display_range[2], qmax[2] * unit + q_origin[2] + display_range[2])
         plt.ylim(qmax[0] * unit + q_origin[0] - display_range[0], qmax[0] * unit + q_origin[0] + display_range[0])
@@ -176,9 +178,10 @@ def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([]), dis
         plt.contourf(qy, qz, np.log10(np.sum(RSM_int, axis=2) + 1.0), 150, cmap='jet')
     else:
         plt.contourf(qy, qz, np.log10(RSM_int[:, :, qmax[2]] + 1.0), 150, cmap='jet')
-    plt.xlabel(r'Q$_y$ ($1/\AA$)', fontsize=18)
-    plt.ylabel(r'Q$_z$ ($1/\AA$)', fontsize=18)
+    plt.xlabel(r'Q$_y$ ($1/\AA$)', fontsize=28, fontstyle='italic', fontfamily='Arial', fontweight='bold')
+    plt.ylabel(r'Q$_z$ ($1/\AA$)', fontsize=28, fontstyle='italic', fontfamily='Arial', fontweight='bold')
     plt.axis('scaled')
+    plt.tick_params(axis='both', labelsize=28)
     if (display_range is not None) and (len(qmax) != 0):
         plt.xlim(qmax[1] * unit + q_origin[1] - display_range[1], qmax[1] * unit + q_origin[1] + display_range[1])
         plt.ylim(qmax[0] * unit + q_origin[0] - display_range[0], qmax[0] * unit + q_origin[0] + display_range[0])
@@ -216,9 +219,10 @@ def plot_without_units(RSM_int, mask, pathsavetmp):
     plt.imshow(np.log10(RSM_int[int(dz / 2), :, :] + 1.0), cmap='Blues')
     if mask.ndim != 1:
         plt.imshow(mask[int(dz / 2), :, :], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
-    plt.xlabel(r'Q$_x$', fontsize=14)
-    plt.ylabel(r'Q$_y$', fontsize=14)
+    plt.xlabel(r'Q$_x$ (pixel)', fontsize=24)
+    plt.ylabel(r'Q$_y$ (pixel)', fontsize=24)
     plt.axis('scaled')
+    plt.tick_params(axis='both', labelsize=24)
     plt.savefig(pathsaveimg)
     plt.show()
     plt.close()
@@ -228,9 +232,10 @@ def plot_without_units(RSM_int, mask, pathsavetmp):
     plt.imshow(np.log10(RSM_int[:, int(dy / 2), :] + 1.0), cmap='Blues')
     if mask.ndim != 1:
         plt.imshow(mask[:, int(dy / 2), :], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
-    plt.xlabel(r'Q$_x$', fontsize=14)
-    plt.ylabel(r'Q$_z$', fontsize=14)
+    plt.xlabel(r'Q$_x$ (pixel)', fontsize=24)
+    plt.ylabel(r'Q$_z$ (pixel)', fontsize=24)
     plt.axis('scaled')
+    plt.tick_params(axis='both', labelsize=24)
     plt.savefig(pathsaveimg)
     plt.show()
     plt.close()
@@ -240,9 +245,10 @@ def plot_without_units(RSM_int, mask, pathsavetmp):
     plt.imshow(np.log10(RSM_int[:, :, int(dx / 2)] + 1.0), cmap='Blues')
     if mask.ndim != 1:
         plt.imshow(mask[:, :, int(dx / 2)], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
-    plt.xlabel(r'Q$_y$', fontsize=14)
-    plt.ylabel(r'Q$_z$', fontsize=14)
+    plt.xlabel(r'Q$_y$ (pixel)', fontsize=24)
+    plt.ylabel(r'Q$_z$ (pixel)', fontsize=24)
     plt.axis('scaled')
+    plt.tick_params(axis='both', labelsize=24)
     plt.savefig(pathsaveimg)
     plt.show()
     plt.close()

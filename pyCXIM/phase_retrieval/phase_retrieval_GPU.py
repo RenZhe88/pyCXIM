@@ -12,11 +12,11 @@ Email: zhe.ren@desy.de, han.xu@desy.de or renzhetu001@gmail.com
 """
 
 import numpy as np
+import re
 import sys
 from scipy.special import gammaln
-import re
-import torch
 from skimage.morphology import convex_hull_image
+import torch
 
 
 class PhaseRetrievalFuns():
@@ -38,14 +38,14 @@ class PhaseRetrievalFuns():
     support : ndarray, optional
         The array defining the starting support for phase retrieval (
         containing data with boolean type).
-        0(False) corresponds to the piexels outside the support area.
+        0(False) corresponds to the pixels outside the support area.
         1(True) corresponds to the pixels within the support area.
         if support is none, the autocorrelation function will be used to
         generate the initial support.
         The default is None.
     MaskFFT : ndarrary, optional
         The array defining the masked pixel.
-        0 corresponds to the piexels that are not masked.
+        0 corresponds to the pixels that are not masked.
         1 corresponds to the pixels that are masked.
         masked pixels should be let free during phase retrieval process.
         The default is None.
@@ -54,13 +54,13 @@ class PhaseRetrievalFuns():
     Attributes
     ----------
     intensity : ndarray
-        Measured intensity
+        Measured intensity.
     ModulusFFT : ndarray
-        Modulus calculated from the measured intensity
+        Modulus calculated from the measured intensity.
     dim : int
         The dimension of the diffraction intensity.
     MaskFFT : ndarray
-        Mask for the bad pixels in the measured intensity
+        Mask for the bad pixels in the measured intensity.
     loop_index : list
         records number of loops performed for different algorithms
         The number in the list represents Seed, number of ER loops, number of HIO loops, number of RAAR loops, number of Difference map loops, Number of Shrinkwrap loops.
@@ -82,7 +82,7 @@ class PhaseRetrievalFuns():
         self.display_str = '\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d'
         # the array to hold the previous image during the HIO calculation
         self.holderimg_HIO = np.zeros_like(self.ModulusFFT, dtype=complex)
-        # the array to hold the previous image during the HIO calculation
+        # the array to hold the previous image during the RAAR calculation
         self.holderimg_RAAR = np.zeros_like(self.ModulusFFT, dtype=complex)
 
         # generate or import the starting image for the phase retrieval process
@@ -150,7 +150,7 @@ class PhaseRetrievalFuns():
 
     def flip_img(self):
         """
-        Flip and center the result image to remove the trivial solutions.
+        Flip the result image to remove the trivial solutions.
 
         Returns
         -------
@@ -273,9 +273,7 @@ class PhaseRetrievalFuns():
 
         for i in range(num_ER_loop):
             self.img = self.support * self.img
-            AmpFFT = torch.fft.fftn(self.img)
-            AmpFFT = (1.0 - self.MaskFFT) * torch.multiply(self.ModulusFFT, torch.exp(1j * torch.angle(AmpFFT))) + self.MaskFFT * AmpFFT
-            self.img = torch.fft.ifftn(AmpFFT)
+            self.img = self.ModulusProj(self.img)
         return
 
     def DETWIN(self, axis=0):
@@ -284,7 +282,7 @@ class PhaseRetrievalFuns():
 
         Parameters
         ----------
-        axis : Union(int,turple), optional
+        axis : Union(int,tuple), optional
             The axis for half cutting the images. The default is 0.
 
         Returns
@@ -344,9 +342,7 @@ class PhaseRetrievalFuns():
 
         for i in range(num_HIO_loop):
             self.holderimg_HIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_HIO - self.img * para)
-            AmpFFT = torch.fft.fftn(self.holderimg_HIO)
-            AmpFFT = (1.0 - self.MaskFFT) * torch.multiply(self.ModulusFFT, torch.exp(1j * torch.angle(AmpFFT))) + self.MaskFFT * torch.fft.fftn(self.support * self.img)
-            self.img = torch.fft.ifftn(AmpFFT)
+            self.img = self.ModulusProj(self.holderimg_HIO)
         return
 
     def NHIO(self, num_NHIO_loop):
@@ -376,9 +372,7 @@ class PhaseRetrievalFuns():
             self.holderimg_HIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_HIO - self.img * para)
             zero_select_con = torch.logical_and(self.support == 0, torch.abs(self.holderimg_HIO) < 3.0 * self.std_noise)
             self.holderimg_HIO[zero_select_con] = 0
-            AmpFFT = torch.fft.fftn(self.holderimg_HIO)
-            AmpFFT = (1.0 - self.MaskFFT) * torch.multiply(self.ModulusFFT, torch.exp(1j * torch.angle(AmpFFT))) + self.MaskFFT * torch.fft.fftn(self.support * self.img)
-            self.img = torch.fft.ifftn(AmpFFT)
+            self.img = self.ModulusProj(self.holderimg_HIO)
         return
 
     def RAAR(self, num_RAAR_loop):
@@ -407,9 +401,7 @@ class PhaseRetrievalFuns():
         for i in range(num_RAAR_loop):
             para = para0 + (1.0 - para0) * (1.0 - np.exp(-(i / 12.0)**3.0))
             self.holderimg_RAAR = self.support * self.img + (1 - self.support) * (para * self.holderimg_RAAR + (1 - 2.0 * para) * self.img)
-            AmpFFT = torch.fft.fftn(self.holderimg_RAAR)
-            AmpFFT = (1.0 - self.MaskFFT) * torch.multiply(self.ModulusFFT, torch.exp(1j * torch.angle(AmpFFT))) + self.MaskFFT * torch.fft.fftn(self.support * self.img)
-            self.img = torch.fft.ifftn(AmpFFT)
+            self.img = self.ModulusProj(self.holderimg_RAAR)
         return
 
     def ModulusProj(self, point):

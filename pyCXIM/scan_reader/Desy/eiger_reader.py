@@ -6,16 +6,17 @@ Created on Thu Apr 27 15:33:21 2023
 @author: renzhe
 """
 
-import os
-import sys
-import numpy as np
+import ast
+import datetime
 import hdf5plugin
 import h5py
+import numpy as np
+import os
+import re
+import sys
 from scipy.ndimage import center_of_mass
 import matplotlib.pyplot as plt
 from .fio_reader import DesyScanImporter
-import re
-import ast
 
 
 class DesyEigerImporter(DesyScanImporter):
@@ -24,24 +25,29 @@ class DesyEigerImporter(DesyScanImporter):
 
     Parameters
     ----------
-    path : string
+    beamline : str
+        The name of the beamline. Please chose between 'p10' and 'p08'.
+    path : str
         The path for the raw file folder.
-    sample_name : string
+    sample_name : str
         The name of the sample defined by the p10_newfile name in the system.
     scan : int
         The scan number.
-    detector : string, optional
-        The name of the detecter, it can be either 'e4m' or 'e500'. The default is 'e4m'.
-    pathsave : string, optional
+    detector : str, optional
+        The name of the detecter, it can be either 'e4m', 'eiger1m' or 'e500'. The default is 'e4m'.
+    pathsave : str, optional
         The folder to save the results, if not given no results will be saved. The default is ''.
-    pathmask : string, optional
+    pathmask : str, optional
         The path of the detector mask. If not given, mask will be generated according to the hot pixels in the first image of the scan. The default is ''.
-    creat_save_folder : boolen, optional
+    creat_save_folder : bool, optional
         Whether the save folder should be created. The default is True.
 
-    Returns
-    -------
-    None.
+    Raises
+    ------
+    IOError
+        If the image folder for eiger detector does not exist, raise IOError.
+    KeyError
+        If the detector type is not previously registered, raise KeyError.
 
     """
 
@@ -51,7 +57,11 @@ class DesyEigerImporter(DesyScanImporter):
         self.path_eiger_folder = os.path.join(self.path, self.detector)
         self.path_eiger_img = os.path.join(self.path_eiger_folder, "%s_%05d_data_%06d.h5")
         self.path_eiger_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, self.detector))
-        assert os.path.exists(self.path_eiger_folder), 'The image folder for %s images %s does not exist, please check the path again!' % (self.detector, self.path_eiger_folder)
+        if not os.path.exists(self.path_eiger_folder):
+            raise IOError('The image folder for %s images %s does not exist, please check the path again!' % (self.detector, self.path_eiger_folder))
+
+        self.add_header_infor('detector')
+        self.add_header_infor('path_eiger_folder')
 
         if self.detector == 'e4m':
             self.detector_size = (2167, 2070)
@@ -71,7 +81,7 @@ class DesyEigerImporter(DesyScanImporter):
         elif self.beamline == 'p10':
             if self.get_scan_type() == 'time_series':
                 self.read_batchinfo()
-                self.read_mater_file()
+                self.read_master_file()
                 self.command = 'time_series %d %f' % (self.npoints - 1, self.count_time)
 
             if "%s_%05d_data_%06d.h5" % (self.sample_name, self.scan, self.npoints) in os.listdir(self.path_eiger_folder):
@@ -89,7 +99,8 @@ class DesyEigerImporter(DesyScanImporter):
         None.
 
         """
-        assert self.beamline == 'p10', 'Batchinfor is a special file format that is used for time series scans at P10 beamline, Desy. Please check the scan information again!'
+        assert self.beamline == 'p10', \
+            'Batchinfor is a special file format that is used for time series scans at P10 beamline, Desy.'
         self.path_batchinfo = os.path.join(self.path_eiger_folder, '%s_%05d.batchinfo' % (self.sample_name, self.scan))
         pattern1 = r'(\w+): (.+)\n'
         with open(self.path_batchinfo, 'r') as batchinfofile:
@@ -100,6 +111,7 @@ class DesyEigerImporter(DesyScanImporter):
             except (ValueError, SyntaxError):
                 self.batchinfo[parameter_name] = self.batchinfo[parameter_name]
         self.start_time = self.batchinfo['start_time']
+        self.start_time = datetime.datetime.strptime(self.start_time, '%a %b %d %H:%M:%S %Y')
         self.npoints = int(self.batchinfo['ndataend'][0])
         return
 
@@ -112,12 +124,14 @@ class DesyEigerImporter(DesyScanImporter):
         None.
 
         """
-        path_master_file = os.path.join(self.path_eiger_folder, r'%s_%05d_master.h5' % (self.sample_name, self.scan_num))
-        f = h5py.File(path_master_file, "r")
-        self.count_time = f['/entry/instrument/detector/count_time']
-        self.detector_readout_time = f['/entry/instrument/detector/detector_readout_time']
-        self.frame_time = f['/entry/instrument/detector/frame_time']
-        f.close()
+        path_master_file = os.path.join(self.path_eiger_folder, r'%s_%05d_master.h5' % (self.sample_name, self.scan))
+        with h5py.File(path_master_file, "r") as f:
+            self.count_time = f['/entry/instrument/detector/count_time'][()]
+            self.add_scan_infor('count_time')
+            self.detector_readout_time = f['/entry/instrument/detector/detector_readout_time'][()]
+            self.add_scan_infor('detector_readout_time')
+            self.frame_time = f['/entry/instrument/detector/frame_time'][()]
+            self.add_scan_infor('frame_time')
         return
 
     def get_detector_pixelsize(self):
@@ -132,7 +146,7 @@ class DesyEigerImporter(DesyScanImporter):
         """
         return self.pixel_size
 
-    def eiger_load_mask(self, pathmask="", threshold=1.0e7):
+    def eiger_load_mask(self, pathmask='', threshold=1.0e7):
         """
         Load the mask files defining the bad pixels on the detector.
 
@@ -142,10 +156,10 @@ class DesyEigerImporter(DesyScanImporter):
 
         Parameters
         ----------
-        pathmask : string, optional
-            The path for the mask file. The default is "".
+        pathmask : str, optional
+            The path for the mask file. The default is None.
         threshold : float, optional
-            The threshold value defining the hot pixels on the detector. The default is "".
+            The threshold value defining the hot pixels on the detector. The default is ''.
 
         Returns
         -------
@@ -157,7 +171,7 @@ class DesyEigerImporter(DesyScanImporter):
             print('Predefined mask loaded')
             self.mask = np.load(pathmask)
         else:
-            print('Could not find the predefined mask, Generate the mask according to the first image in the scan')
+            print('Could not find the predefined mask. Generate the mask according to the first image in the scan.')
             self.mask = np.zeros((self.detector_size[0], self.detector_size[1]))
         pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, 1)
         f = h5py.File(pathimg, "r")
@@ -173,7 +187,7 @@ class DesyEigerImporter(DesyScanImporter):
 
         Parameters
         ----------
-        cen : Union[ndarray, list, turple]
+        cen : Union[ndarray, list, tuple]
             The center of the circle in Y, X order.
         r0 : float
             The radius of the circle.
@@ -195,7 +209,7 @@ class DesyEigerImporter(DesyScanImporter):
 
         Parameters
         ----------
-        pos : Union[ndarray, list, turple]
+        pos : Union[ndarray, list, tuple]
             The position of the rectangular mask on the detector in Ymin, Ymax, Xmin, Xmax order.
 
         Returns
@@ -216,15 +230,15 @@ class DesyEigerImporter(DesyScanImporter):
 
         Parameters
         ----------
-        cen : Union[ndarray, list, turple]
+        cen : Union[ndarray, list, tuple]
             The center of the circle in Y, X order.
         r0 : float
             The radius of the circle.
-        large_abs_pos : Union[ndarray, list, turple]
+        large_abs_pos : Union[ndarray, list, tuple]
             The position for the large Si wafer in Ymin, Ymax, Xmin, Xmax order.
         trans1 : float
             The transmission of the large Si wafer.
-        small_abs_pos : Union[ndarray, list, turple]
+        small_abs_pos : Union[ndarray, list, tuple]
             The position for the large Si wafer in Ymin, Ymax, Xmin, Xmax order.
         trans2 : float
             The transmission due to the additional thickness from the small Si wafer.
@@ -357,8 +371,6 @@ class DesyEigerImporter(DesyScanImporter):
         ----------
         img_index : int
             The index of the image in the scan.
-        path_mask : string, optional
-            The path for the mask files. The default is ''.
         mask_correction : bool, optional
             If true, the masked pixels will be set to . The default is True.
 
@@ -393,7 +405,8 @@ class DesyEigerImporter(DesyScanImporter):
         Parameters
         ----------
         roi : list, optional
-            The region of interest in [Ymin, Ymax, Xmin, Xmax] order. The default is None.
+            The region of interest in [Ymin, Ymax, Xmin, Xmax] order.
+            If not given, the complete detector image will be loaded. The default is None.
         show_cen_image : bool, optional
             If true the central image of the data will be shown to help select the rois. The default is False.
         normalize_signal : str, optional
@@ -457,6 +470,7 @@ class DesyEigerImporter(DesyScanImporter):
         print()
 
         roi_int = np.sum(dataset, axis=(1, 2))
+        self.add_scan_section('Data')
         self.add_scan_data('%s_roi1' % self.detector, roi_int)
         self.add_motor_pos('%s_roi1' % self.detector, list(roi))
 
@@ -482,7 +496,7 @@ class DesyEigerImporter(DesyScanImporter):
             The half width for cutting around the highest intensity. The default is None.
         show_cen_image : bool, optional
             If true, the center image in the scan will be plotted for the selection of the roi. The default is False.
-        normalize_signal : string, optional
+        normalize_signal : str, optional
             The name of the signal used to normalize the diffraction intensity. The default is None.
 
         Returns
@@ -540,6 +554,7 @@ class DesyEigerImporter(DesyScanImporter):
             plt.show()
 
         roi_int = np.sum(dataset[:, roi[0]:roi[1], roi[2]:roi[3]], axis=(1, 2))
+        self.add_scan_section('Data')
         self.add_scan_data('%s_roi1' % self.detector, roi_int)
         self.add_motor_pos('%s_roi1' % self.detector, roi)
 
@@ -567,7 +582,7 @@ class DesyEigerImporter(DesyScanImporter):
         ----------
         rois : ndarray
             Region of interest to be integrated. Rois should be given in the form of [roi1, roi2, roi3].
-        roi_oder : string, optional
+        roi_oder : str, optional
             If roi_order is 'XY', the roi is described in [Xmin, Xmax, Ymin, Ymax] order
             If roi_order is 'YX', the roi is described in [Ymin, Ymax, Xmin, Xmax] order
             The default is 'YX'.
@@ -633,13 +648,15 @@ class DesyEigerImporter(DesyScanImporter):
                 sys.stdout.flush()
 
         print('')
+        self.add_scan_section('Data')
         self.add_scan_data('%s_full' % self.detector, rois_int[:, 0])
         for j in range(num_of_rois):
             self.add_motor_pos('%s_roi%d' % (self.detector, (j + 1)), list(rois[j, :]))
             self.add_scan_data('%s_roi%d' % (self.detector, (j + 1)), rois_int[:, j + 1])
 
-        if self.pathsave != '' and save_img_sum:
+        if (self.pathsave != '') and save_img_sum:
             np.save(self.path_eiger_imgsum, img_sum)
+            self.add_scan_infor('path_eiger_imgsum')
         return
 
     def eiger_img_sum(self, sum_img_num=None, save_img_sum=True):
@@ -685,8 +702,9 @@ class DesyEigerImporter(DesyScanImporter):
                 sys.stdout.flush()
 
         print('')
-        if self.pathsave != '' and save_img_sum:
+        if (self.pathsave != '') and save_img_sum:
             np.save(self.path_eiger_imgsum, img_sum)
+            self.add_scan_infor('path_eiger_imgsum')
         return img_sum
 
     def eiger_peak_pos_per_frame(self, cut_width=[20, 20], save_img_sum=False):
@@ -754,8 +772,9 @@ class DesyEigerImporter(DesyScanImporter):
                 sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
                 sys.stdout.flush()
         print()
-        if self.pathsave != '' and save_img_sum:
+        if (self.pathsave != '') and save_img_sum:
             np.save(self.path_eiger_imgsum, img_sum)
+            self.add_scan_infor('path_eiger_imgsum')
         return X_pos, Y_pos, int_ar
 
     def eiger_find_peak_position(self, roi=None, cut_width=None, normalize_signal=None):
@@ -768,7 +787,7 @@ class DesyEigerImporter(DesyScanImporter):
             The region of interest. The default is None.
         cut_width : list, optional
             The cut width in Y, X direction. The default is None.
-        normalize_signal : string, optional
+        normalize_signal : str, optional
             The name of the signal used to normalize the diffraction intensity. The default is None.
 
         Returns
@@ -824,6 +843,43 @@ class DesyEigerImporter(DesyScanImporter):
         print("")
         print("peak position on the detector (Z, Y, X): " + str(np.around(pch, 2)))
         return pch
+
+    def load_6C_peak_infor(self, roi=None, cut_width=[50, 50]):
+        """
+        Load the motor positions of the six circle diffractometer.
+
+        Parameters
+        ----------
+        roi : list, optional
+            The region of interest. If not given, the complete detector image will be used. The default is None.
+        cut_width : list, optional
+            The cut width in Y, X direction. The default is [50, 50].
+
+        Returns
+        -------
+        pixel_position : list
+            The pixel position on the detector in [Y, X] order.
+        motor_position : list
+            motor positions in the order of [omega, delta, chi, phi, gamma, energy]. The angles are in degree and the energy in eV.
+
+        """
+        pch = self.eiger_find_peak_position(roi=roi, cut_width=cut_width)
+        scan_motor = self.get_scan_motor()
+        scan_motor_ar = self.get_scan_data(scan_motor)
+        if scan_motor == 'om':
+            omega = scan_motor_ar[int(pch[0])]
+            phi = self.get_motor_pos('phi')
+        elif scan_motor == 'phi':
+            omega = self.get_motor_pos('om')
+            phi = scan_motor_ar[int(pch[0])]
+        delta = self.get_motor_pos('del')
+        chi = self.get_motor_pos('chi')
+        gamma = self.get_motor_pos('gam')
+        energy = self.get_motor_pos('energy')
+
+        motor_position = np.array([omega, delta, chi, phi, gamma, energy], dtype=float)
+        pixel_position = np.array([pch[1], pch[2]])
+        return pixel_position, motor_position
 
     def eiger_ptycho_cxi(self, cen, cut_width, detector_distance=5000.0, index_array=None):
         """
