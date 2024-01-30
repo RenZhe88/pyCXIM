@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Reading, writing and modifying the information file for a typical BCDI scan and the phase retrieveal.
+
+Created on Thu Mar 30 11:35:00 2023
+
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn
 """
 import ast
 import pandas as pd
@@ -217,4 +222,7 @@ class InformationFileIO():
             If the section exist, return true, else return false.
 
         """
-        return (section_name in self.para_list.index.get_level_values('section'))
+        if self.para_list is None:
+            return False
+        else:
+            return (section_name in self.para_list.index.get_level_values('section'))

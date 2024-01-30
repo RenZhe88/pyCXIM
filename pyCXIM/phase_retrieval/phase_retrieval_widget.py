@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Description.
+The integrate functions for phase retrieval processes.
 
 Created on Thu Mar 30 11:35:00 2023
 
-@author: renzhe
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn, renzhetu001@gmail.com
 """
 
+import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from scipy.ndimage import gaussian_filter
+from scipy.linalg import svd
 import sys
-import h5py
+
 from ..Common.Information_file_generator import InformationFileIO
 try:
     from .phase_retrieval_GPU import PhaseRetrievalFuns as pr
@@ -20,8 +24,6 @@ except ModuleNotFoundError:
     from .phase_retrieval_numpy import PhaseRetrievalFuns as pr
     from .phase_retrieval_numpy import Free_LLK_FFTmask
 from . import phase_retrieval_post_processing as pp
-from scipy.ndimage import gaussian_filter
-from scipy.linalg import svd
 
 
 class PhaseRetrievalWidget():

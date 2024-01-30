@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Description
-Created on Thu Jul  6 17:09:31 2023
+Read and treat the h5 file for NanomMax scans.
+Created on Thu Jul 6 17:09:31 2023
 
-@author: renzhe
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn
 """
 import os
 import numpy as np

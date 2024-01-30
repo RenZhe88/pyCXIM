@@ -1,15 +1,24 @@
-#!/usr/local/bin/python2.7.3 -tttt
-import os
-import numpy as np
+# -*- coding: utf-8 -*-
+"""
+Prepare the BCDI data for the phase retrieval processes.
+Created on Wed Jan 24 15:32:26 2024
+
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn
+"""
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
+import numpy as np
+import os
 import sys
 import time
+
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
-from pyCXIM.RSM.RC2RSM import RC2RSM_2C
+from pyCXIM.RSM.RC2RSM_2C import RC2RSM_2C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
+
 
 def BCDI_preparation():
     start_time = time.time()
@@ -18,10 +27,10 @@ def BCDI_preparation():
     Functions_selected = ['Gif', 'Direct_cut', 'Reciprocal_space_map', '2D_cuts']
 
     # Inputs: general information
-    year = "2023"
-    beamtimeID = "11017662"
-    p10_newfile = 'LiNiMnO2_1_1'
-    scan_num = 42
+    year = "2021"
+    beamtimeID = "11013318"
+    p10_newfile = 'B12SYNS1P1'
+    scan_num = 43
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -30,29 +39,29 @@ def BCDI_preparation():
     # qz_direction = 'diffraction vector direction'
 
     # Inputs: Detector parameters
-    detector_distance = 1829.0585495025427
+    detector_distance = 1827.3602090248223
     pixelsize = 0.075
     # Direct beam position on the detector Y, X
-    cch = [1048, 1340]
+    cch = [1038, 1341]
     # The half width of the detector roi in the order of [Y, X]
     wxy = [400, 400]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [750, 1000, 100, 800]
+    roi = [400, 1200, 1000, 1700]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'weight center'
     # Half size for the direct cut in pixels
     DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [100, 100, 100]
+    RSM_bs = [64, 64, 64]
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20230925_P10_BFO_Pt_LiNiMnO2_AlScN\raw"
+    path = r"F:\Raw Data\20211004_P10_BFO_Pt\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2"
+    pathsavefolder = r"F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
@@ -80,7 +89,7 @@ def BCDI_preparation():
         # read the delta value
         two_theta = scan.get_motor_pos('del')
         if qz_direction == 'surface direction':
-            scan_motor_offset = -0.5869580019812211
+            scan_motor_offset = 0
         elif qz_direction == 'diffraction vector direction':
             scan_motor_offset = two_theta / 2.0 - scan_motor_ar[int(pch[0])]
     elif geometry == 'in_plane':
@@ -91,7 +100,7 @@ def BCDI_preparation():
         if qz_direction == 'surface direction':
             scan_motor_offset = 0
         elif qz_direction == 'diffraction vector direction':
-            scan_motor_offset = -two_theta / 2.0 - scan_motor_ar[int(pch[0])]
+            scan_motor_offset = two_theta / 2.0 - scan_motor_ar[int(pch[0])]
 
     scan_motor_ar = scan_motor_ar + scan_motor_offset
     # Finding the maximum peak position
@@ -99,7 +108,7 @@ def BCDI_preparation():
     om_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
     print("peak at omega = %f" % (omega))
 
-    RSM_converter = RC2RSM_2C(scan_motor_ar, two_theta, energy, detector_distance, pixelsize)
+    RSM_converter = RC2RSM_2C(scan_motor_ar, two_theta, energy, detector_distance, pixelsize, cch)
 
     # writing the scan information to the aimed file
     section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map', 'Routine2: direct cutting']
@@ -246,7 +255,7 @@ def BCDI_preparation():
         rebinfactor = RSM_converter.cal_rebinfactor()
 
         # calculate the qx, qy, qz ranges of the scan
-        q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], cch, rebinfactor=rebinfactor)
+        q_center, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], rebinfactor=rebinfactor)
 
         # generate the 3D reciprocal space map
         print('Calculating intensity...')
@@ -282,14 +291,15 @@ def BCDI_preparation():
 
         if generating_3D_vtk_file:
             filename = "scan%04d_diffraction_pattern.vti" % scan_num
-            RSM_post_processing.RSM2vti(pathtmp, RSM_int, filename, RSM_unit, origin=q_origin)
+            origin = q_center - np.array(RSM_cut.shape, dtype=float) / 2.0 * RSM_unit
+            RSM_post_processing.RSM2vti(pathtmp, RSM_int, filename, RSM_unit, origin=origin)
 
         # Generate the images of the reciprocal space map
         print('Generating the images of the RSM')
         pathsavetmp = os.path.join(pathsave, 'scan%04d_integrate' % scan_num + '_%s.png')
-        RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp)
+        RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp)
         pathsavetmp = os.path.join(pathsave, 'scan%04d_cut' % scan_num + '_%s.png')
-        RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qcen, display_range=[0.03, 0.03, 0.03])
+        RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp, qmax=qcen)
         pathsavetmp = os.path.join(pathtmp, 'scan%04d' % scan_num + '_%s.png')
         RSM_post_processing.plot_without_units(RSM_cut, RSM_cut_mask, pathsavetmp)
         del RSM_int, RSM_mask
@@ -301,7 +311,7 @@ def BCDI_preparation():
         infor.add_para('RSM_unit', section_ar[3], RSM_unit)
         infor.add_para('RSM_shape', section_ar[3], list(new_shape))
         infor.add_para('rebinfactor', section_ar[3], rebinfactor)
-        infor.add_para('q_origin', section_ar[3], list(q_origin))
+        infor.add_para('q_center', section_ar[3], list(q_center))
         infor.add_para('RSM_cut_central_mode', section_ar[3], cut_central_pos)
         infor.add_para('pynx_box_size', section_ar[3], RSM_bs)
         infor.add_para('qcen', section_ar[3], list(qcen))

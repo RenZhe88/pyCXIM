@@ -3,21 +3,21 @@
 The common phase retrieval functions for CPU based phase retrieval process.
 
 Due to the speed limitations this package should be only used for 2D phase retieval process.
-
 In case of questions, please contact us.
 
-Author: Zhe Ren, Han Xu
-Date: %(date)s
-Email: zhe.ren@desy.de, han.xu@desy.de or renzhetu001@gmail.com
+Created on Thu Mar 30 11:35:00 2023
+
+@author: Ren Zhe, Xu Han
+@email: renzhe@ihep.ac.cn, xuhan@ihep.ac.cn, or renzhetu001@gmail.com
 """
 
 import numpy as np
+import re
 import sys
 from scipy.ndimage import gaussian_filter
 from scipy.ndimage import measurements
 from scipy.special import gammaln
 from skimage.morphology import convex_hull_image
-import re
 
 
 class PhaseRetrievalFuns():

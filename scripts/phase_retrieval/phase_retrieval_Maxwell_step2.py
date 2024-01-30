@@ -126,13 +126,14 @@ def plot_phase_retrieval_results():
         'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
         'voxel_size', 'Ortho_voxel_size', 'algorithm', 'flip_condition',
         'first_seed_flip', 'total_calculation_time', 'support_type',
-        'auto_corr_thrpara', 'support_from_trial', 'start_trial_num',
-        'auto_corr_thrpara', 'Initial_support_threshold', 'percent_selected',
+        'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
+        'Initial_support_threshold', 'percent_selected',
         'modulus_smooth_width', 'path_import_initial_support', 'Free_LLK',
         'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
         'support_update_loops', 'support_threshold_min', 'support_threshold_max',
         'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-        'further_analysis_selected', 'further_analysis_method', 'error_for_further_analysis_selection']
+        'further_analysis_selected', 'further_analysis_method',
+        'phase_unwrap_method', 'error_for_further_analysis_selection']
     pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
     return
 

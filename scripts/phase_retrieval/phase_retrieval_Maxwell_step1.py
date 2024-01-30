@@ -58,6 +58,7 @@ def phase_retrieval_main():
     # flip_condition ='Phase'
     # flip_condition ='Modulus'
     first_seed_flip = False
+    phase_unwrap_method = 6
 
     # Input: The number of images selected for further analysis like SVD and average
     further_analysis_selected = 10
@@ -80,7 +81,7 @@ def phase_retrieval_main():
                                  FLLK_percentage, FLLK_radius, threhold_update_method,
                                  support_para_update_precent, thrpara_min, thrpara_max,
                                  support_smooth_width_begin, support_smooth_width_end,
-                                 flip_condition, first_seed_flip, display_image_num)
+                                 flip_condition, first_seed_flip, phase_unwrap_method, display_image_num)
 
     # %% select results for SVD analysis or averaging
     pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)

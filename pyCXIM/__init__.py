@@ -6,6 +6,6 @@
 #
 #     authors:
 #       Zhe Ren, renzhe@ihep.ac.cn; renzhetu001@gmail.com; zhe.ren@desy.de
-#     	Han Xu, xuhan@ihep.ac.cn; han.xu.desy.de
+#     	Han Xu, xuhan@ihep.ac.cn; han.xu@desy.de
 
 __version__  = '2023.11.26'

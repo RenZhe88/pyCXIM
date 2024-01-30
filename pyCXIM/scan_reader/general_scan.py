@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+Defining a general scan structure to be the bases for reading the spec files
 Created on Mon Nov 27 21:53:27 2023
 
-@author: ren zhe
+@author: Ren Zhe
 @email: renzhe@ihep.ac.cn
 """
 
@@ -52,6 +53,7 @@ class GeneralScanStructure(object):
         if not os.path.exists(path):
             raise IOError("The scan folder %s does not exist, please check it again!" % path)
         self.path = path
+        self.save_infor_path = ''
 
         if pathsave != '':
             assert os.path.exists(pathsave), \

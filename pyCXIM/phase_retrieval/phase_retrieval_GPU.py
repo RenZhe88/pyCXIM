@@ -3,19 +3,19 @@
 The common phase retrieval functions with pytorch based GPU acceleration.
 
 Please install pytorch library before the running this code.
-
 In case of questions, please contact us.
 
-Author: Zhe Ren, Han Xu
-Date: %(date)s
-Email: zhe.ren@desy.de, han.xu@desy.de or renzhetu001@gmail.com
+Created on Thu Mar 30 11:35:00 2023
+
+@author: Ren Zhe, Xu Han
+@email: renzhe@ihep.ac.cn, xuhan@ihep.ac.cn, or renzhetu001@gmail.com
 """
 
 import numpy as np
 import re
 import sys
 from scipy.special import gammaln
-from skimage.morphology import convex_hull_image
+# from skimage.morphology import convex_hull_image
 import torch
 
 
@@ -311,11 +311,11 @@ class PhaseRetrievalFuns():
                 self.img[:, :, int(xd / 2):] = 0
         return
 
-    def ConvexSup(self):
-        self.support = self.support.cpu().numpy()
-        self.support = np.array(convex_hull_image(self.support), dtype=float)
-        self.support = torch.from_numpy(self.support).to(self.device)
-        return
+    # def ConvexSup(self):
+    #     self.support = self.support.cpu().numpy()
+    #     self.support = np.array(convex_hull_image(self.support), dtype=float)
+    #     self.support = torch.from_numpy(self.support).to(self.device)
+    #     return
 
     def HIO(self, num_HIO_loop):
         """

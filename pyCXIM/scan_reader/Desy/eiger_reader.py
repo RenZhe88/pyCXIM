@@ -3,19 +3,21 @@
 Read and treat the p10 scans with eiger detectors.
 Created on Thu Apr 27 15:33:21 2023
 
-@author: renzhe
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn
 """
 
 import ast
 import datetime
 import hdf5plugin
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import re
 import sys
 from scipy.ndimage import center_of_mass
-import matplotlib.pyplot as plt
+
 from .fio_reader import DesyScanImporter
 
 
@@ -866,17 +868,28 @@ class DesyEigerImporter(DesyScanImporter):
         pch = self.eiger_find_peak_position(roi=roi, cut_width=cut_width)
         scan_motor = self.get_scan_motor()
         scan_motor_ar = self.get_scan_data(scan_motor)
-        if scan_motor == 'om':
-            omega = scan_motor_ar[int(pch[0])]
-            phi = self.get_motor_pos('phi')
-        elif scan_motor == 'phi':
-            omega = self.get_motor_pos('om')
-            phi = scan_motor_ar[int(pch[0])]
-        delta = self.get_motor_pos('del')
-        chi = self.get_motor_pos('chi')
-        gamma = self.get_motor_pos('gam')
-        energy = self.get_motor_pos('energy')
-
+        if self.beamline == 'p10':
+            if scan_motor == 'om':
+                omega = scan_motor_ar[int(pch[0])]
+                phi = self.get_motor_pos('phis')
+            elif scan_motor == 'phis':
+                omega = self.get_motor_pos('om')
+                phi = scan_motor_ar[int(pch[0])]
+            delta = self.get_motor_pos('tt')
+            chi = self.get_motor_pos('chi') - 90.0
+            gamma = self.get_motor_pos('tth')
+            energy = self.get_motor_pos('energyfmb')
+        elif self.beamline == 'p08':
+            if scan_motor == 'om':
+                omega = scan_motor_ar[int(pch[0])]
+                phi = self.get_motor_pos('phi')
+            elif scan_motor == 'phi':
+                omega = self.get_motor_pos('om')
+                phi = scan_motor_ar[int(pch[0])]
+            delta = self.get_motor_pos('del')
+            chi = self.get_motor_pos('chi') - 90.0
+            gamma = self.get_motor_pos('gam')
+            energy = self.get_motor_pos('fmbenergy')
         motor_position = np.array([omega, delta, chi, phi, gamma, energy], dtype=float)
         pixel_position = np.array([pch[1], pch[2]])
         return pixel_position, motor_position

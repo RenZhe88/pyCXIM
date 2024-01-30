@@ -19,7 +19,10 @@ Input:
     4. Detector parameters including the distance from the sample to the detector (distance), pixel_size of the detector (pixel_size), the direct beam position (cch), and the half width of the region of interest (wxy) 
     5. box size for the direct cut in pixels: The half width for the direct cut of the stacked detector images
     6. reciprocal space box size in pixels: The half width for the reciprocal space map
+Created on Fri May 12 14:39:49 2023
 
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn
 """
 
 import numpy as np
@@ -34,15 +37,15 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\BFO islands\Polarized BFO\BFO_9_42_polar_00114\scan_0114_information.txt"
+path_scan_infor = r"F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00043\scan_0043_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
-data_description = 'cutqy'
-pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\BFO islands\Polarized BFO\BFO_9_42_polar_00114\cutqy'
+data_description = 'cutqz'
+pathsave = r'F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00043\cutqz'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
-algorithm = " (DIF**50)**2*(HIO**50*Sup)**20*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**30"
+algorithm = " (HIO**50*Sup)**20*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
 # algorithm = "DIF**200*(RAAR**50*ER**10)**40"
 
 # Input: parameters for creating the initial suppport.
@@ -74,10 +77,10 @@ FLLK_radius = 3
 threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
-thrpara_min = 0.12
-thrpara_max = 0.18
+thrpara_min = 0.08
+thrpara_max = 0.12
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 0.9
+support_smooth_width_end = 1.0
 
 # Input: parameters for the detwin operation
 detwin_axis = 0
@@ -218,8 +221,8 @@ para_name_list = [
     'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
     'voxel_size', 'Ortho_voxel_size', 'algorithm', 'flip_condition',
     'first_seed_flip', 'total_calculation_time', 'support_type',
-    'auto_corr_thrpara', 'support_from_trial', 'start_trial_num',
-    'auto_corr_thrpara', 'Initial_support_threshold', 'percent_selected',
+    'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
+    'Initial_support_threshold', 'percent_selected',
     'modulus_smooth_width', 'path_import_initial_support', 'Free_LLK',
     'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
     'support_update_loops', 'support_threshold_min', 'support_threshold_max',

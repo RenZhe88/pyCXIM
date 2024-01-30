@@ -1,7 +1,30 @@
 # -*- coding: utf-8 -*-
 """
+3D Phase retrieval.
 
+Input:
+    path_scan_infor: the path of the information file generated for by the P10_BCDI_programs
+    SeedNum: The number of random starting points, which would be averaged
+    cut_selected: selected cuts used for phase retrieval
+    algorithm: Similar algorithms as PyNX, here the method can be chosen from DIF, HIO, RAAR, ER, Sup
+    HIO: hybrid input output format
+    RAAR: Relaxed averaged alternating reflections
+    ER: Error reduction
+    DIF: difference map
+    One typical algorithm: (HIO**50*Sup)**60*(RAAR**80*Sup)**10
+    3. paths:
+        path defines the folder to read the images
+        pathsave defines the folder to save the generated images and the infomation file
+        path mask defines the path to load the prefined mask for the detector
+    4. Detector parameters including the distance from the sample to the detector (distance), pixel_size of the detector (pixel_size), the direct beam position (cch), and the half width of the region of interest (wxy)
+    5. box size for the direct cut in pixels: The half width for the direct cut of the stacked detector images
+    6. reciprocal space box size in pixels: The half width for the reciprocal space map
+Created on Fri May 12 14:39:49 2023
+
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn
 """
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,10 +38,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-pathsave = r'F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00056\pynxpre\reciprocal_space_map'
-intensity_file = 'scan0056.npz'
-mask_file = 'scan0056_mask.npz'
-path_scan_infor = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2\LiNiMnO2_1_1_00056\scan_0056_information.txt"
+pathsave = r'F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
+intensity_file = 'scan0043.npz'
+mask_file = 'scan0043_mask.npz'
+path_scan_infor = r"F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00043\scan_0043_information.txt"
 data_description = 'reciprocal_space_map'
 # data_description = 'stacked_detector_images'
 
@@ -41,7 +64,7 @@ path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\
 # Input: starting image inherented from trial
 start_trial_num = 0
 SeedNum = 100
-algorithm = '(HIO**40*Sup)**10*DETWIN*(RAAR**50*ER**10*Sup)**30'
+algorithm = '(DIF**50)**2*(HIO**40*Sup)**20*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40'
 # algorithm = "DIF**200*DETWIN*(RAAR**50*ER**10)**25"
 
 # Input: parameters for the free Log likelihood
@@ -55,18 +78,18 @@ threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
 thrpara_min = 0.08
-thrpara_max = 0.11
+thrpara_max = 0.12
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 0.8
+support_smooth_width_end = 1.0
 
 # Input: parameters for the detwin operation
 detwin_axis = 0
 
 # Input: parameters for flipping the images to remove the trival solutions.
-# flip_condition = 'Support'
-flip_condition = 'Phase'
+flip_condition = 'Support'
+# flip_condition = 'Phase'
 # flip_condition = 'Modulus'
-first_seed_flip = True
+first_seed_flip = False
 phase_unwrap_method = 6
 
 # Input: The number of images selected for further analysis like SVD and average
@@ -201,12 +224,12 @@ para_name_list = [
     'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
     'voxel_size', 'Ortho_voxel_size', 'algorithm', 'flip_condition',
     'first_seed_flip', 'total_calculation_time', 'support_type',
-    'auto_corr_thrpara', 'support_from_trial', 'start_trial_num',
-    'auto_corr_thrpara', 'Initial_support_threshold', 'percent_selected',
+    'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
+    'Initial_support_threshold', 'percent_selected',
     'modulus_smooth_width', 'path_import_initial_support', 'Free_LLK',
     'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
     'support_update_loops', 'support_threshold_min', 'support_threshold_max',
     'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-    'detwin_axis', 'further_analysis_selected', 'further_analysis_method', 
+    'detwin_axis', 'further_analysis_selected', 'further_analysis_method',
     'phase_unwrap_method', 'error_for_further_analysis_selection']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)

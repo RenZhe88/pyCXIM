@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Description
+Functions for converting 2D detector images recorded in the Rocking curve to the reciprocal space maps.
+
 Created on Tue Apr 25 14:51:06 2023
 
-@author: renzhe
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn
 """
 import numpy as np
 from scipy.ndimage import affine_transform
@@ -12,8 +14,9 @@ import sys
 
 class RC2RSM_2C(object):
     """
-    Calculate the reciprocal space map for rocking curve with just theta and 2theta motor considered.
+    Calculate the reciprocal space map from rocking curve.
 
+    Only theta and 2theta angle are considered.
     z direction is surface direction of the sample space.
     x direction is the along the beam.
     y direction is perpendicular to the diffraction plane.
@@ -30,6 +33,8 @@ class RC2RSM_2C(object):
         The detector distance value in mm. The default is 1830.
     pixelsize : float, optional
         The pixelsize of the detector in mm. The default is 0.075.
+    cch : list, optional
+        The center channel of the detector, which is the direct beam position in [Y, X] order.
 
     Returns
     -------
@@ -37,13 +42,14 @@ class RC2RSM_2C(object):
 
     """
 
-    def __init__(self, scan_motor_ar, two_theta, energy=8000, distance=1830, pixelsize=0.075):
+    def __init__(self, scan_motor_ar, two_theta, energy=8000, distance=1830, pixelsize=0.075, cch=[0, 0]):
         self.scan_motor_ar = np.deg2rad(scan_motor_ar)
         self.scan_step = np.deg2rad((scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1))
         self.two_theta = np.deg2rad(two_theta)
         self.distance = distance
         self.pixelsize = pixelsize
         self.energy = energy
+        self.cch = cch
 
         hc = 1.23984 * 10000.0
         wavelength = hc / self.energy
@@ -52,9 +58,7 @@ class RC2RSM_2C(object):
 
     def get_RSM_unit(self, rebinfactor=1):
         """
-        Get the unit of the RSM.
-
-        The unit would be inverse angstrom.
+        Get the pixel units of the result RSM in inverse angstrom.
 
         Parameters
         ----------
@@ -69,7 +73,7 @@ class RC2RSM_2C(object):
         """
         return (self.units * rebinfactor)
 
-    def cal_rel_q_pos(self, pch, cch):
+    def cal_rel_q_pos(self, pch):
         """
         Calculate the relative q values of a detector pixel.
 
@@ -82,8 +86,6 @@ class RC2RSM_2C(object):
             pch[0] corresponds to the frame number in the rocking curve
             pch[1] corresponds to the peak position Y on the detector
             pch[2] corresponds to the peak position X on the detector
-        cch : list
-            The position of the direct beam position on the detector in [Y, X] form.
 
         Returns
         -------
@@ -91,12 +93,16 @@ class RC2RSM_2C(object):
             The calculated q_vector as [qz, qy, qx] in inverse angstrom
 
         """
-        self.peak_angle = self.scan_motor_ar[int(pch[0])]
-        q_vector = np.array([(cch[0] - pch[1]), (cch[1] - pch[2]), self.distance / self.pixelsize])
-        delta_transform = np.array([[np.cos(self.two_theta), 0, np.sin(self.two_theta)], [0, 1, 0], [-np.sin(self.two_theta), 0, np.cos(self.two_theta)]])
+        self.omega = self.scan_motor_ar[int(pch[0])]
+        q_vector = np.array([(self.cch[0] - pch[1]), (self.cch[1] - pch[2]), self.distance / self.pixelsize])
+        delta_transform = np.array([[np.cos(self.two_theta), 0, np.sin(self.two_theta)],
+                                    [0, 1, 0],
+                                    [-np.sin(self.two_theta), 0, np.cos(self.two_theta)]])
         q_vector = np.dot(delta_transform, q_vector)
         q_vector = q_vector - np.array([0, 0, self.distance / self.pixelsize])
-        omega_transform = np.array([[np.cos(self.peak_angle), 0, -np.sin(self.peak_angle)], [0, 1, 0], [np.sin(self.peak_angle), 0, np.cos(self.peak_angle)]])
+        omega_transform = np.array([[np.cos(self.omega), 0, -np.sin(self.omega)],
+                                    [0, 1, 0],
+                                    [np.sin(self.omega), 0, np.cos(self.omega)]])
         q_vector = np.dot(omega_transform, q_vector)
         return q_vector
 
@@ -139,16 +145,16 @@ class RC2RSM_2C(object):
 
         """
         step_C = self.distance * self.scan_step / self.pixelsize
-        transformation_matrix = np.array([[(np.cos(self.peak_angle) - np.cos(self.two_theta - self.peak_angle)) * step_C, -np.cos(self.two_theta - self.peak_angle)],
-                                          [(np.sin(self.two_theta - self.peak_angle) + np.sin(self.peak_angle)) * step_C, np.sin(self.two_theta - self.peak_angle)]])
+        transformation_matrix = np.array([[(np.cos(self.omega) - np.cos(self.two_theta - self.omega)) * step_C, -np.cos(self.two_theta - self.omega)],
+                                          [(np.sin(self.two_theta - self.omega) + np.sin(self.omega)) * step_C, np.sin(self.two_theta - self.omega)]])
         transformation_matrix = transformation_matrix / rebinfactor
         return transformation_matrix
 
-    def cal_q_range(self, roi, cch, om_range=None, rebinfactor=1):
+    def cal_q_range(self, roi, rebinfactor=1):
         """
         Calculate the q range of the converted RSM.
 
-        Generate the origin of the q space.
+        Generate q value of the center of the data space.
         The shape of the RSM after conversion.
         The unit of the RSM.
 
@@ -156,12 +162,6 @@ class RC2RSM_2C(object):
         ----------
         roi : list
             The region of interest in [Ymin, Ymax, Xmin, Xmax] form.
-        cch : list
-            The direct beam position on the detector in [Y, X] form.
-        scan_range : list, optional
-            The index of the scan motor defining the range of the scan motor values.
-            If not given, the complete range of the scanning motor will be used.
-            The default is None.
         rebinfactor : float, optional
             The rebin factor value of the reciprocal space. The default is 1.
 
@@ -176,22 +176,23 @@ class RC2RSM_2C(object):
 
         """
         corners_q = np.zeros((8, 3))
-        if om_range is None:
-            om_range = [0, -1]
+
+        om_range = [0, -1]
         corner_num = 0
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    corners_q[corner_num, :] = self.cal_rel_q_pos([om_range[i], roi[j], roi[k + 2]], cch)
+                    corners_q[corner_num, :] = self.cal_rel_q_pos([om_range[i], roi[j], roi[k + 2]])
                     corner_num += 1
-        q_origin = np.amin(corners_q, axis=0) * self.units
         new_shape = (np.ptp(corners_q, axis=0) / rebinfactor).astype(int)
         RSM_unit = self.units * rebinfactor
+        pch = [int(len(self.scan_motor_ar) / 2), (roi[0] + roi[1]) / 2.0, (roi[2] + roi[3]) / 2.0]
+        q_center = self.cal_rel_q_pos(pch) * self.units
 
         print("number of points for the reciprocal space:")
         print(" qz  qy  qx")
         print(new_shape)
-        return q_origin, new_shape, RSM_unit
+        return q_center, new_shape, RSM_unit
 
     def RSM_conversion(self, dataset, new_shape, rebinfactor=1, cval=0, prefilter=False):
         """
@@ -203,7 +204,7 @@ class RC2RSM_2C(object):
             The stacked detector images.
         new_shape : list
             The shape of the aimed reciprocal space map..
-        rebinfactor : float, optional
+        rebinfactor : int, optional
             The rebin factor value of the reciprocal space. The default is 1.
         cval : float, optional
             The constant value for the interpolation if the correponding point is missing. The default is 0.
@@ -217,7 +218,7 @@ class RC2RSM_2C(object):
 
         """
         # Calculate the transformation matrix for the RMS
-        self.peak_angle = self.scan_motor_ar[int(dataset.shape[0] / 2)]
+        self.omega = self.scan_motor_ar[int(dataset.shape[0] / 2)]
         zd, yd, xd = dataset.shape
         nz, ny, nx = new_shape
 

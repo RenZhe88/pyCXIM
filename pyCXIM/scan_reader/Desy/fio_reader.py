@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 """
+Read and treat the fio files for the scans recorded at DESY.
 Created on Mon Nov 27 21:53:27 2023
 
-@author: ren zhe
+@author: Ren Zhe
 @email: renzhe@ihep.ac.cn
 """
 
-import os
-import numpy as np
-from io import StringIO
-import re
 import ast
+import datetime
+from io import StringIO
+import matplotlib.pyplot as plt
+import numpy as np
+import os
 import pandas as pd
+import re
 from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
-import matplotlib.pyplot as plt
-import datetime
+
 from ..general_scan import GeneralScanStructure
 
 

@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-The common phase retrieval functions for CPU based phase retrieval process.
-
-Due to the speed limitations this package should be only used for 2D phase retieval process.
+Functions for post processing of the phase retrieval results.
 
 In case of questions, please contact us.
 
-Author: Zhe Ren, Han Xu
-Date: %(date)s
-Email: zhe.ren@desy.de, han.xu@desy.de or renzhetu001@gmail.com
+Created on Thu Mar 30 11:35:00 2023
+
+@author: Ren Zhe, Xu Han
+@email: renzhe@ihep.ac.cn, xuhan@ihep.ac.cn, or renzhetu001@gmail.com
 """
 
 import numpy as np

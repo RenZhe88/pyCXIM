@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """
+Transform the detector images in a CDI scan to intensities in reciprocal space.
+
 Created on Mon May 22 14:54:20 2023
 
-@author: renzh
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn, renzhetu001@gmail.com
 """
 import os
 import numpy as np

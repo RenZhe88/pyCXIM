@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Description
+Read and treat scans with merlin detector recorded at NanoMax beamline.
 Created on Thu Jul  6 17:09:31 2023
 
-@author: renzhe
+@author: Ren Zhe
+@email: renzhe@ihep.ac.cn
 """
 import os
 import numpy as np

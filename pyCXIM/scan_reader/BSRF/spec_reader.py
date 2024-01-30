@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+Read and treat the spec files recorded at 1w1a beamline BSRF.
+
 Created on Mon Nov 27 21:53:27 2023
 
 @author: ren zhe
@@ -7,13 +9,14 @@ Created on Mon Nov 27 21:53:27 2023
 """
 
 import ast
-import re
-import os
-import numpy as np
-from io import StringIO
-import pandas as pd
-from ..general_scan import GeneralScanStructure
 import datetime
+from io import StringIO
+import numpy as np
+import os
+import pandas as pd
+import re
+
+from ..general_scan import GeneralScanStructure
 
 
 class BSRFScanImporter(GeneralScanStructure):
@@ -24,7 +27,7 @@ class BSRFScanImporter(GeneralScanStructure):
     ----------
     beamline : str
         The name of the beamline. Now only '1w1a' is supported.
-    path : string
+    path : str
         The path for the raw file folder.
     sample_name : str
         The name of the sample defined by the spec_newfile name in the system.
@@ -186,6 +189,8 @@ class BSRFScanImporter(GeneralScanStructure):
         """
         if short_motor_name in self.motor_name_short_to_full.keys():
             full_motor_name = self.motor_name_short_to_full[short_motor_name]
+        else:
+            full_motor_name = short_motor_name
         return full_motor_name
 
     def name_converter_full_to_short(self, full_motor_name):
@@ -205,6 +210,8 @@ class BSRFScanImporter(GeneralScanStructure):
         """
         if full_motor_name in self.motor_name_full_to_short.keys():
             short_motor_name = self.motor_name_full_to_short[full_motor_name]
+        else:
+            short_motor_name = full_motor_name
         return short_motor_name
 
     def add_motor_pos(self, short_motor_name, position, full_motor_name=None):

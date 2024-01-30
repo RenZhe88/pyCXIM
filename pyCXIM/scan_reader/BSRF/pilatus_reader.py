@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+Read and treat the scans recorded at 1w1a beamline BSRF with pilatus detector.
 Created on Wed Nov  1 10:28:55 2023
 
-@author: ren zhe
+@author: Ren Zhe
 @email: renzhe@ihep.ac.cn
 """
 

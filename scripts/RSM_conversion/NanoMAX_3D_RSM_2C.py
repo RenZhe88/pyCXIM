@@ -1,11 +1,11 @@
 #!/usr/local/bin/python2.7.3 -tttt
-
-import os
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
+import numpy as np
+import os
 import sys
 import time
+
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.nanomax_scan_reader.nanomax_merlin_reader import NanoMaxMerlinScan
@@ -64,12 +64,12 @@ def BCDI_preparation():
 
     # Load the detector images
     dataset, mask3D, pch, wxy = scan.merlin_load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)))
-    wxy=np.array(wxy, dtype=int)
-    dataset = np.flip(np.swapaxes(dataset, 1,2), axis=1)
-    mask3D = np.flip(np.swapaxes(mask3D, 1,2), axis=1)
-    pch[[1,2]]=pch[[2,1]]
+    wxy = np.array(wxy, dtype=int)
+    dataset = np.flip(np.swapaxes(dataset, 1, 2), axis=1)
+    mask3D = np.flip(np.swapaxes(mask3D, 1, 2), axis=1)
+    pch[[1, 2]] = pch[[2, 1]]
     pch[1] = 515 - pch[1]
-    wxy[[0,1,2,3]]=wxy[[3,2,0,1]]
+    wxy[[0, 1, 2, 3]] = wxy[[3, 2, 0, 1]]
 
     # load the scan motors
     # read the phi values

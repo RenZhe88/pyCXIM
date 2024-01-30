@@ -16,7 +16,7 @@ import sys
 import time
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
-from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
+from pyCXIM.scan_reader.BSRF.pilatus_reader import BSRFPilatusImporter
 from pyCXIM.RSM.RC2RSM_6C import RC2RSM_6C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 
@@ -24,25 +24,25 @@ import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 def RSM_6C():
     start_time = time.time()
     # %%Inputs: general information
-    year = "2022"
-    beamtimeID = "11013631"
-    p10_file = r"PTO_STO_DSO_730"
-    scan_num = 23
-    detector = 'e4m'
+    year = "2023"
+    beamtimeID = "1698819146"
+    p10_file = r"LVO_1"
+    scan_num = 5
+    detector = '300K-A'
     geometry = 'out_of_plane'
 
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [639, 1739, 1215, 1815]
+    roi = None
 
     # Inputs: reciprocal space box size in pixels
     save_full_3D_RSM = True
     generating_3D_vtk_file = True
 
     # Inputs: paths
-    path = r"F:\Raw Data\20220608 P10 PTO BFO\raw"
-    pathsave = r"F:\Work place 3\sample\XRD\20220608 Inhouse PTO film BFO islands\PTO_STO\PTO_STO_DSO_730"
-    pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\general_mask.npy'
-    pathcalib = r'F:\Work place 3\sample\XRD\20220608 Inhouse PTO film BFO islands\PTO_STO\PTO_STO_DSO_730\calibration.txt'
+    path = r"F:\Work place 4\sample\XRD\Additional Task\20231102 1W1A test data\RENZHE"
+    pathsave = r"F:\Work place 3\Temp"
+    pathmask = r''
+    pathcalib = r'F:\Work place 3\Temp\calibration.txt'
 
     # %% Generate the RSM
     print("#################")
@@ -50,19 +50,19 @@ def RSM_6C():
     print("#################")
 
     # Read images and fio files
-    scan = DesyEigerImporter('p10', path, p10_file, scan_num, detector, pathsave, pathmask)
+    scan = BSRFPilatusImporter('1w1a', path, p10_file, scan_num, detector, pathsave, pathmask)
     print(scan)
     if geometry == 'out_of_plane':
-        scan_motor_ar = scan.get_scan_data('om')
+        scan_motor_ar = scan.get_scan_data('eta')
     elif geometry == 'in_plane':
         scan_motor_ar = scan.get_scan_data('phi')
     scan_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
-    omega = scan.get_motor_pos('om')
+    eta = scan.get_motor_pos('eta')
     delta = scan.get_motor_pos('del')
-    chi = scan.get_motor_pos('chi') - 90.0
+    chi = scan.get_motor_pos('chi')
     phi = scan.get_motor_pos('phi')
-    gamma = scan.get_motor_pos('gam')
-    energy = scan.get_motor_pos('fmbenergy')
+    nu = scan.get_motor_pos('nu')
+    energy = scan.get_motor_pos('energy')
     scan.write_scan()
 
     # Generate the paths for saving the data
@@ -79,10 +79,10 @@ def RSM_6C():
     det_rot = calibinfor.get_para_value('detector_rotation', section='Detector calibration')
     additional_rotation_matrix = calibinfor.get_para_value('additional_rotation_matrix', section='Calculated UB matrix')
 
-    dataset, mask3D, pch, roi = scan.eiger_load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)))
+    dataset, mask3D, pch, roi = scan.pilatus_load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)))
 
     RSM_converter = RC2RSM_6C(scan_motor_ar, geometry,
-                              omega, delta, chi, phi, gamma, energy,
+                              eta, delta, chi, phi, nu, energy,
                               distance, pixelsize, det_rot, cch,
                               additional_rotation_matrix)
 
@@ -90,7 +90,7 @@ def RSM_6C():
     rebinfactor = RSM_converter.cal_rebinfactor()
 
     # Finding the maximum peak position
-    print("peak at omega = %.2f, delta = %.2f, chi = %.2f, phi = %.2f, gamma = %.2f" % (omega, delta, chi, phi, gamma))
+    print("peak at eta = %.2f, delta = %.2f, chi = %.2f, phi = %.2f, nu = %.2f" % (eta, delta, chi, phi, nu))
 
     # writing the scan information to the aimed file
     section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map']
@@ -114,11 +114,11 @@ def RSM_6C():
     infor.add_para('roi', section_ar[2], list(roi))
     infor.add_para('peak_position', section_ar[2], list(pch))
     infor.add_para('scan_step', section_ar[2], scan_step)
-    infor.add_para('omega', section_ar[2], omega)
+    infor.add_para('eta', section_ar[2], eta)
     infor.add_para('delta', section_ar[2], delta)
     infor.add_para('chi', section_ar[2], chi)
     infor.add_para('phi', section_ar[2], phi)
-    infor.add_para('gamma', section_ar[2], gamma)
+    infor.add_para('nu', section_ar[2], nu)
 
     infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix)
     infor.add_para('direct_beam_position', section_ar[2], list(cch))
