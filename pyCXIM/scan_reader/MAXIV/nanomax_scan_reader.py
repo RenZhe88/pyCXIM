@@ -53,6 +53,7 @@ class NanoMaxScan(GeneralScanStructure):
         self.add_command_description('fermatscan', ('scan_type', 'motor1_name', 'motor1_start_pos', 'motor1_end_pos', 'motor2_name', 'motor2_start_pos', 'motor2_end_pos', 'step_size', 'exposure'))
         self.add_command_description('npointflyscan', ('scan_type', 'motor1_name', 'motor1_start_pos', 'motor1_end_pos', 'motor1_step_num', 'motor2_name', 'motor2_start_pos', 'motor2_end_pos', 'motor2_step_num', 'exposure', 'time_interval'))
 
+        self.path = os.path.join(path, sample_name)
         # Try to locate the fio file, first look at the folder to save the results, then try to look at the folder in the raw data.
         if os.path.exists(os.path.join(self.path, r"%06d.h5" % (scan))):
             self.pathh5 = os.path.join(self.path, r"%06d.h5" % scan)
@@ -245,3 +246,23 @@ class NanoMaxScan(GeneralScanStructure):
         except KeyError:
             print('motor %s does not exist in the scan file!' % motor_name)
             return None
+
+    def add_motor_pos(self, motor_name, position):
+        """
+        Add motor position information in the fio file.
+
+        Parameters
+        ----------
+        motor_name : str
+            The name of the motors to be added.
+        position : object
+            The poisiotn of the aimed motor.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.motor_position_pre_scan[motor_name] = position
+        self.motor_position_post_scan[motor_name] = position
+        return

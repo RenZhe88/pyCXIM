@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['pyCXIM\\scan_reader\\Desy\\fio_reader.py']
+recent_files = ['scripts\\Alignment\\1W1A_calibration.py', 'scripts\\phase_retrieval\\phase_retrieval_2D.py']
 
 [main]
 version = 0.2.0

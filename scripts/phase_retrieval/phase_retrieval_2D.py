@@ -37,11 +37,11 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00043\scan_0043_information.txt"
+path_scan_infor = r"F:\Work place 4\sample\XRD\20221103 BFO islands\symmetric\BFO_LAO_4_7_00087\scan_0087_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
-data_description = 'cutqz'
-pathsave = r'F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands\B12SYNS1P1_00043\cutqz'
+data_description = 'cutqy'
+pathsave = r'F:\Work place 4\sample\XRD\20221103 BFO islands\symmetric\BFO_LAO_4_7_00087\cutqy'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
@@ -86,8 +86,8 @@ support_smooth_width_end = 1.0
 detwin_axis = 0
 
 # Input: parameters for flipping the images to remove the trival solutions.
-# flip_condition = 'Support'
-flip_condition = 'Phase'
+flip_condition = 'Support'
+# flip_condition = 'Phase'
 # flip_condition ='Modulus'
 first_seed_flip = True
 phase_unwrap_method = 0
@@ -97,7 +97,7 @@ further_analysis_selected = 10
 error_type_for_selection = 'Fourier space error'
 
 # Input: Parameters determining the display of the images
-display_range = [400, 400]
+display_range = [100, 400]
 display_image_num = 10
 # %% Load the image data and the mask
 

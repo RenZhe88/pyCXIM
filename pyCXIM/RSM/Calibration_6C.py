@@ -605,9 +605,11 @@ class Calibration(object):
 
         """
         aimed_hkl = np.array(aimed_hkl, dtype=float)
+        detector_para = self.load_parameters(['detector_distance', 'pixelsize', 'detector_rotation', 'direct_beam_position'], section=self.section_ar[1])
         motor_names = self.infor.get_para_value('motor_names', self.section_ar[0])
         B_matrix = np.array(self.infor.get_para_value('B_matrix', self.section_ar[2]), dtype=float)
         U_matrix = np.array(self.infor.get_para_value('U_matrix', self.section_ar[4]), dtype=float)
+        cch = detector_para[3]
 
         expected_q = np.flip(np.dot(U_matrix, np.dot(B_matrix, aimed_hkl)))
         position_parameters = np.zeros(6)
@@ -620,8 +622,9 @@ class Calibration(object):
         para_selected = np.array(para_selected, dtype='bool')
         if limitations is None:
             limitations = ([-180, -180, -180], [180, 180, 180])
-        offsets = least_squares(self.q_error_single_peak, [10.0, 10.0, -10.0], bounds=limitations, args=([0.0, 0.0], position_parameters, para_selected, expected_q, given_motor_values))
+        offsets = least_squares(self.q_error_single_peak, [10.0, 10.0, -10.0], bounds=limitations, args=(cch, position_parameters, detector_para, para_selected, expected_q, given_motor_values))
         given_motor_values[para_selected] = offsets.x
+        given_motor_values[2] += 90.0
         for i in range(6):
             print('%s = %.3f' % (motor_names[i], given_motor_values[i]))
         return

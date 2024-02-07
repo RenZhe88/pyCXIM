@@ -43,8 +43,8 @@ class NanoMaxMerlinScan(NanoMaxScan):
 
     """
 
-    def __init__(self, path, sample_name, scan, detector='merlin', pathsave='', pathmask='', creat_save_folder=True):
-        super().__init__(path, sample_name, scan, pathsave, creat_save_folder)
+    def __init__(self, beamline, path, sample_name, scan, detector='merlin', pathsave='', pathmask='', creat_save_folder=True):
+        super().__init__(beamline, path, sample_name, scan, pathsave, creat_save_folder)
         self.detector = detector
         self.path_merlin_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, 'merlin'))
         self.add_header_infor('detector')

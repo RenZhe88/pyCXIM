@@ -10,10 +10,11 @@ Date: 2020/12/04
 Email: zhe.ren@desy.de or renzhetu001@gmail.com
 """
 
-import os
 import numpy as np
+import os
 import sys
 import time
+
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
@@ -120,7 +121,7 @@ def RSM_6C():
     infor.add_para('phi', section_ar[2], phi)
     infor.add_para('gamma', section_ar[2], gamma)
 
-    infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix)
+    infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix.tolist())
     infor.add_para('direct_beam_position', section_ar[2], list(cch))
     infor.add_para('detector_distance', section_ar[2], distance)
     infor.add_para('pixelsize', section_ar[2], pixelsize)

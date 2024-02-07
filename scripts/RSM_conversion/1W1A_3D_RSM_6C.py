@@ -59,7 +59,7 @@ def RSM_6C():
     scan_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
     eta = scan.get_motor_pos('eta')
     delta = scan.get_motor_pos('del')
-    chi = scan.get_motor_pos('chi')
+    chi = scan.get_motor_pos('chi') - 90.0
     phi = scan.get_motor_pos('phi')
     nu = scan.get_motor_pos('nu')
     energy = scan.get_motor_pos('energy')
@@ -120,7 +120,7 @@ def RSM_6C():
     infor.add_para('phi', section_ar[2], phi)
     infor.add_para('nu', section_ar[2], nu)
 
-    infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix)
+    infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix.tolist())
     infor.add_para('direct_beam_position', section_ar[2], list(cch))
     infor.add_para('detector_distance', section_ar[2], distance)
     infor.add_para('pixelsize', section_ar[2], pixelsize)

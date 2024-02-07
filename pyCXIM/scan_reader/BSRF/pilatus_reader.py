@@ -105,7 +105,7 @@ class BSRFPilatusImporter(BSRFScanImporter):
         """
         if os.path.exists(pathmask):
             print('Predefined mask loaded')
-            self.mask = np.load(pathmask)
+            self.mask = self.pilatus_img_reader(pathmask)
         else:
             print('Could not find the predefined mask, no pixels will be masked!')
             self.mask = np.zeros(self.detector_size)
@@ -548,9 +548,6 @@ class BSRFPilatusImporter(BSRFScanImporter):
             sys.stdout.write('\rprogress:%d%%' % ((i + 1) * 100.0 / self.npoints))
             sys.stdout.flush()
 
-        plt.plot(roi_int)
-        plt.show()
-
         pch[0] = int(np.argmax(roi_int))
         image = self.pilatus_load_single_image(pch[0])
         pch[-2:] = center_of_mass(image[roi[0]:roi[1], roi[2]:roi[3]]) + np.array([roi[0], roi[2]])
@@ -589,7 +586,7 @@ class BSRFPilatusImporter(BSRFScanImporter):
             eta = self.get_motor_pos('eta')
             phi = scan_motor_ar[int(pch[0])]
         delta = self.get_motor_pos('del')
-        chi = self.get_motor_pos('chi')
+        chi = self.get_motor_pos('chi') - 90.0
         nu = self.get_motor_pos('nu')
         energy = self.get_motor_pos('energy')
 

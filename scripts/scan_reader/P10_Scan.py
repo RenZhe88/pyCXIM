@@ -107,11 +107,10 @@ for i, scan_num in enumerate(scan_num_ar):
         p10_newfile = p10_file[i]
 
     scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
-    command_infor = scan.get_command_infor()
 
-    if command_infor['scan_type'] in ['ascan', 'dscan', 'a2scan', 'd2scan']:
+    if scan.get_scan_type() in ['ascan', 'dscan', 'a2scan', 'd2scan']:
         line_scan_num.append(scan_num)
-    if command_infor['scan_type'] in ['dmesh', 'mesh']:
+    if scan.get_scan_type() in ['dmesh', 'mesh']:
         mesh_scan_num.append(scan_num)
 
 # Plot line scans
