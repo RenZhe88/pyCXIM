@@ -68,7 +68,7 @@ class PhaseRetrievalWidget():
         self.para_dict['trial_num'] = self.trial_num
         self.para_dict['pathresult'] = self.pathsaveimg
         if data_description is not None:
-            assert (data_description in ['cutqx', 'cutqy', 'cutqz', 'cuty', 'reciprocal_space_map', 'stacked_detector_images']), 'Data description must be cutqx, cutqy, cutqz, cuty, reciprocal_space_map, stacked_detector_images.'
+            assert (data_description in ['cutqx', 'cutqy', 'cutqz', 'cuty', 'reciprocal_space_map_CDI', 'reciprocal_space_map_BCDI', 'stacked_detector_images_BCDI']), 'Data description must be cutqx, cutqy, cutqz, cuty, reciprocal_space_map_CDI, reciprocal_space_map_BCDI, stacked_detector_images_BCDI.'
             self.para_dict['data_description'] = data_description
         return
 
@@ -130,7 +130,10 @@ class PhaseRetrievalWidget():
         imgfile.close()
         return
 
-    def create_initial_support(self, support_type, auto_corr_thrpara=0.004, support_from_trial=0, Initial_support_threshold=0.4, percent_selected=10, modulus_smooth_width=0.3, path_import_initial_support=''):
+    def create_initial_support(self, support_type, auto_corr_thrpara=0.004,
+                               support_from_trial=0, Initial_support_threshold=0.4,
+                               percent_selected=10, modulus_smooth_width=0.3,
+                               path_import_initial_support=''):
         """
         Create the initial support for the phase retrieval processes.
 
@@ -252,11 +255,14 @@ class PhaseRetrievalWidget():
         imgfile.close()
         return
 
-    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, Free_LLK=False,
-                             FLLK_percentage=1, FLLK_radius=3, threhold_update_method='exp_increase',
-                             support_para_update_precent=0.8, thrpara_min=0.1, thrpara_max=0.12,
-                             support_smooth_width_begin=3.5, support_smooth_width_end=1.0, detwin_axis=0,
-                             flip_condition='Support', first_seed_flip=False, phase_unwrap_method=6, display_image_num=5):
+    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0,
+                             Free_LLK=False, FLLK_percentage=1, FLLK_radius=3,
+                             threhold_update_method='exp_increase',
+                             support_para_update_precent=0.8, thrpara_min=0.1,
+                             thrpara_max=0.12, support_smooth_width_begin=3.5,
+                             support_smooth_width_end=1.0, detwin_axis=0,
+                             flip_condition='Support', first_seed_flip=False,
+                             phase_unwrap_method=6, display_image_num=5):
         """
         Perform the phase retrieval with the aimed algorithm.
 
@@ -643,9 +649,72 @@ class PhaseRetrievalWidget():
             imgfile.create_dataset("Selected_average/Img_sum", data=Avr_Img, dtype='complex128', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("Selected_average/Support_sum", data=support, dtype='float', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Selected_average/Support_sum", data=Avr_support, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/intensity_sum", data=Avr_intensity, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/phase_retrieval_transfer_function", data=PRTF, dtype='float')
+        imgfile.close()
+        return
+
+    def BCDI_data_interpretation(self, array_group, array_name, q_vector, voxel_size):
+        """
+        Calculate the strain and displacement for the 3D results.
+
+        The strain is the derivation of the displacement field.
+        Calculation only make sense if the displacment is along certain axis.
+
+        Parameters
+        ----------
+        array_group : str
+            The group name, where the arrays are stored in the h5 file.
+        array_names : list
+            The array names to be plotted.
+        q_vector : str
+            The q_vector of the diffraction peak.
+        voxel_size : list or tuple
+            The unit of different axis in Z, Y, X order.
+
+        Returns
+        -------
+        None.
+
+        """
+        q_norm = np.linalg.norm(q_vector)
+        q_dir = np.array(q_vector) / q_norm
+
+        imgfile = h5py.File(self.pathsaveimg, "r+")
+        dataset_group = array_group + '/' + array_name
+        assert dataset_group in imgfile, 'Could not find the %s in group %s!' % (array_name, array_group)
+
+        dataset = np.array(imgfile[dataset_group])
+        chunks_size = (1, dataset.shape[1], dataset.shape[2])
+        displacement = dataset / q_norm / 10.0
+        imgfile.create_dataset(dataset_group.replace('Phase', 'Displacement'),
+                               data=displacement, dtype=float,
+                               chunks=chunks_size,
+                               compression="gzip")
+
+        if np.allclose(q_dir, [1, 0, 0], atol=np.sin(np.deg2rad(5))):
+            strain_zz = np.gradient(displacement, voxel_size[0], axis=0)
+            strain_zz[dataset == 0] = 0
+            print(dataset_group.replace('Phase', 'strain_zz'))
+            imgfile.create_dataset(dataset_group.replace('Phase', 'strain_zz'),
+                                   data=strain_zz, dtype=float,
+                                   chunks=chunks_size,
+                                   compression="gzip")
+        elif np.allclose(q_dir, [0, 1, 0], atol=np.sin(np.deg2rad(5))):
+            strain_yy = np.gradient(displacement, voxel_size[1], axis=1)
+            strain_yy[dataset == 0] = 0
+            imgfile.create_dataset(dataset_group.replace('Phase', 'strain_yy'),
+                                   data=strain_yy, dtype=float,
+                                   chunks=chunks_size,
+                                   compression="gzip")
+        elif np.allclose(q_dir, [0, 0, 1], atol=np.sin(np.deg2rad(5))):
+            strain_xx = np.gradient(displacement, voxel_size[2], axis=2)
+            strain_xx[dataset == 0] = 0
+            imgfile.create_dataset(dataset_group.replace('Phase', 'strain_xx'),
+                                   data=strain_xx, dtype=float,
+                                   chunks=chunks_size,
+                                   compression="gzip")
         imgfile.close()
         return
 
@@ -670,17 +739,17 @@ class PhaseRetrievalWidget():
         omega = self.para_dict['omega']
         omegastep = self.para_dict['omegastep']
         delta = self.para_dict['delta']
-        distance = self.para_dict['distance']
+        distance = self.para_dict['detector_distance']
         pixelsize = self.para_dict['pixelsize']
         energy = self.para_dict['energy']
-        direct_cut_box_size = self.get_para_value('direct_cut_box_size')
+        direct_cut_box_size = self.get_para('direct_cut_box_size')
         yd = direct_cut_box_size[1]
         for input_name in input_names:
             input_array = imgfile['%s/%s' % (input_group, input_name)]
             Ortho_result, Ortho_unit = pp.Orth2D(input_array, yd, omega, omegastep, delta, distance, pixelsize, energy)
 
             ny, nx = Ortho_result.shape
-            imgfile.create_dataset("Ortho/Ortho_%s" % (input_name), data=Ortho_result, dtype='f', chunks=(ny, nx), compression="gzip")
+            imgfile.create_dataset("Ortho/%s/Ortho_%s" % (input_group, input_name), data=Ortho_result, dtype='f', chunks=(ny, nx), compression="gzip")
         self.para_dict['Ortho_unit'] = Ortho_unit
         imgfile.close()
         return
@@ -875,6 +944,31 @@ class PhaseRetrievalWidget():
                 imgfile.attrs[para_name] = self.para_dict[para_name]
         return
 
+    def load_para_from_pynx_results(self, pathcxi, para_name_list):
+        """
+        Load the parameters from pynx result files.
+
+        Parameters
+        ----------
+        pathcxi : str
+            The path to the pynx result file.
+        para_name_list : list
+            List of the parameter names to be imported.
+
+        Returns
+        -------
+        None.
+
+        """
+        assert os.path.exists(pathcxi), 'The pynx result file does not exist! Please check the path of the cxi file again!'
+        tempimgfile = h5py.File(pathcxi, "r")
+        Para_group = tempimgfile['entry_last/image_1/process_1/configuration']
+        for para_name in para_name_list:
+            if para_name in Para_group.keys():
+                self.para_dict[para_name] = Para_group[para_name][()]
+        tempimgfile.close()
+        return
+
     def load_para_from_infor_file(self, pathinfor, para_name_list, section=''):
         """
         Load the parameters in the information file.
@@ -900,31 +994,6 @@ class PhaseRetrievalWidget():
         for para_name in para_name_list:
             if infor.get_para_value(para_name, section) is not None:
                 self.para_dict[para_name] = infor.get_para_value(para_name, section)
-        return
-
-    def load_para_from_pynx_results(self, pathcxi, para_name_list):
-        """
-        Load the parameters from pynx result files.
-
-        Parameters
-        ----------
-        pathcxi : str
-            The path to the pynx result file.
-        para_name_list : list
-            List of the parameter names to be imported.
-
-        Returns
-        -------
-        None.
-
-        """
-        assert os.path.exists(pathcxi), 'The pynx result file does not exist! Please check the path of the cxi file again!'
-        tempimgfile = h5py.File(pathcxi, "r")
-        Para_group = tempimgfile['entry_last/image_1/process_1/configuration']
-        for para_name in para_name_list:
-            if para_name in Para_group.keys():
-                self.para_dict[para_name] = Para_group[para_name][()]
-        tempimgfile.close()
         return
 
     def save_para_to_infor_file(self, pathinfor, section, para_name_list=None):
@@ -958,7 +1027,9 @@ class PhaseRetrievalWidget():
         infor.infor_writer()
         return
 
-    def plot_3D_result(self, array_group, array_names, voxel_size, display_range=None, title='', save_image=True, filename='', save_as_vti=False):
+    def plot_3D_result(self, array_group, array_names, voxel_size, unit='nm',
+                       display_range=None, title='', save_image=True,
+                       filename='', save_as_vti=False):
         """
         Plot and save the 3D phase retrieval results.
 
@@ -987,67 +1058,76 @@ class PhaseRetrievalWidget():
 
         """
         imgfile = h5py.File(self.pathsaveimg, "r+")
+        available_arrays = []
+        for array_name in array_names:
+            if array_name in imgfile[array_group]:
+                available_arrays.append(array_name)
+        array_names = available_arrays
         num_of_arrays = len(array_names)
         plt_arrays = ()
 
-        fig, axs = plt.subplots(num_of_arrays, 3, figsize=(24, num_of_arrays * 8))
-        if title != '':
-            fig.suptitle(title, fontsize=28)
-        for i in range(num_of_arrays):
-            plt_array = np.array(imgfile['%s/%s' % (array_group, array_names[i])])
-            if ('Modulus' in array_names[i]) or ('modulus' in array_names[i]):
-                plt_array = plt_array / np.amax(plt_array)
-            plt_arrays = plt_arrays + (plt_array,)
-            if i == 0:
-                zd, yd, xd = plt_array.shape
-                unitz = np.arange(-zd / 2 + 0.5, zd / 2 + 0.5) * voxel_size[0]
-                unity = np.arange(-yd / 2 + 0.5, yd / 2 + 0.5) * voxel_size[1]
-                unitx = np.arange(-xd / 2 + 0.5, xd / 2 + 0.5) * voxel_size[2]
-                if display_range is None:
-                    display_range = np.zeros(3, dtype=int)
-                    display_range[0] = int(np.amax(unitz) / 2.0)
-                    display_range[1] = int(np.amax(unity) / 2.0)
-                    display_range[2] = int(np.amax(unitx) / 2.0)
-            color_bar_range = np.linspace(np.amin(plt_array), np.amax(plt_array), 150)
-            im = axs[i, 0].contourf(unitx, unity, plt_array[int(zd / 2), :, :], color_bar_range, cmap='jet')
-            plt.colorbar(im, ax=axs[i, 0], shrink=0.6)
-            axs[i, 0].set_title('%s z cut' % array_names[i], fontsize=24)
-            axs[i, 0].set_xlabel('x (nm)', fontsize=24)
-            axs[i, 0].set_ylabel('y (nm)', fontsize=24)
-            axs[i, 0].axis('scaled')
-            axs[i, 0].set_xlim(-display_range[2], display_range[2])
-            axs[i, 0].set_ylim(-display_range[1], display_range[1])
-            im = axs[i, 1].contourf(unitx, unitz, plt_array[:, int(yd / 2), :], color_bar_range, cmap='jet')
-            plt.colorbar(im, ax=axs[i, 1], shrink=0.6)
-            axs[i, 1].set_title('%s y cut' % array_names[i], fontsize=24)
-            axs[i, 1].set_xlabel('x (nm)', fontsize=24)
-            axs[i, 1].set_ylabel('z (nm)', fontsize=24)
-            axs[i, 1].axis('scaled')
-            axs[i, 1].set_xlim(-display_range[2], display_range[2])
-            axs[i, 1].set_ylim(-display_range[0], display_range[0])
-            im = axs[i, 2].contourf(unity, unitz, plt_array[:, :, int(xd / 2)], color_bar_range, cmap='jet')
-            plt.colorbar(im, ax=axs[i, 2], shrink=0.6)
-            axs[i, 2].set_title('%s x cut' % array_names[i], fontsize=24)
-            axs[i, 2].set_xlabel('y (nm)', fontsize=24)
-            axs[i, 2].set_ylabel('z (nm)', fontsize=24)
-            axs[i, 2].axis('scaled')
-            axs[i, 2].set_xlim(-display_range[1], display_range[1])
-            axs[i, 2].set_ylim(-display_range[0], display_range[0])
-        fig.tight_layout()
-        if filename == '':
-            filename = "Trial%d" % (self.para_dict['trial_num'])
-        if save_image:
-            plt.savefig(os.path.join(self.pathsave, filename + '.png'))
-            plt.close()
-        else:
-            plt.show()
+        if num_of_arrays != 0:
+            fig, axs = plt.subplots(num_of_arrays, 3, figsize=(24, num_of_arrays * 8))
+            if title != '':
+                fig.suptitle(title, fontsize=28)
+            for i in range(num_of_arrays):
+                plt_array = np.array(imgfile['%s/%s' % (array_group, array_names[i])])
+                if ('Modulus' in array_names[i]) or ('modulus' in array_names[i]):
+                    plt_array = plt_array / np.amax(plt_array)
+                plt_arrays = plt_arrays + (plt_array,)
+                if i == 0:
+                    zd, yd, xd = plt_array.shape
+                    unitz = np.arange(-zd / 2 + 0.5, zd / 2 + 0.5) * voxel_size[0]
+                    unity = np.arange(-yd / 2 + 0.5, yd / 2 + 0.5) * voxel_size[1]
+                    unitx = np.arange(-xd / 2 + 0.5, xd / 2 + 0.5) * voxel_size[2]
+                    if display_range is None:
+                        display_range = np.zeros(3, dtype=int)
+                        display_range[0] = int(np.amax(unitz) / 2.0)
+                        display_range[1] = int(np.amax(unity) / 2.0)
+                        display_range[2] = int(np.amax(unitx) / 2.0)
+                color_bar_range = np.linspace(np.amin(plt_array), np.amax(plt_array), 150)
+                im = axs[i, 0].contourf(unitx, unity, plt_array[int(zd / 2), :, :], color_bar_range, cmap='jet')
+                plt.colorbar(im, ax=axs[i, 0], shrink=0.6)
+                axs[i, 0].set_title('%s z cut' % array_names[i], fontsize=24)
+                axs[i, 0].set_xlabel('x (%s)' % unit, fontsize=24)
+                axs[i, 0].set_ylabel('y (%s)' % unit, fontsize=24)
+                axs[i, 0].axis('scaled')
+                axs[i, 0].set_xlim(-display_range[2], display_range[2])
+                axs[i, 0].set_ylim(-display_range[1], display_range[1])
+                im = axs[i, 1].contourf(unitx, unitz, plt_array[:, int(yd / 2), :], color_bar_range, cmap='jet')
+                plt.colorbar(im, ax=axs[i, 1], shrink=0.6)
+                axs[i, 1].set_title('%s y cut' % array_names[i], fontsize=24)
+                axs[i, 1].set_xlabel('x (%s)' % unit, fontsize=24)
+                axs[i, 1].set_ylabel('z (%s)' % unit, fontsize=24)
+                axs[i, 1].axis('scaled')
+                axs[i, 1].set_xlim(-display_range[2], display_range[2])
+                axs[i, 1].set_ylim(-display_range[0], display_range[0])
+                im = axs[i, 2].contourf(unity, unitz, plt_array[:, :, int(xd / 2)], color_bar_range, cmap='jet')
+                plt.colorbar(im, ax=axs[i, 2], shrink=0.6)
+                axs[i, 2].set_title('%s x cut' % array_names[i], fontsize=24)
+                axs[i, 2].set_xlabel('y (%s)' % unit, fontsize=24)
+                axs[i, 2].set_ylabel('z (%s)' % unit, fontsize=24)
+                axs[i, 2].axis('scaled')
+                axs[i, 2].set_xlim(-display_range[1], display_range[1])
+                axs[i, 2].set_ylim(-display_range[0], display_range[0])
+            fig.tight_layout()
+            if filename == '':
+                filename = "Trial%d" % (self.para_dict['trial_num'])
+            if save_image:
+                plt.savefig(os.path.join(self.pathsave, filename + '.png'))
+                plt.close()
+            else:
+                plt.show()
+
+            if save_as_vti:
+                pathsavevti = os.path.join(self.pathsave, filename + '.vti')
+                pp.save_to_vti(pathsavevti, plt_arrays, array_names, voxel_size=voxel_size)
         imgfile.close()
-        if save_as_vti:
-            pathsavevti = os.path.join(self.pathsave, filename + '.vti')
-            pp.save_to_vti(pathsavevti, plt_arrays, array_names, voxel_size=voxel_size)
         return
 
-    def plot_2D_result(self, array_group, array_names, voxel_size, display_range=None, title='', subplot_config=None, save_image=True, filename=''):
+    def plot_2D_result(self, array_group, array_names, voxel_size, xy_labels=['x (nm)', 'y (nm)'],
+                       display_range=None, title='', subplot_config=None,
+                       save_image=True, filename=''):
         """
         Plot and save the 2D phase retrieval results.
 
@@ -1076,63 +1156,50 @@ class PhaseRetrievalWidget():
 
         """
         imgfile = h5py.File(self.pathsaveimg, "r+")
+        available_arrays = []
+        for array_name in array_names:
+            if array_name in imgfile[array_group]:
+                available_arrays.append(array_name)
+        array_names = available_arrays
         num_of_arrays = len(array_names)
-        if subplot_config is None:
-            fig, axs = plt.subplots(1, num_of_arrays, figsize=(num_of_arrays * 8, 8))
-        else:
-            assert num_of_arrays <= (subplot_config[0] * subplot_config[1]), 'The too many images to be plotted, please increase the number in the subplots_config.'
-            fig, axs = plt.subplots(subplot_config[0], subplot_config[1], figsize=(subplot_config[1] * 8, subplot_config[0] * 8))
-            axs = axs.flatten()
-        if title != '':
-            fig.suptitle(title, fontsize=28)
-        for i in range(num_of_arrays):
-            plt_array = np.array(imgfile['%s/%s' % (array_group, array_names[i])])
-            if ('Modulus' in array_names[i]) or ('modulus' in array_names[i]):
-                plt_array = plt_array / np.amax(plt_array)
-            if i == 0:
-                yd, xd = plt_array.shape
-                unity = np.arange(-yd / 2 + 0.5, yd / 2 + 0.5) * voxel_size[0]
-                unitx = np.arange(-xd / 2 + 0.5, xd / 2 + 0.5) * voxel_size[1]
-                if display_range is None:
-                    display_range = np.zeros(2, dtype=int)
-                    display_range[0] = int(np.amax(unity) / 2.0)
-                    display_range[1] = int(np.amax(unitx) / 2.0)
-            color_bar_range = np.linspace(np.amin(plt_array), np.amax(plt_array), 150)
-            im = axs[i].contourf(unitx, unity, plt_array, color_bar_range, cmap='jet')
-            plt.colorbar(im, ax=axs[i], shrink=0.6)
-            if self.get_para('data_description') == 'cutqx':
-                axs[i].set_title('%s qx cut' % array_names[i], fontsize=24)
-                axs[i].set_xlabel('y (nm)', fontsize=24)
-                axs[i].set_ylabel('z (nm)', fontsize=24)
-            elif self.get_para('data_description') == 'cutqy':
-                axs[i].set_title('%s qy cut' % array_names[i], fontsize=24)
-                axs[i].set_xlabel('x (nm)', fontsize=24)
-                axs[i].set_ylabel('z (nm)', fontsize=24)
-            elif self.get_para('data_description') == 'cutqz':
-                axs[i].set_title('%s qz cut' % array_names[i], fontsize=24)
-                axs[i].set_xlabel('x (nm)', fontsize=24)
-                axs[i].set_ylabel('y (nm)', fontsize=24)
-            elif self.get_para('data_description') == 'cuty':
-                if array_group == 'Ortho':
-                    axs[i].set_title('%s y cut (orthogonal)' % array_names[i], fontsize=24)
-                    axs[i].set_xlabel('x (nm)', fontsize=24)
-                    axs[i].set_ylabel('z (nm)', fontsize=24)
-                else:
-                    axs[i].set_title('%s y cut (non-orthogonal)' % array_names[i], fontsize=24)
-                    axs[i].set_xlabel('x (nm)', fontsize=24)
-                    axs[i].set_ylabel('z (nm)', fontsize=24)
-
-            axs[i].axis('scaled')
-            axs[i].set_xlim(-display_range[1], display_range[1])
-            axs[i].set_ylim(-display_range[0], display_range[0])
-        fig.tight_layout()
-        if filename == '':
-            filename = "Trial%d" % (self.para_dict['trial_num'])
-        if save_image:
-            plt.savefig(os.path.join(self.pathsave, filename + '.png'))
-            plt.close()
-        else:
-            plt.show()
+        if num_of_arrays != 0:
+            if subplot_config is None:
+                fig, axs = plt.subplots(1, num_of_arrays, figsize=(num_of_arrays * 8, 8))
+            else:
+                assert num_of_arrays <= (subplot_config[0] * subplot_config[1]), 'The too many images to be plotted, please increase the number in the subplots_config.'
+                fig, axs = plt.subplots(subplot_config[0], subplot_config[1], figsize=(subplot_config[1] * 8, subplot_config[0] * 8))
+                axs = axs.flatten()
+            if title != '':
+                fig.suptitle(title, fontsize=28)
+            for i in range(num_of_arrays):
+                plt_array = np.array(imgfile['%s/%s' % (array_group, array_names[i])])
+                if ('Modulus' in array_names[i]) or ('modulus' in array_names[i]):
+                    plt_array = plt_array / np.amax(plt_array)
+                if i == 0:
+                    yd, xd = plt_array.shape
+                    unity = np.arange(-yd / 2 + 0.5, yd / 2 + 0.5) * voxel_size[0]
+                    unitx = np.arange(-xd / 2 + 0.5, xd / 2 + 0.5) * voxel_size[1]
+                    if display_range is None:
+                        display_range = np.zeros(2, dtype=int)
+                        display_range[0] = int(np.amax(unity) / 2.0)
+                        display_range[1] = int(np.amax(unitx) / 2.0)
+                color_bar_range = np.linspace(np.amin(plt_array), np.amax(plt_array), 150)
+                im = axs[i].contourf(unitx, unity, plt_array, color_bar_range, cmap='jet')
+                plt.colorbar(im, ax=axs[i], shrink=0.6)
+                axs[i].set_title('%s' % (array_names[i]), fontsize=24)
+                axs[i].set_xlabel(xy_labels[0], fontsize=24)
+                axs[i].set_ylabel(xy_labels[1], fontsize=24)
+                axs[i].axis('scaled')
+                axs[i].set_xlim(-display_range[1], display_range[1])
+                axs[i].set_ylim(-display_range[0], display_range[0])
+            fig.tight_layout()
+            if filename == '':
+                filename = "Trial%d" % (self.para_dict['trial_num'])
+            if save_image:
+                plt.savefig(os.path.join(self.pathsave, filename + '.png'))
+                plt.close()
+            else:
+                plt.show()
         imgfile.close()
         return
 
@@ -1250,14 +1317,12 @@ class PhaseRetrievalWidget():
             plt.show()
         return
 
-    def plot_error_matrix(self, RSM_unit, save_image=True, filename=''):
+    def plot_error_matrix(self, save_image=True, filename=''):
         """
         Plot the error matrix for the phase retrieval results.
 
         Parameters
         ----------
-        RSM_unit : float,
-            The unit of the reciprocal space in inverse angstrom.
         pathsave : str, optional
             The path to save the result plot. The default is ''.
         filename : str, optional
@@ -1271,6 +1336,8 @@ class PhaseRetrievalWidget():
         imgfile = h5py.File(self.pathsaveimg, "r+")
         err_ar = np.array(imgfile["Error/error"], dtype=float)
         PRTF = np.array(imgfile["Average_All/phase_retrieval_transfer_function"], dtype=float)
+        unit = self.get_para('unit')
+
         if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
             err_ar = self.get_dataset("Error/error")[()]
             error_type = self.get_para('error_for_further_analysis_selection')
@@ -1297,7 +1364,7 @@ class PhaseRetrievalWidget():
             axs[1, 0].set_title('Free Log likelihood', fontsize=24)
             axs[1, 0].set_xlabel('total support pixel', fontsize=24)
             axs[1, 0].set_ylabel('Free Log likelihood', fontsize=24)
-            axs[1, 1].plot(RSM_unit * np.arange(len(PRTF)), PRTF, 'r.', label='All solutions')
+            axs[1, 1].plot(unit * np.arange(len(PRTF)), PRTF, 'r.', label='All solutions')
             axs[1, 1].set_ylim(0, 1.05)
             axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
             axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
@@ -1309,7 +1376,7 @@ class PhaseRetrievalWidget():
                 axs[0, 1].legend()
                 axs[1, 0].plot(err_ar[Seed_selected, 1], err_ar[Seed_selected, 4], 'b.', label='Selected solutions')
                 axs[1, 0].legend()
-                axs[1, 1].plot(RSM_unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
+                axs[1, 1].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
                 axs[1, 1].legend()
             fig.tight_layout()
         else:
@@ -1326,12 +1393,12 @@ class PhaseRetrievalWidget():
             axs[1, 0].set_title('Free Log likelihood', fontsize=24)
             axs[1, 0].set_xlabel('Free Log likelihood', fontsize=24)
             axs[1, 0].set_ylabel('Num of solutions', fontsize=24)
-            axs[1, 1].plot(RSM_unit * np.arange(len(PRTF)), PRTF, 'r.')
+            axs[1, 1].plot(unit * np.arange(len(PRTF)), PRTF, 'r.')
             axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
             axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
             axs[1, 1].set_ylabel('PRTF', fontsize=24)
             if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
-                axs[1, 1].plot(RSM_unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
+                axs[1, 1].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
                 axs[1, 1].legend()
             fig.tight_layout()
         imgfile.close()
@@ -1344,6 +1411,96 @@ class PhaseRetrievalWidget():
             plt.show()
         return
 
+    def analysis_and_plot_3D(self, array_group, array_names, title, filename,
+                          save_image=True, save_as_vti=True, display_range=None):
+        data_description = self.get_para('data_description')
+        if data_description == 'reciprocal_space_map_CDI':
+            zd, yd, xd = self.get_para('data_shape')
+            unit = self.get_para('unit')
+            voxel_size = ((2.0 * np.pi / zd / unit / 10.0), (2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
+            self.add_para('voxel_size', voxel_size)
+            self.plot_3D_result(array_group, array_names, voxel_size, unit='nm',
+                                display_range=display_range, title=title,
+                                save_image=save_image, filename=filename, save_as_vti=save_as_vti)
+        elif data_description == 'reciprocal_space_map_BCDI':
+            zd, yd, xd = self.get_para('data_shape')
+            unit = self.get_para('unit')
+            voxel_size = ((2.0 * np.pi / zd / unit / 10.0), (2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
+            self.add_para('voxel_size', voxel_size)
+            q_vector = self.get_para('q_vector')
+            phase_array_name = [array_name for array_name in array_names if 'Phase' in array_name][0]
+            self.BCDI_data_interpretation(array_group, phase_array_name, q_vector, voxel_size)
+
+            array_names = list(array_names) + [phase_array_name.replace('Phase', 'Displacement'),
+                                               phase_array_name.replace('Phase', 'strain_zz'),
+                                               phase_array_name.replace('Phase', 'strain_yy'),
+                                               phase_array_name.replace('Phase', 'strain_xx')]
+            self.plot_3D_result(array_group, array_names, voxel_size, unit='nm',
+                                display_range=display_range, title=title,
+                                save_image=save_image, filename=filename, save_as_vti=save_as_vti)
+
+        elif data_description == 'stacked_detector_images_BCDI':
+            voxel_size = (1, 1, 1)
+            self.plot_3D_result(array_group, array_names, voxel_size, unit='pixel',
+                                display_range=None, title=title,
+                                save_image=save_image, filename=filename, save_as_vti=save_as_vti)
+            q_vector = self.get_para('q_vector')
+            self.ortho_3D_transform(array_group, array_names)
+            Ortho_unit = self.get_para('Ortho_unit')
+            Ortho_voxel_size = (Ortho_unit, Ortho_unit, Ortho_unit)
+            self.add_para('Ortho_voxel_size', Ortho_voxel_size)
+            array_names = [('Ortho_' + array_name) for array_name in array_names]
+
+            phase_array_name = [array_name for array_name in array_names if 'Phase' in array_name][0]
+            self.BCDI_data_interpretation('Ortho/%s' % array_group, phase_array_name, q_vector, Ortho_voxel_size)
+            array_names = list(array_names) + [phase_array_name.replace('Phase', 'Displacement'),
+                                               phase_array_name.replace('Phase', 'strain_zz'),
+                                               phase_array_name.replace('Phase', 'strain_yy'),
+                                               phase_array_name.replace('Phase', 'strain_xx')]
+            self.plot_3D_result('Ortho/%s' % array_group, array_names, Ortho_voxel_size, unit='nm',
+                                display_range=display_range, title=title,
+                                save_image=save_image, filename=filename + "_orthonormalized", save_as_vti=save_as_vti)
+        return
+
+    def analysis_and_plot_2D(self, array_group, array_names, title, filename,
+                             save_image=True, subplot_config=None, display_range=None):
+        data_description = self.get_para('data_description')
+        if data_description in ['cutqx', 'cutqy', 'cutqz']:
+            yd, xd = self.get_para('data_shape')
+            unit = self.get_para('unit')
+            voxel_size = ((2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
+            if self.get_para('data_description') == 'cutqx':
+                self.plot_2D_result(array_group, array_names, voxel_size,
+                                    xy_labels=['y (nm)', 'z (nm)'], display_range=display_range,
+                                    title=title, subplot_config=subplot_config,
+                                    save_image=save_image, filename=filename)
+            elif self.get_para('data_description') == 'cutqy':
+                self.plot_2D_result(array_group, array_names, voxel_size,
+                                    xy_labels=['x (nm)', 'z (nm)'], display_range=display_range,
+                                    title=title, subplot_config=subplot_config,
+                                    save_image=save_image, filename=filename)
+            elif self.get_para('data_description') == 'cutqz':
+                self.plot_2D_result(array_group, array_names, voxel_size,
+                                    xy_labels=['x (nm)', 'y (nm)'], display_range=display_range,
+                                    title=title, subplot_config=subplot_config,
+                                    save_image=save_image, filename=filename)
+        elif data_description == 'cuty':
+            yd, xd = self.get_para('data_shape')
+            voxel_size = (1, 1)
+            self.plot_2D_result(array_group, array_names, voxel_size,
+                                xy_labels=['x (pixel)', 'z (pixel)'], display_range=None,
+                                title=title, subplot_config=subplot_config,
+                                save_image=save_image, filename=filename)
+            self.ortho_2D_transform(array_group, array_names)
+            Ortho_unit = self.get_para('Ortho_unit')
+            Ortho_voxel_size = (Ortho_unit, Ortho_unit)
+            self.add_para('Ortho_voxel_size', Ortho_voxel_size)
+            array_names = ('Ortho_Modulus_sum', 'Ortho_Phase_sum', 'Ortho_Support_sum')
+            self.plot_2D_result('Ortho/%s' % array_group, array_names, Ortho_voxel_size,
+                                xy_labels=['x (nm)', 'z (nm)'], display_range=display_range,
+                                title=title + '(orthonormalized)', subplot_config=subplot_config,
+                                save_image=save_image, filename=filename + "_orthonormalized")
+        return
 
 def plt_result_2D_simple(plt_arrays, array_names, pathsave='', filename=''):
     """
@@ -1460,3 +1617,5 @@ def plt_result_3D_simple(plt_arrays, array_names, pathsave='', filename=''):
         plt.show()
     plt.close()
     return
+
+    

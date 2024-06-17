@@ -26,8 +26,8 @@ def RSM_6C():
     # %%Inputs: general information
     year = "2023"
     beamtimeID = "1698819146"
-    p10_file = r"LVO_1"
-    scan_num = 5
+    p10_file = r"sample_1"
+    scan_num = 14
     detector = '300K-A'
     geometry = 'out_of_plane'
 
@@ -39,10 +39,10 @@ def RSM_6C():
     generating_3D_vtk_file = True
 
     # Inputs: paths
-    path = r"F:\Work place 4\sample\XRD\Additional Task\20231102 1W1A test data\RENZHE"
-    pathsave = r"F:\Work place 3\Temp"
-    pathmask = r''
-    pathcalib = r'F:\Work place 3\Temp\calibration.txt'
+    path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
+    pathsave = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\result"
+    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\badpix_mask.tif'
+    pathcalib = r'F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\result\calibration.txt'
 
     # %% Generate the RSM
     print("#################")
@@ -77,7 +77,7 @@ def RSM_6C():
     distance = calibinfor.get_para_value('detector_distance', section='Detector calibration')
     pixelsize = calibinfor.get_para_value('pixelsize', section='Detector calibration')
     det_rot = calibinfor.get_para_value('detector_rotation', section='Detector calibration')
-    additional_rotation_matrix = calibinfor.get_para_value('additional_rotation_matrix', section='Calculated UB matrix')
+    additional_rotation_matrix = np.array(calibinfor.get_para_value('additional_rotation_matrix', section='Calculated UB matrix'), dtype=float)
 
     dataset, mask3D, pch, roi = scan.pilatus_load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)))
 
@@ -134,7 +134,7 @@ def RSM_6C():
     print("##################")
 
     # calculate the qx, qy, qz ranges of the scan
-    q_center, new_shape, RSM_unit = RSM_converter.cal_q_range(roi, rebinfactor=rebinfactor)
+    q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range(roi, rebinfactor=rebinfactor)
 
     # generate the 3D reciprocal space map
     print('Calculating intensity...')
@@ -161,21 +161,20 @@ def RSM_6C():
     if generating_3D_vtk_file:
         print('saving VTI file for the visualization')
         filename = "scan%04d_diffraction_pattern.vti" % scan_num
-        origin = q_center - np.array(new_shape, dtype=float) / 2.0 * RSM_unit
-        RSM_post_processing.RSM2vti(pathsave, RSM_int, filename, RSM_unit, origin)
+        RSM_post_processing.RSM2vti(pathsave, RSM_int, filename, RSM_unit, q_origin)
 
     # Generate the images of the reciprocal space map
     print('Generating the images of the RSM')
     pathsavetmp = os.path.join(pathsave, 'scan%04d_integrate' % scan_num + '_%s.png')
-    RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp)
+    RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp)
     pathsavetmp = os.path.join(pathsave, 'scan%04d' % scan_num + '_%s.png')
-    RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp, qmax=qmax)
+    RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qmax)
 
     # save the information
     infor.add_para('RSM_shape', section_ar[3], list(new_shape))
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
     infor.add_para('RSM_unit', section_ar[3], RSM_unit)
-    infor.add_para('q_center', section_ar[3], q_center)
+    infor.add_para('q_origin', section_ar[3], q_origin)
     end_time = time.time()
     infor.add_para('total_time', section_ar[3], end_time - start_time)
     # infor.add_para('qmax', section_ar[3], qmax)

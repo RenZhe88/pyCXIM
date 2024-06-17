@@ -115,6 +115,10 @@ class DesyEigerImporter(DesyScanImporter):
         self.start_time = self.batchinfo['start_time']
         self.start_time = datetime.datetime.strptime(self.start_time, '%a %b %d %H:%M:%S %Y')
         self.npoints = int(self.batchinfo['ndataend'][0])
+        cch = [0.0, 0.0]
+        cch[0] = (self.batchinfo['y0'] - 1.0)
+        cch[1] = (self.batchinfo['x0'] - 1.0)
+        self.add_motor_pos('cch', cch)
         return
 
     def read_master_file(self):
@@ -135,6 +139,18 @@ class DesyEigerImporter(DesyScanImporter):
             self.frame_time = f['/entry/instrument/detector/frame_time'][()]
             self.add_scan_infor('frame_time')
         return
+
+    def get_detector_size(self):
+        """
+        Get the size of the detector.
+
+        Returns
+        -------
+        tuple
+            The pixel number of defined detector.
+
+        """
+        return self.detector_size
 
     def get_detector_pixelsize(self):
         """
@@ -389,6 +405,7 @@ class DesyEigerImporter(DesyScanImporter):
             pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, img_index // 2000 + 1)
             f = h5py.File(pathimg, "r")
             dataset = f['entry/data/data']
+            print(dataset.shape)
             image = np.array(dataset[img_index % 2000, :, :], dtype=float)
         elif self.img_per_point == 'multiple':
             pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, img_index + 1)
@@ -399,6 +416,90 @@ class DesyEigerImporter(DesyScanImporter):
         if mask_correction:
             image = self.eiger_mask_correction(image)
         return image
+
+    def eiger_load_single_time_series(self, xpos, ypos, start_frame=None, end_frame=None, mask_correction=True):
+
+        if xpos < self.detector_size[1]:
+            xpos = int(xpos)
+        else:
+            xpos = int(self.detector_size[1])
+
+        if ypos < self.detector_size[0]:
+            ypos = int(ypos)
+        else:
+            ypos = int(self.detector_size[0])
+
+        if start_frame is None:
+            start_frame = 0
+        if end_frame is None:
+            end_frame = self.npoints
+        assert end_frame > start_frame, 'The end frame should always be larger than the start frame!'
+
+        if self.get_scan_type() == 'time_series':
+            pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, 1)
+            f = h5py.File(pathimg, "r")
+            dataset = f['entry/data/data']
+            time_series_data = np.array(dataset[start_frame:end_frame, ypos, xpos], dtype=float)
+        else:
+            time_series_data = np.array([])
+            for i in range(self.npoints // 2000 + 1):
+                pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, i + 1)
+                f = h5py.File(pathimg, "r")
+                dataset = f['entry/data/data']
+                time_series_data = np.append(time_series_data, np.array(dataset[:, ypos, xpos], dtype=float))
+            time_series_data = time_series_data[start_frame:end_frame]
+
+        if mask_correction:
+            time_series_data = time_series_data * self.img_correction[ypos, xpos]
+        return time_series_data
+
+    def eiger_load_multiple_time_series(self, q_range_mask, start_frame=None, end_frame=None):
+        if start_frame is None:
+            start_frame = 0
+        if end_frame is None:
+            end_frame = self.npoints
+        assert end_frame > start_frame, 'The end frame should always be larger than the start frame!'
+
+        time_series_data = np.zeros((np.sum(q_range_mask), end_frame - start_frame))
+        if self.get_scan_type() == 'time_series':
+            pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, 1)
+            f = h5py.File(pathimg, "r")
+            dataset = f['entry/data/data']
+            for i in range(end_frame - start_frame):
+                time_series_data[:, i] = np.array(dataset[i + start_frame, :, :], dtype=float)[q_range_mask]
+        else:
+            for i in range(start_frame, end_frame):
+                pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, i // 2000 + 1)
+                f = h5py.File(pathimg, "r")
+                dataset = f['entry/data/data']
+                time_series_data[:, i - start_frame] = np.array(dataset[i - i // 2000 * 2000, :, :], dtype=float)[q_range_mask]
+
+        return time_series_data
+
+    def eiger_mask_sum(self, q_range_mask, start_frame=None, end_frame=None):
+
+        if start_frame is None:
+            start_frame = 0
+        else:
+            print(start_frame)
+        if end_frame is None:
+            end_frame = self.npoints
+        assert end_frame > start_frame, 'The end frame should always be larger than the start frame!'
+
+        int_ar = np.zeros(end_frame - start_frame)
+        if self.get_scan_type() == 'time_series':
+            pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, 1)
+            f = h5py.File(pathimg, "r")
+            dataset = f['entry/data/data']
+            for i in range(start_frame, end_frame):
+                int_ar[i - start_frame] = np.average(np.array(dataset[i, :, :], dtype=float)[q_range_mask])
+        else:
+            for i in range(start_frame, end_frame):
+                pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, i // 2000 + 1)
+                f = h5py.File(pathimg, "r")
+                dataset = f['entry/data/data']
+                int_ar[i - start_frame] = np.average(np.array(dataset[i - i // 2000 * 2000, :, :], dtype=float)[q_range_mask])
+        return int_ar
 
     def eiger_load_rois(self, roi=None, show_cen_image=False, normalize_signal=None):
         """
@@ -868,7 +969,7 @@ class DesyEigerImporter(DesyScanImporter):
         pch = self.eiger_find_peak_position(roi=roi, cut_width=cut_width)
         scan_motor = self.get_scan_motor()
         scan_motor_ar = self.get_scan_data(scan_motor)
-        if self.beamline == 'p10':
+        if self.beamline == 'p08':
             if scan_motor == 'om':
                 omega = scan_motor_ar[int(pch[0])]
                 phi = self.get_motor_pos('phis')
@@ -879,7 +980,7 @@ class DesyEigerImporter(DesyScanImporter):
             chi = self.get_motor_pos('chi') - 90.0
             gamma = self.get_motor_pos('tth')
             energy = self.get_motor_pos('energyfmb')
-        elif self.beamline == 'p08':
+        elif self.beamline == 'p10':
             if scan_motor == 'om':
                 omega = scan_motor_ar[int(pch[0])]
                 phi = self.get_motor_pos('phi')

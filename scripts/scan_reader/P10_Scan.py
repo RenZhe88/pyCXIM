@@ -28,22 +28,22 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [1, 9]
-p10_file = ["LiNiMnO2_1_1"]
+scan_num_ar = [9]
+p10_file = ["Alfoil"]
 
 # path information
-path = r"F:\Raw Data\20230925_P10_BFO_Pt_LiNiMnO2_AlScN\raw"
+path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
 path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e500_mask.npy'
-pathsavefolder = r"F:\Work place 4\sample\XRD\20230924_BFO_Pt_P10_Desy\LiNiMnO2"
+pathsavefolder = r"F:\Work place 4\Temp"
 
 # The rois for the Eiger 4M detector
-e4m_roi1 = [100, 2000, 948, 1148]
+e4m_roi1 = [1342 - 600, 1342 + 600, 867 - 200, 867 + 200]
 e4m_roi2 = [100, 2000, 200, 500]
 e4m_roi3 = [1630, 1660, 950, 1000]
 e4m_roi4 = [400, 600, 300, 500]
 
-cal_e4m_roi = [e4m_roi1, e4m_roi2]
+cal_e4m_roi = [e4m_roi1]
 
 # The rois for the Eiger500 detector
 e500_roi1 = [300, 800, 100, 600]
@@ -56,7 +56,7 @@ fluo_06 = [1020, 1374]
 cal_fluo_channels = []
 
 # Plot selection
-counter_select = ['e4m_roi1']
+counter_select = ['e4m_roi1', 'cbs1']
 scale = 'Linear'
 # scale = 'Normalized'
 # scale = 'Log'
@@ -98,7 +98,8 @@ for i, scan_num in enumerate(scan_num_ar):
 assert len(counter_select) > 0, 'Please select at least one of the counters to plot!'
 for counter in counter_select:
     assert (counter in scan.get_counter_names()), 'The counter %s does not exist! Please check the name of the counter again!' % counter
-line_scan_num = []
+dscan_scan_num = []
+d2scan_scan_num = []
 mesh_scan_num = []
 for i, scan_num in enumerate(scan_num_ar):
     if len(scan_num_ar) != len(p10_file):
@@ -108,17 +109,19 @@ for i, scan_num in enumerate(scan_num_ar):
 
     scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
 
-    if scan.get_scan_type() in ['ascan', 'dscan', 'a2scan', 'd2scan']:
-        line_scan_num.append(scan_num)
-    if scan.get_scan_type() in ['dmesh', 'mesh']:
+    if scan.get_scan_type() in ['ascan', 'dscan']:
+        dscan_scan_num.append(scan_num)
+    elif scan.get_scan_type() in ['a2scan', 'd2scan']:
+        d2scan_scan_num.append(scan_num)
+    elif scan.get_scan_type() in ['dmesh', 'mesh']:
         mesh_scan_num.append(scan_num)
 
-# Plot line scans
-if len(line_scan_num) > 0:
+# Plot one motor line scans
+if len(dscan_scan_num) > 0:
     plt_y = int(np.sqrt(len(counter_select)))
     plt_x = len(counter_select) // plt_y
     plt.figure(figsize=(8 * plt_x, 8 * plt_y))
-    for i, scan_num in enumerate(line_scan_num):
+    for i, scan_num in enumerate(dscan_scan_num):
         if len(scan_num_ar) != len(p10_file):
             p10_newfile = p10_file[0]
         else:
@@ -127,7 +130,7 @@ if len(line_scan_num) > 0:
         scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
         command_infor = scan.get_command_infor()
         curpetra_ar = scan.get_scan_data('curpetra') / np.round(np.average(scan.get_scan_data('curpetra')))
-        motor = command_infor['motor2_name']
+        motor = command_infor['motor_name']
         motor_pos = scan.get_scan_data(motor)
 
         for i, counter_name in enumerate(counter_select):
@@ -147,7 +150,86 @@ if len(line_scan_num) > 0:
             plt.legend()
     plt.show()
 
-    for i, scan_num in enumerate(line_scan_num):
+    for i, scan_num in enumerate(dscan_scan_num):
+        if len(scan_num_ar) != len(p10_file):
+            p10_newfile = p10_file[0]
+        else:
+            p10_newfile = p10_file[i]
+        scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
+
+        e4mcounters = [counter_name for counter_name in counter_select if 'e4m' in counter_name]
+        if len(e4mcounters) > 0:
+            plt.figure(figsize=(8, 8))
+            img_sum = scan.get_imgsum(det_type='e4m')
+            plt.imshow(np.log10(img_sum + 1.0), cmap='jet')
+            for counter_name in e4mcounters:
+                if counter_name != 'e4m_full':
+                    draw_roi(scan.get_motor_pos(counter_name), counter_name)
+            plt.title('scan%05d' % scan_num)
+            plt.show()
+
+        e500counters = [counter_name for counter_name in counter_select if 'e500' in counter_name]
+        if len(e500counters) > 0:
+            plt.figure(figsize=(8, 8))
+            img_sum = scan.get_imgsum(det_type='e500')
+            plt.imshow(np.log10(img_sum + 1.0), cmap='jet')
+            for counter_name in e4mcounters:
+                if counter_name != 'e500_full':
+                    draw_roi(scan.get_motor_pos(counter_name), counter_name)
+            plt.title('scan%05d' % scan_num)
+            plt.show()
+
+# Plot two motor line scans
+if len(d2scan_scan_num) > 0:
+    plt_y = int(np.sqrt(len(counter_select)))
+    plt_x = len(counter_select) // plt_y * 2
+    plt.figure(figsize=(8 * plt_x, 8 * plt_y))
+    for i, scan_num in enumerate(d2scan_scan_num):
+        if len(scan_num_ar) != len(p10_file):
+            p10_newfile = p10_file[0]
+        else:
+            p10_newfile = p10_file[i]
+
+        scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
+        command_infor = scan.get_command_infor()
+        curpetra_ar = scan.get_scan_data('curpetra') / np.round(np.average(scan.get_scan_data('curpetra')))
+        motor1 = command_infor['motor1_name']
+        print(motor1)
+        motor1_pos = scan.get_scan_data(motor1)
+        motor2 = command_infor['motor2_name']
+        print(motor2)
+        motor2_pos = scan.get_scan_data(motor2)
+
+        for i, counter_name in enumerate(counter_select):
+            assert counter_name in scan.get_counter_names(), 'Counter %s does not exist, please check it again!' % counter_name
+            intensity = scan.get_scan_data(counter_name) / curpetra_ar
+
+            plt.subplot(plt_y, plt_x, i + 1)
+            if scale == 'Linear':
+                plt.plot(motor1_pos, intensity, label='scan%d' % (scan_num))
+            elif scale == 'Normalized':
+                plt.plot(motor1_pos, intensity / np.amax(intensity), label='scan%d' % (scan_num))
+            elif scale == 'Log':
+                plt.plot(motor1_pos, np.log10(intensity + 1.0), label='scan%d' % (scan_num))
+            plt.title(counter_name)
+            plt.xlabel("%s" % motor1)
+            plt.ylabel('Intensity (a.u.)')
+            plt.legend()
+
+            plt.subplot(plt_y, plt_x, i + 2)
+            if scale == 'Linear':
+                plt.plot(motor2_pos, intensity, label='scan%d' % (scan_num))
+            elif scale == 'Normalized':
+                plt.plot(motor2_pos, intensity / np.amax(intensity), label='scan%d' % (scan_num))
+            elif scale == 'Log':
+                plt.plot(motor2_pos, np.log10(intensity + 1.0), label='scan%d' % (scan_num))
+            plt.title(counter_name)
+            plt.xlabel("%s" % motor2)
+            plt.ylabel('Intensity (a.u.)')
+            plt.legend()
+    plt.show()
+
+    for i, scan_num in enumerate(d2scan_scan_num):
         if len(scan_num_ar) != len(p10_file):
             p10_newfile = p10_file[0]
         else:
@@ -219,5 +301,5 @@ if len(mesh_scan_num) > 0:
             plt.axis('scaled')
             plt.xlabel("%s (um)" % motor1)
             plt.ylabel("%s (um)" % motor2)
-            plt.savefig(os.path.join(scan.get_pathsave(), '%s_scan%05d_%s.png' % (scan.get_p10_file(), scan_num, counter_name)))
+            plt.savefig(os.path.join(scan.get_pathsave(), '%s_scan%05d_%s.png' % (scan.get_sample_name(), scan_num, counter_name)))
             plt.show()

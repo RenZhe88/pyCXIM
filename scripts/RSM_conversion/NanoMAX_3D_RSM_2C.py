@@ -133,9 +133,9 @@ def BCDI_preparation():
 
     # calculate the qx, qy, qz ranges of the scan
     if len(wxy) == 2:
-        q_center, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], rebinfactor=rebinfactor)
+        q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], rebinfactor=rebinfactor)
     if len(wxy) == 4:
-        q_center, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[1]), (pch[2] - wxy[2]), (pch[2] + wxy[3])], rebinfactor=rebinfactor)
+        q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[1]), (pch[2] - wxy[2]), (pch[2] + wxy[3])], rebinfactor=rebinfactor)
 
     # generate the 3D reciprocal space map
     print('Calculating intensity...')
@@ -160,16 +160,15 @@ def BCDI_preparation():
 
     if generating_3D_vtk_file:
         filename = "scan%04d_diffraction_pattern.vti" % scan_num
-        origin = q_center - np.array(RSM_int.shape, dtype=float) / 2.0 * RSM_unit
-        RSM_post_processing.RSM2vti(pathtmp, RSM_int, filename, RSM_unit, origin=origin)
+        RSM_post_processing.RSM2vti(pathtmp, RSM_int, filename, RSM_unit, origin=q_origin)
 
     # Generate the images of the reciprocal space map
     print('Generating the images of the RSM')
     qmax = np.array([np.argmax(np.sum(RSM_int, axis=(1, 2))), np.argmax(np.sum(RSM_int, axis=(0, 2))), np.argmax(np.sum(RSM_int, axis=(0, 1)))], dtype=int)
     pathsavetmp = os.path.join(pathsave, 'scan%04d_integrate' % scan_num + '_%s.png')
-    RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp)
+    RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp)
     pathsavetmp = os.path.join(pathsave, 'scan%04d_cut' % scan_num + '_%s.png')
-    RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp, qmax=qmax)
+    RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qmax)
     del RSM_int, RSM_mask
 
     # save the information
@@ -179,7 +178,7 @@ def BCDI_preparation():
     infor.add_para('RSM_unit', section_ar[3], RSM_unit)
     infor.add_para('RSM_shape', section_ar[3], list(new_shape))
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
-    infor.add_para('q_center', section_ar[3], list(q_center))
+    infor.add_para('q_origin', section_ar[3], list(q_origin))
     infor.add_para('RSM_cut_central_mode', section_ar[3], cut_central_pos)
     infor.add_para('qcen', section_ar[3], list(qmax))
     infor.infor_writer()

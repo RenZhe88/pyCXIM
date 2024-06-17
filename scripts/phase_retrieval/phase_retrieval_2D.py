@@ -37,26 +37,26 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 # %%Input
 starting_time = time.time()
-path_scan_infor = r"F:\Work place 4\sample\XRD\20221103 BFO islands\symmetric\BFO_LAO_4_7_00087\scan_0087_information.txt"
+path_scan_infor = r"E:\Work place 4\temp\B12SYNS1P1_00043\scan_0043_information.txt"
 SeedNum = 100
 # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
-data_description = 'cutqy'
-pathsave = r'F:\Work place 4\sample\XRD\20221103 BFO islands\symmetric\BFO_LAO_4_7_00087\cutqy'
+data_description = 'cuty'
+pathsave = r'E:\Work place 4\temp\B12SYNS1P1_00043\cuty'
 intensity_file = "%s.npy" % data_description
 mask_file = "%s_mask.npy" % data_description
 
-algorithm = " (HIO**50*Sup)**20*DETWIN*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
-# algorithm = "DIF**200*(RAAR**50*ER**10)**40"
+# algorithm = " (HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
+algorithm = "DIF**200*DETWIN*(RAAR**50*ER**10)**40"
 
 # Input: parameters for creating the initial suppport.
 # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-support_type = 'auto_correlation'
-support_from_trial = 0
+support_type = 'support_selected'
+support_from_trial = 1
 
 # If support_type is 'auto_correlation'
 auto_corr_thrpara = 0.008
 # If support_type is 'average', 'support_selected', or'modulus_selected'
-Initial_support_threshold = 0.6
+Initial_support_threshold = 0.8
 # If support_type is 'support_selected' or 'modulus_selected'
 percent_selected = 10
 # If support_type is 'modulus_selected'
@@ -78,9 +78,9 @@ threhold_update_method = 'exp_increase'
 # threhold_update_method = 'lin_increase'
 support_para_update_precent = 0.8
 thrpara_min = 0.08
-thrpara_max = 0.12
+thrpara_max = 0.11
 support_smooth_width_begin = 3.5
-support_smooth_width_end = 1.0
+support_smooth_width_end = 1.1
 
 # Input: parameters for the detwin operation
 detwin_axis = 0
@@ -89,7 +89,7 @@ detwin_axis = 0
 flip_condition = 'Support'
 # flip_condition = 'Phase'
 # flip_condition ='Modulus'
-first_seed_flip = True
+first_seed_flip = False
 phase_unwrap_method = 0
 
 # Input: Parameters for further analysis like SVD and average
@@ -97,7 +97,7 @@ further_analysis_selected = 10
 error_type_for_selection = 'Fourier space error'
 
 # Input: Parameters determining the display of the images
-display_range = [100, 400]
+display_range = [400, 400]
 display_image_num = 10
 # %% Load the image data and the mask
 
@@ -106,13 +106,12 @@ print("Loading the information file...")
 
 if data_description in ['cutqx', 'cutqy', 'cutqz']:
     para_name_list = [
-        'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'omega', 'delta',
-        'omegastep', 'detector_distance', 'energy', 'pixelsize', 'RSM_unit',
-        'pynx_box_size']
+        'year', 'beamtimeID', 'scan_number', 'p10_newfile',
+        'detector_distance', 'energy', 'pixelsize', 'unit']
 elif data_description == 'cuty':
     para_name_list = [
         'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'omega', 'delta',
-        'omegastep', 'detector_distance', 'energy', 'pixelsize', 'DC_unit',
+        'omegastep', 'detector_distance', 'energy', 'pixelsize', 'unit',
         'direct_cut_box_size']
 
 path_retrieval_infor = os.path.join(pathsave, "Phase_retrieval_information.txt")
@@ -124,7 +123,11 @@ if not os.path.exists(path_retrieval_infor):
     if os.path.exists(path_scan_infor):
         scan_infor = InformationFileIO(path_scan_infor)
         pr_infor.add_para('total_trial_num', 'General Information', 0)
-        pr_infor.copy_para_file(scan_infor, para_name_list, 'General Information')
+        pr_infor.copy_para_values(scan_infor, para_name_list, 'General Information')
+        if data_description in ['cutqx', 'cutqy', 'cutqz']:
+            pr_infor.copy_para_values(scan_infor, ['RSM_unit'], 'General Information', ['unit'])
+        elif data_description == 'cuty':
+            pr_infor.copy_para_values(scan_infor, ['DC_unit'], 'General Information', ['unit'])
     else:
         print('Could not find the desired scan parameter file! Generate the file with desired parameters!')
         pr_infor.gen_empty_para_file(para_name_list, 'General Information')
@@ -137,12 +140,8 @@ pr_file = PhaseRetrievalWidget(pathsave, trial_num, data_description, mode='w')
 pr_file.load_image_data(intensity_file, mask_file)
 pr_file.load_para_from_infor_file(path_retrieval_infor, para_name_list)
 yd, xd = pr_file.get_para('data_shape')
-if data_description in ['cutqx', 'cutqy', 'cutqz']:
-    unit = float(pr_infor.get_para_value('RSM_unit'))
-    pynx_box_size = np.array(pr_infor.get_para_value('pynx_box_size'))
-elif data_description == 'cuty':
-    unit = float(pr_infor.get_para_value('DC_unit'))
-    direct_cut_box_size = np.array(pr_infor.get_para_value('direct_cut_box_size'))
+
+unit = float(pr_infor.get_para_value('unit'))
 
 # %%Load information file and support
 pr_file.create_initial_support(support_type, auto_corr_thrpara, support_from_trial,
@@ -157,51 +156,31 @@ pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, Free_LLK,
                              detwin_axis, flip_condition, first_seed_flip,
                              phase_unwrap_method, display_image_num)
 
-# %% plot and save the final results
-voxel_size = ((2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
-pr_file.add_para('voxel_size', voxel_size)
+# %% plot and save the final result
 array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
-pr_file.plot_2D_result('Average_All', array_names, voxel_size, display_range,
-                       'Average results of %d runs' % pr_file.get_para('nb_run'),
-                       save_image=True, filename="Trial%d" % (trial_num))
+pr_file.analysis_and_plot_2D('Average_All', array_names,
+                             title='Average results of %d runs' % pr_file.get_para('nb_run'),
+                             filename="Trial%d" % (trial_num), save_image=True,
+                             subplot_config=None, display_range=display_range)
 pr_file.plot_2D_intensity(array_group='Average_All', save_image=True, filename="Intensity_difference_Trial%d.png" % (trial_num))
-
-# %%Orthonormalization
-if data_description == 'cuty':
-    array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
-    pr_file.ortho_2D_transform('Average_All', array_names)
-    Ortho_unit = pr_file.get_para('Ortho_unit')
-    Ortho_voxel_size = (Ortho_unit, Ortho_unit)
-    pr_file.add_para('Ortho_voxel_size', Ortho_voxel_size)
-    array_names = ('Ortho_Modulus_sum', 'Ortho_Phase_sum', 'Ortho_Support_sum')
-    pr_file.plot_2D_result('Ortho', array_names, Ortho_voxel_size, display_range,
-                           pathsave=pathsave, filename="Trial%d_orthonormalized" % (trial_num))
 
 # %% select results for SVD analysis or averaging
 pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)
-voxel_size = ((2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
 array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
-pr_file.plot_2D_result('Selected_average', array_names, voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected'), save_image=True, filename="Trial%02d_selected_average" % trial_num)
+pr_file.analysis_and_plot_2D('Selected_average', array_names,
+                             title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected'),
+                             filename="Trial%02d_selected_average" % trial_num, save_image=True,
+                             subplot_config=None, display_range=display_range)
 if pr_file.get_para('further_analysis_method') == 'SVD':
     evalue = pr_file.get_dataset("SVD_analysis/evalue")
     array_names = ('Mode1_Modulus', 'Mode1_Phase', 'Mode2_Modulus', 'Mode2_Phase', 'Mode3_Modulus', 'Mode3_Phase')
-    pr_file.plot_2D_result('SVD_analysis', array_names, voxel_size, display_range=display_range, title='SVD Mode1 %.2f%%, Mode2 %.2f%%, Mode3 %.2f%%' % (evalue[0] * 100, evalue[1] * 100, evalue[2] * 100), subplot_config=(3, 2), save_image=True, filename="Trial%02d_svd" % trial_num)
+    pr_file.analysis_and_plot_2D('SVD_analysis', array_names,
+                                 title='SVD Mode1 %.2f%%, Mode2 %.2f%%, Mode3 %.2f%%' % (evalue[0] * 100, evalue[1] * 100, evalue[2] * 100),
+                                 filename="Trial%02d_svd" % trial_num, save_image=True,
+                                 subplot_config=(3, 2), display_range=display_range)
 
-pr_file.plot_error_matrix(unit, save_image=True, filename="Error_Trial%d.png" % (trial_num))
+pr_file.plot_error_matrix(save_image=True, filename="Error_Trial%d.png" % (trial_num))
 pr_file.plot_2D_intensity(array_group='Selected_average', save_image=True, filename="Selected_intensity_difference_Trial%d.png" % (trial_num))
-
-# %%Orthonormalization2
-if data_description == 'cuty':
-    array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
-    pr_file.ortho_2D_transform('Selected_average', array_names)
-    Ortho_unit = pr_file.get_para('Ortho_unit')
-    array_names = ('Ortho_select_Modulus_sum', 'Ortho_select_Phase_sum', 'Ortho_select_Support_sum')
-    pr_file.plot_2D_result('Ortho', array_names, Ortho_voxel_size, display_range=display_range, title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected'), save_image=True, filename="Trial%02d_ortho_selected_average" % trial_num)
-    if pr_file.get_para('further_analysis_method') == 'SVD':
-        array_names = ('Mode1_Modulus', 'Mode1_Phase', 'Mode2_Modulus', 'Mode2_Phase', 'Mode3_Modulus', 'Mode3_Phase')
-        pr_file.ortho_2D_transform('SVD_analysis', array_names)
-        array_names = ('Ortho_Mode1_Modulus', 'Ortho_Mode1_Phase, Ortho_Mode2_Modulus', 'Ortho_Mode2_Phase, Ortho_Mode3_Modulus', 'Ortho_Mode3_Phase')
-        pr_file.plot_2D_result('Ortho', array_names, Ortho_voxel_size, display_range=display_range, title='SVD ortho Mode1 %.2f%%, Mode2 %.2f%%, Mode3 %.2f%%' % (evalue[0] * 100, evalue[1] * 100, evalue[2] * 100), subplot_config=(3, 2), save_image=True, filename="Trial%02d_svd_otho_mode1" % trial_num)
 
 # %% save the Information for the Phase retrieval
 ending_time = time.time()
@@ -211,7 +190,7 @@ section = 'General Information'
 para_name_list = [
     'year', 'beamtimeID', 'scan_number', 'p10_newfile', 'data_description', 'omega',
     'delta', 'omegastep', 'detector_distance', 'energy', 'pixelsize', 'intensity_file',
-    'mask_file', 'pathsave', 'RSM_unit', 'DC_unit', 'pynx_box_size']
+    'mask_file', 'pathsave', 'unit', 'box_size']
 pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
 pr_infor.add_para('total_trial_num', section, trial_num)
 pr_infor.infor_writer()

@@ -624,6 +624,7 @@ class PhaseRetrievalFuns():
         steps.append(('End', 1))
         return steps
 
+
 def Free_LLK_FFTmask(MaskFFT, percentage=0.04, r=3):
     """
     Generate the mask for the free loglikelihood calculation.

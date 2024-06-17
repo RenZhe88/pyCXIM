@@ -27,13 +27,13 @@ def BCDI_preparation():
     Functions_selected = ['Gif', 'Direct_cut', 'Reciprocal_space_map', '2D_cuts']
 
     # Inputs: general information
-    year = "2021"
-    beamtimeID = "11013318"
-    p10_newfile = 'B12SYNS1P1'
-    scan_num = 43
+    year = "2022"
+    beamtimeID = "11013125"
+    p10_newfile = 'cell2_c1'
+    scan_num = 26
     detector = 'e4m'
-    geometry = 'out_of_plane'
-    # geometry = 'in_plane'
+    # geometry = 'out_of_plane'
+    geometry = 'in_plane'
 
     qz_direction = 'surface direction'
     # qz_direction = 'diffraction vector direction'
@@ -46,22 +46,23 @@ def BCDI_preparation():
     # The half width of the detector roi in the order of [Y, X]
     wxy = [400, 400]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [400, 1200, 1000, 1700]
+    roi = [1000, 1500, 1500, 2000]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
-    cut_central_pos = 'weight center'
+    cut_central_pos = 'maximum integration'
     # Half size for the direct cut in pixels
     DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
     RSM_bs = [64, 64, 64]
+    use_prefilter = False
     save_full_3D_RSM = False
-    generating_3D_vtk_file = False
+    generating_3D_vtk_file = True
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20211004_P10_BFO_Pt\raw"
+    path = r"F:\Raw Data\20220620_P10_High_pressure_BiHan"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 3\sample\XRD\20211004 Inhouse PTO BFO Pt\Pt_islands"
+    pathsavefolder = r"F:\Work place 4\Temp"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
@@ -200,6 +201,8 @@ def BCDI_preparation():
         npch = npch + np.array([0, pch[1] - wxy[0], pch[2] - wxy[1]])
         print('Cutting at position' + str(npch))
 
+        q_cen_dir = RSM_converter.cal_rel_q_pos(npch) * RSM_converter.get_RSM_unit()
+
         # ploting the ycut of the stacking images to estimate the quality of the image
         ycut = Direct_cut[:, :, DC_bs[2]]
         maskycut = Direct_mask[:, :, DC_bs[2]]
@@ -217,6 +220,7 @@ def BCDI_preparation():
         infor.add_para('direct_cut_box_size', section_ar[4], DC_bs)
         infor.add_para('direct_cut_centeral_pixel', section_ar[4], list(npch))
         infor.add_para('DC_unit', section_ar[4], RSM_converter.get_RSM_unit())
+        infor.add_para('direct_cut_q_center', section_ar[4], list(q_cen_dir))
         infor.infor_writer()
 
     if ("2D_cuts" in Functions_selected) and ('Direct_cut' in Functions_selected):
@@ -255,11 +259,11 @@ def BCDI_preparation():
         rebinfactor = RSM_converter.cal_rebinfactor()
 
         # calculate the qx, qy, qz ranges of the scan
-        q_center, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], rebinfactor=rebinfactor)
+        q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], rebinfactor=rebinfactor)
 
         # generate the 3D reciprocal space map
         print('Calculating intensity...')
-        RSM_int = RSM_converter.RSM_conversion(dataset, new_shape, rebinfactor, cval=0, prefilter=False)
+        RSM_int = RSM_converter.RSM_conversion(dataset, new_shape, rebinfactor, cval=0, prefilter=use_prefilter)
         del dataset
 
         if save_full_3D_RSM:
@@ -278,7 +282,7 @@ def BCDI_preparation():
 
         # load the mask and generate the new mask for the 3D reciprocal space map
         print('Calculating the mask...')
-        RSM_mask = RSM_converter.RSM_conversion(mask3D, new_shape, rebinfactor, cval=1, prefilter=False)
+        RSM_mask = RSM_converter.RSM_conversion(mask3D, new_shape, rebinfactor, cval=1, prefilter=use_prefilter)
         del mask3D
 
         RSM_mask[RSM_mask >= 0.1] = 1
@@ -291,30 +295,33 @@ def BCDI_preparation():
 
         if generating_3D_vtk_file:
             filename = "scan%04d_diffraction_pattern.vti" % scan_num
-            origin = q_center - np.array(RSM_cut.shape, dtype=float) / 2.0 * RSM_unit
-            RSM_post_processing.RSM2vti(pathtmp, RSM_int, filename, RSM_unit, origin=origin)
+            RSM_post_processing.RSM2vti(pathsave, RSM_int, filename, RSM_unit, origin=q_origin)
 
         # Generate the images of the reciprocal space map
         print('Generating the images of the RSM')
         pathsavetmp = os.path.join(pathsave, 'scan%04d_integrate' % scan_num + '_%s.png')
-        RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp)
+        RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp)
         pathsavetmp = os.path.join(pathsave, 'scan%04d_cut' % scan_num + '_%s.png')
-        RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp, qmax=qcen)
+        RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qcen)
         pathsavetmp = os.path.join(pathtmp, 'scan%04d' % scan_num + '_%s.png')
         RSM_post_processing.plot_without_units(RSM_cut, RSM_cut_mask, pathsavetmp)
         del RSM_int, RSM_mask
 
+        q_cen_rsm = qcen * RSM_unit + q_origin
+
         # save the information
         infor.add_para('path3DRSM', section_ar[1], path3dRSM)
         infor.add_para('path3Dmask', section_ar[1], path3dmask)
+        infor.add_para('use_prefilter', section_ar[1], use_prefilter)
         infor.add_para('roi_width', section_ar[3], list(wxy))
         infor.add_para('RSM_unit', section_ar[3], RSM_unit)
         infor.add_para('RSM_shape', section_ar[3], list(new_shape))
         infor.add_para('rebinfactor', section_ar[3], rebinfactor)
-        infor.add_para('q_center', section_ar[3], list(q_center))
+        infor.add_para('q_origin', section_ar[3], list(q_origin))
         infor.add_para('RSM_cut_central_mode', section_ar[3], cut_central_pos)
         infor.add_para('pynx_box_size', section_ar[3], RSM_bs)
-        infor.add_para('qcen', section_ar[3], list(qcen))
+        infor.add_para('RSM_q_center', section_ar[3], list(q_cen_rsm))
+        infor.add_para('q_centeral_pixel', section_ar[3], list(qcen))
         infor.infor_writer()
 
     if ("2D_cuts" in Functions_selected) and ('Reciprocal_space_map' in Functions_selected):

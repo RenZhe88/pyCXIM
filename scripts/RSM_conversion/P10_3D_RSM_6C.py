@@ -25,25 +25,25 @@ import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 def RSM_6C():
     start_time = time.time()
     # %%Inputs: general information
-    year = "2022"
-    beamtimeID = "11013631"
-    p10_file = r"PTO_STO_DSO_730"
-    scan_num = 23
+    year = "2024"
+    beamtimeID = "11018562"
+    p10_file = r"PVBM03"
+    scan_num = 17
     detector = 'e4m'
     geometry = 'out_of_plane'
 
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [639, 1739, 1215, 1815]
+    roi = [150, 1800, 1338 - 600, 1338 + 600]
 
     # Inputs: reciprocal space box size in pixels
     save_full_3D_RSM = True
     generating_3D_vtk_file = True
 
     # Inputs: paths
-    path = r"F:\Raw Data\20220608 P10 PTO BFO\raw"
-    pathsave = r"F:\Work place 3\sample\XRD\20220608 Inhouse PTO film BFO islands\PTO_STO\PTO_STO_DSO_730"
-    pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\general_mask.npy'
-    pathcalib = r'F:\Work place 3\sample\XRD\20220608 Inhouse PTO film BFO islands\PTO_STO\PTO_STO_DSO_730\calibration.txt'
+    path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
+    pathsave = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\PVBM_STO\Sample3_PVBM8_STO"
+    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
+    pathcalib = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\PVBM_STO\Sample3_PVBM8_STO\calibration.txt'
 
     # %% Generate the RSM
     print("#################")
@@ -78,7 +78,7 @@ def RSM_6C():
     distance = calibinfor.get_para_value('detector_distance', section='Detector calibration')
     pixelsize = calibinfor.get_para_value('pixelsize', section='Detector calibration')
     det_rot = calibinfor.get_para_value('detector_rotation', section='Detector calibration')
-    additional_rotation_matrix = calibinfor.get_para_value('additional_rotation_matrix', section='Calculated UB matrix')
+    additional_rotation_matrix = np.array(calibinfor.get_para_value('additional_rotation_matrix', section='Calculated UB matrix'), dtype=float)
 
     dataset, mask3D, pch, roi = scan.eiger_load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)))
 
@@ -135,7 +135,7 @@ def RSM_6C():
     print("##################")
 
     # calculate the qx, qy, qz ranges of the scan
-    q_center, new_shape, RSM_unit = RSM_converter.cal_q_range(roi, rebinfactor=rebinfactor)
+    q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range(roi, rebinfactor=rebinfactor)
 
     # generate the 3D reciprocal space map
     print('Calculating intensity...')
@@ -162,21 +162,20 @@ def RSM_6C():
     if generating_3D_vtk_file:
         print('saving VTI file for the visualization')
         filename = "scan%04d_diffraction_pattern.vti" % scan_num
-        origin = q_center - np.array(new_shape, dtype=float) / 2.0 * RSM_unit
-        RSM_post_processing.RSM2vti(pathsave, RSM_int, filename, RSM_unit, origin)
+        RSM_post_processing.RSM2vti(pathsave, RSM_int, filename, RSM_unit, q_origin)
 
     # Generate the images of the reciprocal space map
     print('Generating the images of the RSM')
     pathsavetmp = os.path.join(pathsave, 'scan%04d_integrate' % scan_num + '_%s.png')
-    RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp)
+    RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp)
     pathsavetmp = os.path.join(pathsave, 'scan%04d' % scan_num + '_%s.png')
-    RSM_post_processing.plot_with_units(RSM_int, q_center, RSM_unit, pathsavetmp, qmax=qmax)
+    RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qmax)
 
     # save the information
     infor.add_para('RSM_shape', section_ar[3], list(new_shape))
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
     infor.add_para('RSM_unit', section_ar[3], RSM_unit)
-    infor.add_para('q_center', section_ar[3], q_center)
+    infor.add_para('q_origin', section_ar[3], list(q_origin))
     end_time = time.time()
     infor.add_para('total_time', section_ar[3], end_time - start_time)
     # infor.add_para('qmax', section_ar[3], qmax)

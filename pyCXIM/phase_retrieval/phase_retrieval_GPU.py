@@ -420,7 +420,8 @@ class PhaseRetrievalFuns():
 
         """
         AmpFFT = torch.fft.fftn(point)
-        AmpFFT = (1.0 - self.MaskFFT) * torch.multiply(self.ModulusFFT, torch.exp(1j * torch.angle(AmpFFT))) + self.MaskFFT * AmpFFT
+        AmpFFT = (1.0 - self.MaskFFT) * torch.multiply(self.ModulusFFT, torch.exp(1j * torch.angle(AmpFFT))) + 0.98 * self.MaskFFT * AmpFFT
+        # AmpFFT = (1.0 - self.MaskFFT) * torch.multiply(self.ModulusFFT, torch.exp(1j * torch.angle(AmpFFT))) + self.MaskFFT * torch.fft.fftn(self.support * self.img)
         point = torch.fft.ifftn(AmpFFT)
         return point
 

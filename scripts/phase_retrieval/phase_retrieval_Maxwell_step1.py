@@ -10,12 +10,13 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 def phase_retrieval_main():
     starting_time = time.time()
     # %%Inputs
-    pathsave = r'/home/renzhe/PyNx Test'
-    intensity_file = 'scan0024.npz'
-    mask_file = 'scan0024_mask.npz'
+    pathsave = r'F:\Work place 4\Temp\B12SYNS1P1_00043\pynxpre\stacked_detector_images'
+    intensity_file = 'scan0043.npz'
+    mask_file = 'scan0043_mask.npz'
     trial_num = 1
-    data_description = 'reciprocal_space_map'
-    # data_description = 'stacked_detector_images'
+    # data_description = 'reciprocal_space_map_CDI'
+    # data_description = 'reciprocal_space_map_BCDI'
+    data_description = 'stacked_detector_images_BCDI'
 
     # Input: parameters for creating the initial suppport.
     # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
@@ -34,8 +35,8 @@ def phase_retrieval_main():
     path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00087\cutqz\Trial02.npz'
 
     start_trial_num = 0
-    SeedNum = 100
-    algorithm = "(DIF**50)**3*(HIO**40*Sup)**10*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40"
+    SeedNum = 50
+    algorithm = '(DIF**50)**2*(HIO**40*Sup)**20*DETWIN*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40'
     # algorithm = "DIF**200*(RAAR**50*ER**10)**20"
 
     # If you want to perform Free loglikelihood calculation, please set Free_LLK to be True
@@ -48,10 +49,13 @@ def phase_retrieval_main():
     threhold_update_method = 'exp_increase'
     # threhold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
-    thrpara_min = 0.12
-    thrpara_max = 0.178
+    thrpara_min = 0.08
+    thrpara_max = 0.11
     support_smooth_width_begin = 3.5
-    support_smooth_width_end = 0.5
+    support_smooth_width_end = 1.0
+
+    # Input: parameters for the detwin operation
+    detwin_axis = 0
 
     # Input: parameters for flipping the images to remove the trival solutions.
     flip_condition = 'Support'
@@ -81,7 +85,8 @@ def phase_retrieval_main():
                                  FLLK_percentage, FLLK_radius, threhold_update_method,
                                  support_para_update_precent, thrpara_min, thrpara_max,
                                  support_smooth_width_begin, support_smooth_width_end,
-                                 flip_condition, first_seed_flip, phase_unwrap_method, display_image_num)
+                                 detwin_axis, flip_condition, first_seed_flip,
+                                 phase_unwrap_method, display_image_num)
 
     # %% select results for SVD analysis or averaging
     pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)

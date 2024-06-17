@@ -265,19 +265,20 @@ class RC2RSM_6C(object):
                 for k in range(2):
                     corners_q[corner_num, :] = self.cal_abs_q_pos([scan_range[i], roi[j], roi[k + 2]])
                     corner_num += 1
-        # q_origin = np.amin(corners_q, axis=0)
+
         new_shape = (np.ptp(corners_q, axis=0) / self.units / rebinfactor).astype(int)
         RSM_unit = self.units * rebinfactor
         q_center = self.cal_abs_q_pos(pch)
+        q_origin = q_center - np.ptp(corners_q, axis=0) / 2.0
 
         if self.geometry == 'in_plane':
-            q_center[[0, 1]] = q_center[[1, 0]]
+            q_origin[[0, 1]] = q_origin[[1, 0]]
             new_shape[[0, 1]] = new_shape[[1, 0]]
 
         print("number of points for the reciprocal space:")
         print(" qz  qy  qx")
         print(new_shape)
-        return q_center, new_shape, RSM_unit
+        return q_origin, new_shape, RSM_unit
 
     def RSM_conversion(self, dataset, new_shape, rebinfactor=1, cval=0, prefilter=False):
         """

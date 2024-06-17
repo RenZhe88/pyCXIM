@@ -50,7 +50,7 @@ def CDI_4C():
     # The path for the scan folder
     path = r"F:\Raw Data\20220323_test_data\raw"
     # The path to save the results
-    pathsave = r"F:\Work place 3\Temp"
+    pathsave = r"F:\Work place 4\Temp"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
     # Loading scan information
@@ -95,12 +95,12 @@ def CDI_4C():
     # save the qx qy qz cut of the 3D intensity
     print("Saving the qx qy qz cuts......")
     unit = RSM_converter.get_RSM_unit(rebinfactor)
-    q_center = np.zeros(3)
+    q_origin = -np.array([nz, ny, nx]) / 2.0 * unit
     pathsavetmp = os.path.join(pathsave, "scan%04d_integrate" % scan + "_%s.png")
-    RSM_post_processing.plot_with_units(intensityfinal, q_center, unit, pathsavetmp)
+    RSM_post_processing.plot_with_units(intensityfinal, q_origin, unit, pathsavetmp)
     qmax = np.array([nz / 2, ny / 2, nx / 2], dtype=int)
     pathsavetmp = os.path.join(pathsave, "scan%04d_cut" % scan + "_%s.png")
-    RSM_post_processing.plot_with_units(intensityfinal, q_center, unit, pathsavetmp, qmax)
+    RSM_post_processing.plot_with_units(intensityfinal, q_origin, unit, pathsavetmp, qmax)
 
     RSM_bs = np.array(np.amin([qmax, RSM_bs], axis=0), dtype=int)
     intensity_cut, pch, RSM_bs = RSM_post_processing.Cut_central(intensityfinal, RSM_bs, cut_mode='given', peak_pos=qmax)

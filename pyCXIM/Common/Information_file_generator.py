@@ -182,9 +182,9 @@ class InformationFileIO():
         self.infor_writer()
         return
 
-    def copy_para_file(self, other_para_file, para_name_list, section):
+    def copy_para_values(self, other_para_file, para_name_list, section, new_para_name_list=None):
         """
-        Copy the parameter from another parameter file.
+        Copy parameters values from another parameter file.
 
         Parameters
         ----------
@@ -194,6 +194,14 @@ class InformationFileIO():
             List of parameters to be copied.
         section : str
             The name of the section to be saved.
+        new_para_name_list : list, optional
+            The new parameter names to be saved in the information file.
+            If not given, the old parameter names will be used. The default is None.
+
+        Raises
+        ------
+        ValueError
+            The length of the old parameter name list and the new parameter names must be the same, otherwise raise this error.
 
         Returns
         -------
@@ -201,9 +209,17 @@ class InformationFileIO():
 
         """
         other_para_file.infor_reader()
+        if new_para_name_list is None:
+            new_para_name_dict = dict(zip(para_name_list, para_name_list))
+        elif len(new_para_name_list) == len(para_name_list):
+            new_para_name_dict = dict(zip(para_name_list, new_para_name_list))
+        else:
+            raise ValueError('The number of new parameter names does not equal to the old ones!')
+
         for para_name in para_name_list:
             para_value = other_para_file.get_para_value(para_name)
-            self.add_para(para_name, section, para_value)
+            if para_value is not None:
+                self.add_para(new_para_name_dict[para_name], section, para_value)
         self.infor_writer()
         return
 

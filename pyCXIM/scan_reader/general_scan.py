@@ -57,7 +57,7 @@ class GeneralScanStructure(object):
 
         if pathsave != '':
             assert os.path.exists(pathsave), \
-                "The save folder %s does not exist, please check it again!" % self.pathsave
+                "The save folder %s does not exist, please check it again!" % pathsave
             self.pathsave = os.path.join(pathsave, '%s_%05d' % (sample_name, scan))
             if (not os.path.exists(self.pathsave)) and (not creat_save_folder):
                 self.pathsave = ''
@@ -444,7 +444,8 @@ class GeneralScanStructure(object):
 
         """
         # setattr(self, parameter_name, parameter_value)
-        self.scan_infor_paras.append(parameter_name)
+        if parameter_name not in self.scan_infor_paras:
+            self.scan_infor_paras.append(parameter_name)
         return
 
     def load_motor_pos(self, text):

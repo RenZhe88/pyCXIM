@@ -187,12 +187,12 @@ class RC2RSM_2C(object):
         new_shape = (np.ptp(corners_q, axis=0) / rebinfactor).astype(int)
         RSM_unit = self.units * rebinfactor
         pch = [int(len(self.scan_motor_ar) / 2), (roi[0] + roi[1]) / 2.0, (roi[2] + roi[3]) / 2.0]
-        q_center = self.cal_rel_q_pos(pch) * self.units
+        q_origin = (self.cal_rel_q_pos(pch) - np.ptp(corners_q, axis=0) / 2.0) * self.units
 
         print("number of points for the reciprocal space:")
         print(" qz  qy  qx")
         print(new_shape)
-        return q_center, new_shape, RSM_unit
+        return q_origin, new_shape, RSM_unit
 
     def RSM_conversion(self, dataset, new_shape, rebinfactor=1, cval=0, prefilter=False):
         """

@@ -80,7 +80,7 @@ class Calibration(object):
         """
         if beamline == 'p10':
             motor_names = ['om', 'del', 'chi', 'phi', 'gam', 'energy']
-        if beamline == 'p08':
+        elif beamline == 'p08':
             motor_names = ['om', 'tt', 'chi', 'phis', 'tth', 'energy']
         elif beamline == '1w1a':
             motor_names = ['eta', 'del', 'chi', 'phi', 'nu', 'energy']

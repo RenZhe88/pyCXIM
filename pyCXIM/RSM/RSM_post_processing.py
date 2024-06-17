@@ -108,7 +108,7 @@ def Cut_central(dataset, bs, cut_mode='maximum integration', peak_pos=None):
     return intcut, peak_pos, bs
 
 
-def plot_with_units(RSM_int, q_center, unit, pathsavetmp, qmax=np.array([]), display_range=None):
+def plot_with_units(RSM_int, q_origin, unit, pathsavetmp, qmax=np.array([]), display_range=None):
     """
     Plot and save the diffraction pattern with correct units.
 
@@ -127,6 +127,8 @@ def plot_with_units(RSM_int, q_center, unit, pathsavetmp, qmax=np.array([]), dis
         If given, the cutted diffraction pattern will be displayed around the given position.
         Else the integrated diffraction intensity will be plotted.
         The default is np.array([]).
+    display_range : list, optional
+        The half width of the display range in [qz, qy, qx] order. The default is None.
 
     Returns
     -------
@@ -134,9 +136,9 @@ def plot_with_units(RSM_int, q_center, unit, pathsavetmp, qmax=np.array([]), dis
 
     """
     dz, dy, dx = RSM_int.shape
-    qz = np.linspace(-dz / 2.0, dz / 2.0 - 1.0, dz) * unit + q_center[0]
-    qy = np.linspace(-dy / 2.0, dy / 2.0 - 1.0, dy) * unit + q_center[1]
-    qx = np.linspace(-dx / 2.0, dx / 2.0 - 1.0, dx) * unit + q_center[2]
+    qz = np.arange(dz) * unit + q_origin[0]
+    qy = np.arange(dy) * unit + q_origin[1]
+    qx = np.arange(dx) * unit + q_origin[2]
     # save the qx qy qz cut of the 3D intensity
     print('Saving the qx qy qz cuts......')
     plt.figure(figsize=(12, 12))
@@ -150,8 +152,8 @@ def plot_with_units(RSM_int, q_center, unit, pathsavetmp, qmax=np.array([]), dis
     plt.axis('scaled')
     plt.tick_params(axis='both', labelsize=20)
     if (display_range is not None) and (len(qmax) != 0):
-        plt.xlim((qmax[2] - dx / 2.0) * unit + q_center[2] - display_range[2], (qmax[2] - dx / 2.0) * unit + q_center[2] + display_range[2])
-        plt.ylim((qmax[1] - dy / 2.0) * unit + q_center[1] - display_range[1], (qmax[1] - dy / 2.0) * unit + q_center[1] + display_range[1])
+        plt.xlim(qmax[2] * unit + q_origin[2] - display_range[2], qmax[2] * unit + q_origin[2] + display_range[2])
+        plt.ylim(qmax[1] * unit + q_origin[1] - display_range[1], qmax[1] * unit + q_origin[1] + display_range[1])
     plt.savefig(pathsaveimg)
     plt.show()
     # plt.close()
@@ -167,8 +169,8 @@ def plot_with_units(RSM_int, q_center, unit, pathsavetmp, qmax=np.array([]), dis
     plt.axis('scaled')
     plt.tick_params(axis='both', labelsize=20)
     if (display_range is not None) and (len(qmax) != 0):
-        plt.xlim((qmax[2] - dx / 2.0) * unit + q_center[2] - display_range[2], (qmax[2] - dx / 2.0) * unit + q_center[2] + display_range[2])
-        plt.ylim((qmax[0] - dz / 2.0) * unit + q_center[0] - display_range[0], (qmax[0] - dz / 2.0) * unit + q_center[0] + display_range[0])
+        plt.xlim(qmax[2] * unit + q_origin[2] - display_range[2], qmax[2] * unit + q_origin[2] + display_range[2])
+        plt.ylim(qmax[0] * unit + q_origin[0] - display_range[0], qmax[0] * unit + q_origin[0] + display_range[0])
     plt.savefig(pathsaveimg)
     plt.show()
     # plt.close()
@@ -184,8 +186,8 @@ def plot_with_units(RSM_int, q_center, unit, pathsavetmp, qmax=np.array([]), dis
     plt.axis('scaled')
     plt.tick_params(axis='both', labelsize=20)
     if (display_range is not None) and (len(qmax) != 0):
-        plt.xlim((qmax[1] - dy / 2.0) * unit + q_center[1] - display_range[1], (qmax[1] - dy / 2.0) * unit + q_center[1] + display_range[1])
-        plt.ylim((qmax[0] - dz / 2.0) * unit + q_center[0] - display_range[0], (qmax[0] - dz / 2.0) * unit + q_center[0] + display_range[0])
+        plt.xlim(qmax[1] * unit + q_origin[1] - display_range[1], qmax[1] * unit + q_origin[1] + display_range[1])
+        plt.ylim(qmax[0] * unit + q_origin[0] - display_range[0], qmax[0] * unit + q_origin[0] + display_range[0])
     plt.savefig(pathsaveimg)
     plt.show()
     # plt.close()

@@ -199,13 +199,11 @@ class DesyScanImporter(GeneralScanStructure):
 
         """
         if det_type == 'e4m' or det_type == 'e500':
-            if hasattr(self, 'path_eiger_imgsum'):
-                if os.path.exists(self.path_eiger_imgsum):
-                    return np.load(self.path_eiger_imgsum)
-                else:
-                    raise RuntimeError('Could not find the aimed eiger detector images')
+            self.path_eiger_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, det_type))
+            if os.path.exists(self.path_eiger_imgsum):
+                return np.load(self.path_eiger_imgsum)
             else:
-                raise RuntimeError('The detector image sum does not exists!')
+                raise RuntimeError('Could not find the aimed eiger detector images')
 
     def get_absorber(self):
         """
