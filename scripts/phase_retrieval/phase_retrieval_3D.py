@@ -48,8 +48,8 @@ data_description = 'reciprocal_space_map_BCDI'
 
 # Input: parameters for creating the initial suppport.
 # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-support_type = 'auto_correlation'
-support_from_trial = 0
+support_type = 'support_selected'
+support_from_trial = 1
 
 # If support_type is 'auto_correlation'
 auto_corr_thrpara = 0.004
