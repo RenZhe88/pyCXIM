@@ -4,7 +4,7 @@
  (c) Since 08/2023 : Chinese Academy of Science, Insitute of high energy physics. 
  
  If you use this package, please consider cite this github page! Thanks a lot!
-## For any question, please contact the authors Zhe Ren, Han Xu.
+## For any questions, please contact the authors Zhe Ren, Han Xu.
  * email01: renzhe@ihep.ac.cn  
  * email02: renzhetu001@gmail.com  
  * email03: xuhan@ihep.ac.cn  
