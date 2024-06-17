@@ -1,6 +1,6 @@
 # pyCXIM : python scripts for coherent X-ray imaging methods
 ## Copy rights
- (c) 11/2019-07/2023 : P10 beamline, DESY PHOTON SCIENCE. 
+ (c) 11/2019-07/2023 : P10 beamline, DESY PHOTON SCIENCE.  
  (c) Since 08/2023 : Chinese Academy of Science, Insitute of high energy physics. 
  
  If you use this package, please consider cite this github page! Thanks a lot!
