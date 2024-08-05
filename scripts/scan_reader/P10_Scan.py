@@ -28,21 +28,31 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [9]
-p10_file = ["Alfoil"]
+scan_num_ar = [190]
+p10_file = ["polarized_BFO"]
 
 # path information
 path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
 path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e500_mask.npy'
-pathsavefolder = r"F:\Work place 4\Temp"
+pathsavefolder = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO\Maps"
 
 # The rois for the Eiger 4M detector
-e4m_roi1 = [1342 - 600, 1342 + 600, 867 - 200, 867 + 200]
-e4m_roi2 = [100, 2000, 200, 500]
-e4m_roi3 = [1630, 1660, 950, 1000]
-e4m_roi4 = [400, 600, 300, 500]
+e4m_roi1 = [1340 - 250, 1340 + 250, 1365 - 250, 1365 + 250]
+e4m_roi2 = [1340 - 300, 1340 - 100, 1320 - 200, 1320 + 200]
+e4m_roi3 = [1340 - 300, 1340 + 300, 1320 - 300, 1320 - 100]
+e4m_roi4 = [1340 - 300, 1340 + 300, 1320 + 100, 1320 + 300]
+e4m_roi5 = [1330 + 150, 1330 + 450, 1300 - 200, 1300 + 200]
+e4m_roi6 = [1330 + 450, 1330 + 750, 1300 - 200, 1300 + 200]
 
+e4m_roi7 = [1330 - 750, 1330 + 750, 340 - 200, 340 + 200]
+e4m_roi8 = [1330 - 750, 1330 - 450, 340 - 200, 340 + 200]
+e4m_roi9 = [1330 - 450, 1330 - 150, 340 - 200, 340 + 200]
+e4m_roi10 = [1330 - 150, 1330 + 150, 340 - 200, 340 + 200]
+e4m_roi11 = [1330 + 150, 1330 + 450, 340 - 200, 340 + 200]
+e4m_roi12 = [1330 + 450, 1330 + 750, 340 - 200, 340 + 200]
+
+# cal_e4m_roi = []
 cal_e4m_roi = [e4m_roi1]
 
 # The rois for the Eiger500 detector
@@ -56,7 +66,7 @@ fluo_06 = [1020, 1374]
 cal_fluo_channels = []
 
 # Plot selection
-counter_select = ['e4m_roi1', 'cbs1']
+counter_select = ['e4m_full']
 scale = 'Linear'
 # scale = 'Normalized'
 # scale = 'Log'
@@ -194,10 +204,8 @@ if len(d2scan_scan_num) > 0:
         command_infor = scan.get_command_infor()
         curpetra_ar = scan.get_scan_data('curpetra') / np.round(np.average(scan.get_scan_data('curpetra')))
         motor1 = command_infor['motor1_name']
-        print(motor1)
         motor1_pos = scan.get_scan_data(motor1)
         motor2 = command_infor['motor2_name']
-        print(motor2)
         motor2_pos = scan.get_scan_data(motor2)
 
         for i, counter_name in enumerate(counter_select):

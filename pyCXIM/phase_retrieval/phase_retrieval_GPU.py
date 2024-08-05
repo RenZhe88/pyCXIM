@@ -49,7 +49,7 @@ class PhaseRetrievalFuns():
         1 corresponds to the pixels that are masked.
         masked pixels should be let free during phase retrieval process.
         The default is None.
-        Then the all the pixels are considered unmasked
+        Then the all the pixels are considered not masked.
 
     Attributes
     ----------
@@ -61,9 +61,8 @@ class PhaseRetrievalFuns():
         The dimension of the diffraction intensity.
     MaskFFT : ndarray
         Mask for the bad pixels in the measured intensity.
-    loop_index : list
-        records number of loops performed for different algorithms
-        The number in the list represents Seed, number of ER loops, number of HIO loops, number of RAAR loops, number of Difference map loops, Number of Shrinkwrap loops.
+    loop_dict : dict
+        records number of loops performed for different algorithms.
     img : ndarray
         the result image
     support : ndarray
@@ -77,13 +76,7 @@ class PhaseRetrievalFuns():
         self.dim = self.intensity.ndim
 
         # loop index records number of loops performed for different algorithms
-        self.loop_index = np.zeros(6)
-        self.loop_index[0] = Seed
-        self.display_str = '\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d'
-        # the array to hold the previous image during the HIO calculation
-        self.holderimg_HIO = np.zeros_like(self.ModulusFFT, dtype=complex)
-        # the array to hold the previous image during the RAAR calculation
-        self.holderimg_RAAR = np.zeros_like(self.ModulusFFT, dtype=complex)
+        self.loop_dict = {}
 
         # generate or import the starting image for the phase retrieval process
         if starting_img is not None:
@@ -100,6 +93,7 @@ class PhaseRetrievalFuns():
         else:
             self.support = np.zeros_like(self.ModulusFFT, dtype=float)
             Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
+            # Gaussian filter to be added
             threshold = 4.0 / 1000.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
             self.support[Startautocorrelation >= threshold] = 1.0
 
@@ -110,17 +104,13 @@ class PhaseRetrievalFuns():
         else:
             self.MaskFFT = np.zeros_like(self.ModulusFFT, dtype=float)
 
-        # The standarded deviation of noise used for NHIO method
-        self.std_noise = np.sqrt(np.sum(self.intensity * (1.0 - self.MaskFFT)) / np.sum(1.0 - self.MaskFFT))
-
         # Transfer all the attributes to GPU
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         torch.manual_seed(Seed)
         torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.determinsitic = True
         self.intensity = torch.from_numpy(self.intensity).to(self.device)
         self.ModulusFFT = torch.from_numpy(self.ModulusFFT).to(self.device)
-        self.holderimg_HIO = torch.from_numpy(self.holderimg_HIO).to(self.device)
-        self.holderimg_RAAR = torch.from_numpy(self.holderimg_RAAR).to(self.device)
         self.img = torch.from_numpy(self.img).to(self.device)
         self.support = torch.from_numpy(self.support).to(self.device)
         self.MaskFFT = torch.from_numpy(self.MaskFFT).to(self.device)
@@ -157,6 +147,9 @@ class PhaseRetrievalFuns():
         None.
 
         """
+        self.loop_dict['flip'] = 1
+        self.print_loop_num()
+
         self.img = np.flip(self.img)
         self.img = np.conjugate(self.img)
         self.support = np.flip(self.support)
@@ -216,13 +209,55 @@ class PhaseRetrievalFuns():
             self.img = torch.roll(self.img, int(shift), dims=i)
         return
 
-    def Sup(self, Gaussiandelta, thrpara):
-        """
-        Update the support according to the current images.
+    # def Sup(self, Gaussiandelta, thrpara):
+    #     """
+    #     Update the support according to the current images.
 
-        3D Schrinkwarp method performed according to the paper:
-            X-ray image reconstruction from a diffraction pattern alone
-            S. Marchesini, et al. PRB, 68, 140101 (2003)
+    #     3D Schrinkwarp method performed according to the paper:
+    #         X-ray image reconstruction from a diffraction pattern alone
+    #         S. Marchesini, et al. PRB, 68, 140101 (2003)
+
+    #     Parameters
+    #     ----------
+    #     Gaussiandelta : float
+    #         Standard deviation for Gaussian kernel.
+    #     thrpara : float
+    #         The threhold parameter for updating the suppoart.
+    #         Value should be from 0 to 1.
+
+    #     Returns
+    #     -------
+    #     None.
+
+    #     """
+    #     if 'Sup' in self.loop_dict.keys():
+    #         self.loop_dict['Sup'] += 1
+    #     else:
+    #         self.loop_dict['Sup'] = 1
+    #     self.print_loop_num()
+
+    #     # Update the support function according to the shrink wrap method
+    #     Bluredimg = self.GaussianBlur(torch.abs(self.img), Gaussiandelta)
+    #     threshold = thrpara * (torch.amax(Bluredimg) - torch.amin(Bluredimg)) + torch.amin(Bluredimg)
+    #     self.support = torch.zeros_like(self.img, dtype=float)
+    #     self.support[Bluredimg >= threshold] = 1.0
+    #     # Center the support to the center of the image
+    #     if self.loop_dict['Sup'] % 10 == 0:
+    #         self.CenterSup()
+    #     return
+
+    def Sup(self, Gaussiandelta, thrpara, hybrid_para=0):
+        """
+        Update the support according to the current images or average modulus of previous results.
+
+        if hybrid_para is 0, the algorithm is the same as the old shrinkwrap method,
+        where the modulus of the current image is used to updata the support
+        else, the algorithm comobines the average modulus of the previous results with the current image,
+        the support is updated according to this combination.
+
+        In both cases, 3D Schrinkwarp method performed according to the paper:
+                X-ray image reconstruction from a diffraction pattern alone
+                S. Marchesini, et al. PRB, 68, 140101 (2003)
 
         Parameters
         ----------
@@ -231,24 +266,54 @@ class PhaseRetrievalFuns():
         thrpara : float
             The threhold parameter for updating the suppoart.
             Value should be from 0 to 1.
+        hybrid_para : float, optional
+            The ratio of the avearge modulus to considered when updating the support.
+            Should be between 0, and 1.
+            The default is 0, where classical shrinkwrap method is used.
 
         Returns
         -------
         None.
 
         """
-        self.loop_index[5] += 1
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'Sup' in self.loop_dict.keys():
+            self.loop_dict['Sup'] += 1
+        else:
+            self.loop_dict['Sup'] = 1
+        self.print_loop_num()
+
+        if not hasattr(self, 'Modulus_sum'):
+            # the array to hold the previous image during the HIO calculation
+            self.Modulus_sum = torch.zeros_like(self.ModulusFFT, dtype=torch.float64).to(self.device)
 
         # Update the support function according to the shrink wrap method
-        Bluredimg = self.GaussianBlur(torch.abs(self.img), Gaussiandelta)
+        self.Modulus_sum += torch.abs(self.img)
+        Bluredimg = self.GaussianBlur(self.Modulus_sum / float(self.loop_dict['Sup']) * hybrid_para + (1.0 - hybrid_para) * torch.abs(self.img), Gaussiandelta)
         threshold = thrpara * (torch.amax(Bluredimg) - torch.amin(Bluredimg)) + torch.amin(Bluredimg)
         self.support = torch.zeros_like(self.img, dtype=float)
         self.support[Bluredimg >= threshold] = 1.0
         # Center the support to the center of the image
-        if self.loop_index[5] % 10 == 0:
+        if self.loop_dict['Sup'] % 10 == 0:
             self.CenterSup()
         return
+
+    # def ND(self, num_ND_loop, vl, vu):
+    #     if 'ND' in self.loop_dict.keys():
+    #         self.loop_dict['ND'] += num_ND_loop
+    #     else:
+    #         self.loop_dict['ND'] = num_ND_loop
+    #     self.print_loop_num()
+
+    #     self.img = self.img * self.support
+    #     img_phase = torch.angle(self.img)
+    #     img_modulus = torch.abs(self.img)
+    #     for i in range(num_ND_loop):
+    #         img_max = torch.amax(img_modulus)
+    #         img_modulus -= vl * img_max
+    #         img_modulus = img_modulus / (1 - vu - vl)
+    #         img_modulus = torch.clip(img_modulus, 0, (1 - vu) * img_max)
+    #     self.img = torch.multiply(img_modulus, torch.exp(1j * img_phase))
+    #     return
 
     def ER(self, num_ER_loop):
         """
@@ -268,8 +333,11 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[1] += num_ER_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'ER' in self.loop_dict.keys():
+            self.loop_dict['ER'] += num_ER_loop
+        else:
+            self.loop_dict['ER'] = num_ER_loop
+        self.print_loop_num()
 
         for i in range(num_ER_loop):
             self.img = self.support * self.img
@@ -290,7 +358,12 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.display_str = self.display_str + ', DETWIN'
+        if 'DETWIN' in self.loop_dict.keys():
+            self.loop_dict['DETWIN'] += 1
+        else:
+            self.loop_dict['DETWIN'] = 1
+        self.print_loop_num()
+
         if isinstance(axis, int):
             axis = (axis,)
         if self.dim == 2:
@@ -335,8 +408,15 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[2] += num_HIO_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'HIO' in self.loop_dict.keys():
+            self.loop_dict['HIO'] += num_HIO_loop
+        else:
+            self.loop_dict['HIO'] = num_HIO_loop
+        self.print_loop_num()
+
+        if not hasattr(self, 'holderimg_HIO'):
+            # the array to hold the previous image during the HIO calculation
+            self.holderimg_HIO = torch.zeros_like(self.ModulusFFT, dtype=torch.complex128).to(self.device)
 
         para = 0.9  # Parameter for the HIO
 
@@ -363,8 +443,16 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[2] += num_NHIO_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'NHIO' in self.loop_dict.keys():
+            self.loop_dict['NHIO'] += num_NHIO_loop
+        else:
+            self.loop_dict['NHIO'] = num_NHIO_loop
+        self.print_loop_num()
+
+        if not hasattr(self, 'std_noise'):
+            # The standarded deviation of noise used for NHIO method
+            self.std_noise = np.sqrt(np.sum(self.intensity * (1.0 - self.MaskFFT)) / np.sum(1.0 - self.MaskFFT))
+            self.std_noise = torch.from_numpy(self.std_noise).to(self.device)
 
         para = 0.9  # Parameter for the HIO
 
@@ -393,8 +481,15 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[3] += num_RAAR_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'RAAR' in self.loop_dict.keys():
+            self.loop_dict['RAAR'] += num_RAAR_loop
+        else:
+            self.loop_dict['RAAR'] = num_RAAR_loop
+        self.print_loop_num()
+
+        if not hasattr(self, 'holderimg_RAAR'):
+            # the array to hold the previous image during the RAAR calculation
+            self.holderimg_RAAR = torch.zeros_like(self.ModulusFFT, dtype=torch.complex128).to(self.device)
 
         para0 = 0.75  # Starting parameter for the RAAR
 
@@ -461,8 +556,11 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[4] += num_DIF_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'DIF' in self.loop_dict.keys():
+            self.loop_dict['DIF'] += num_DIF_loop
+        else:
+            self.loop_dict['DIF'] = num_DIF_loop
+        self.print_loop_num()
 
         para_dif = 0.9  # parameter for the difference map
         invpara = 1.0 / para_dif
@@ -472,6 +570,24 @@ class PhaseRetrievalFuns():
             self.img = self.img + para_dif * (self.SupProj(map1) - self.ModulusProj(map2))
         self.img = self.img * self.support
         return
+
+    # def ADMM(self, num_ADMM_loop):
+    #     if 'ADMM' in self.loop_dict.keys():
+    #         self.loop_dict['ADMM'] += num_ADMM_loop
+    #     else:
+    #         self.loop_dict['ADMM'] = num_ADMM_loop
+    #     self.print_loop_num()
+
+    #     if not hasattr(self, 'holderimg_ADMM1'):
+    #         # the array to hold the previous image during the HIO calculation
+    #         self.holderimg_ADMM = torch.zeros_like(self.ModulusFFT, dtype=torch.complex128).to(self.device)
+
+    #     para_admm = 0.5  # parameter for the difference map
+    #     for i in range(num_ADMM_loop):
+    #         self.holderimg_ADMM1 = self.ModulusProj(self.img + self.holderimg_ADMM)
+    #         self.holderimg_ADMM = self.holderimg_ADMM + para_admm * (self.img - self.holderimg_ADMM1)
+    #         self.img = self.SupProj(self.holderimg_ADMM1 - self.holderimg_ADMM)
+    #     return
 
     def get_img(self):
         """
@@ -609,8 +725,12 @@ class PhaseRetrievalFuns():
             Fourier space error of the result reconstruction.
 
         """
-        error = np.sum(np.square(np.abs(np.fft.fftn(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / np.sum(np.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
-        return error
+        if torch.is_tensor(self.img):
+            error = torch.sum(torch.square(torch.abs(torch.fft.fftn(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / torch.sum(torch.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
+            return error
+        else:
+            error = np.sum(np.square(np.abs(np.fft.fftn(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / np.sum(np.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
+            return error
 
     def get_Poisson_Likelihood(self):
         """
@@ -648,6 +768,24 @@ class PhaseRetrievalFuns():
         else:
             loglikelihood = 0
         return loglikelihood
+
+    def print_loop_num(self):
+        """
+        Print the loop numbers already performed.
+
+        The print text would be like
+        'HIO: 120 RAAR: 340 Sup: 120'
+
+        Returns
+        -------
+        None.
+
+        """
+        display_str = '\r'
+        for key in self.loop_dict.keys():
+            display_str += '%s: %d ' % (key, self.loop_dict[key])
+        sys.stdout.write(display_str)
+        return
 
     def Algorithm_expander(self, algorithm0):
         """

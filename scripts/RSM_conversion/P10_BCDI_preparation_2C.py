@@ -24,16 +24,16 @@ def BCDI_preparation():
     start_time = time.time()
     # %% Inputs: select the functions of the code from the following mode
     # ['Gif', 'Direct_cut', 'Reciprocal_space_map', '2D_cuts']
-    Functions_selected = ['Gif', 'Direct_cut', 'Reciprocal_space_map', '2D_cuts']
+    Functions_selected = ['Gif', 'Reciprocal_space_map', '2D_cuts']
 
     # Inputs: general information
-    year = "2022"
-    beamtimeID = "11013125"
-    p10_newfile = 'cell2_c1'
-    scan_num = 26
+    year = "2021"
+    beamtimeID = "11013318"
+    p10_newfile = 'B12SYNS1P1'
+    scan_num = 144
     detector = 'e4m'
-    # geometry = 'out_of_plane'
-    geometry = 'in_plane'
+    geometry = 'out_of_plane'
+    # geometry = 'in_plane'
 
     qz_direction = 'surface direction'
     # qz_direction = 'diffraction vector direction'
@@ -44,25 +44,25 @@ def BCDI_preparation():
     # Direct beam position on the detector Y, X
     cch = [1038, 1341]
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [400, 400]
+    wxy = [300, 300]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [1000, 1500, 1500, 2000]
+    roi = [400, 1200, 1000, 1700]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'maximum integration'
     # Half size for the direct cut in pixels
     DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [64, 64, 64]
-    use_prefilter = False
+    RSM_bs = [64, 30, 30]
+    use_prefilter = True
     save_full_3D_RSM = False
-    generating_3D_vtk_file = True
+    generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20220620_P10_High_pressure_BiHan"
+    path = r"F:\Raw Data\20211004_P10_BFO_Pt\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\Temp"
+    pathsavefolder = r"F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
@@ -312,7 +312,7 @@ def BCDI_preparation():
         # save the information
         infor.add_para('path3DRSM', section_ar[1], path3dRSM)
         infor.add_para('path3Dmask', section_ar[1], path3dmask)
-        infor.add_para('use_prefilter', section_ar[1], use_prefilter)
+        infor.add_para('use_prefilter', section_ar[3], use_prefilter)
         infor.add_para('roi_width', section_ar[3], list(wxy))
         infor.add_para('RSM_unit', section_ar[3], RSM_unit)
         infor.add_para('RSM_shape', section_ar[3], list(new_shape))

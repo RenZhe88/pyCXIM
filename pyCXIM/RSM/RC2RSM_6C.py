@@ -330,6 +330,10 @@ def cal_q_pos(pixel_position, motor_position, detector_para, DEG=True):
         list of scan parameters in [omega, delta, chi, phi, gamma, energy] order. Energy in eV.
     detector_para : list
         The detector parameters in [distance, pixelsize, det_rot, cch] order.
+        distance is the detector-sample distance in mm.
+        pixelsize is the pixelsize of the detector in mm.
+        det_rot is the inplane rotation of the detector.
+        cch is the direct beam position in [Y, X] order.
     DEG : bool
         If the DEG is true, the angles should be given in degree, else the angles should be given in radians.
 

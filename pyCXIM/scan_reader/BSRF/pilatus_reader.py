@@ -72,6 +72,18 @@ class BSRFPilatusImporter(BSRFScanImporter):
         self.pilatus_load_mask(pathmask)
         return
 
+    def get_detector_size(self):
+        """
+        Get the size of the detector.
+
+        Returns
+        -------
+        tuple
+            The pixel number of defined detector.
+
+        """
+        return self.detector_size
+
     def get_detector_pixelsize(self):
         """
         Get the pixel_size of the detector.

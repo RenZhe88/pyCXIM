@@ -405,7 +405,6 @@ class DesyEigerImporter(DesyScanImporter):
             pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, img_index // 2000 + 1)
             f = h5py.File(pathimg, "r")
             dataset = f['entry/data/data']
-            print(dataset.shape)
             image = np.array(dataset[img_index % 2000, :, :], dtype=float)
         elif self.img_per_point == 'multiple':
             pathimg = (self.path_eiger_img) % (self.sample_name, self.scan, img_index + 1)

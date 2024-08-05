@@ -18,14 +18,14 @@ from pyCXIM.RSM.Calibration_6C import Calibration
 def calibration():
     # Inputs: general information
     # Calibration_type = 'detector'
-    # Calibration_type = 'crystal infor'
+    Calibration_type = 'crystal infor'
     # Calibration_type = 'single Bragg 6C'
-    Calibration_type = 'multiple Bragg 6C'
+    # Calibration_type = 'multiple Bragg 6C'
     # Calibration_type = 'hkl_to_angles'
 
     # Inputs: paths
     path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
-    pathsave = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\result"
+    pathsave = r"F:\Work place 4\sample\XRD"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\badpix_mask.tif'
     detector = '300K-A'
 

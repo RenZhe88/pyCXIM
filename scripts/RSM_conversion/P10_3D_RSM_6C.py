@@ -120,6 +120,7 @@ def RSM_6C():
     infor.add_para('chi', section_ar[2], chi)
     infor.add_para('phi', section_ar[2], phi)
     infor.add_para('gamma', section_ar[2], gamma)
+    infor.add_para('energy', section_ar[2], scan.get_motor_pos('fmbenergy'))
 
     infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix.tolist())
     infor.add_para('direct_beam_position', section_ar[2], list(cch))

@@ -8,15 +8,15 @@ Created on Mon Mar 20 12:17:53 2023
 import numpy as np
 import os
 import sys
-sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
+sys.path.append(r'F:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def plot_phase_retrieval_results():
     # %%Inputs
-    pathsave = r'F:\Work place 4\Temp\B12SYNS1P1_00043\pynxpre\stacked_detector_images'
-    trial_num = 1
-    path_scan_infor = r"F:\Work place 4\Temp\B12SYNS1P1_00043\scan_0043_information.txt"
+    pathsave = r'F:\Work place 4\sample\XRD\High strain test\20191123_Au_islands_Thomas\align_AuNP_00069\pynxpre\reciprocal_space_map'
+    trial_num = 2
+    path_scan_infor = r"F:\Work place 4\sample\XRD\High strain test\20191123_Au_islands_Thomas\align_AuNP_00069\scan_0069_information.txt"
     display_range = [500, 500, 500]
 
     # %%Load the information file

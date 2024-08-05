@@ -60,9 +60,8 @@ class PhaseRetrievalFuns():
         Modulus calculated from the measured intensity
     MaskFFT : ndarray
         Mask for the bad pixels in the measured intensity
-    loop_index : list
-        records number of loops performed for different algorithms
-        The number in the list represents Seed, number of ER loops, number of HIO loops, number of RAAR loops, number of Difference map loops, Number of Shrinkwrap loops.
+    loop_dict : dict
+        records number of loops performed for different algorithms.
     img : ndarray
         the result image
     support : ndarray
@@ -75,13 +74,7 @@ class PhaseRetrievalFuns():
         self.ModulusFFT = np.fft.fftshift(np.sqrt(measured_intensity))
 
         # loop index records number of loops performed for different algorithms
-        self.loop_index = np.zeros(6)
-        self.loop_index[0] = Seed
-        self.display_str = '\rSeed%d: ER%d, HIO:%d, RAAR:%d, DIF:%d, Sup:%d'
-        # the array to hold the previous image during the HIO calculation
-        self.holderimg_HIO = np.zeros_like(self.ModulusFFT, dtype=complex)
-        # the array to hold the previous image during the RAAR calculation
-        self.holderimg_RAAR = np.zeros_like(self.ModulusFFT, dtype=complex)
+        self.loop_dict = {}
 
         # generate or import the starting image for the phase retrieval process
         if starting_img is not None:
@@ -98,7 +91,7 @@ class PhaseRetrievalFuns():
         else:
             self.support = np.zeros_like(self.ModulusFFT, dtype=float)
             Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
-            threshold = 4.0 / 100.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
+            threshold = 4.0 / 1000.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
             self.support[Startautocorrelation >= threshold] = 1.0
 
         if MaskFFT is not None:
@@ -106,9 +99,6 @@ class PhaseRetrievalFuns():
             self.MaskFFT = np.fft.fftshift(self.MaskFFT)
         else:
             self.MaskFFT = np.zeros_like(self.ModulusFFT, dtype=float)
-
-        self.std_noise = np.sqrt(np.sum(self.intensity * (1.0 - self.MaskFFT)) / np.sum(1.0 - self.MaskFFT))
-        self.LLKmask = np.zeros_like(self.MaskFFT)
         return
 
     def End(self):
@@ -132,6 +122,9 @@ class PhaseRetrievalFuns():
         None.
 
         """
+        self.loop_dict['flip'] = 1
+        self.print_loop_num()
+
         self.img = np.flip(self.img)
         self.img = np.conjugate(self.img)
         self.support = np.flip(self.support)
@@ -152,14 +145,18 @@ class PhaseRetrievalFuns():
             self.img = np.roll(self.img, int(shift), axis=i)
         return
 
-    def Sup(self, Gaussiandelta, thrpara):
+    def Sup(self, Gaussiandelta, thrpara, hybrid_para=0):
         """
-        Update the support according to the current images.
+        Update the support according to the current images or average modulus of previous results.
 
-        2D Schrinkwarp method performed according to the paper:
-            X-ray image reconstruction from a diffraction pattern alone
-            S. Marchesini, et al. PRB, 68, 140101 (2003)
-        Center the support every 10 cycles of support update
+        if hybrid_para is 0, the algorithm is the same as the old shrinkwrap method,
+        where the modulus of the current image is used to updata the support
+        else, the algorithm comobines the average modulus of the previous results with the current image,
+        the support is updated according to this combination.
+
+        In both cases, 3D Schrinkwarp method performed according to the paper:
+                X-ray image reconstruction from a diffraction pattern alone
+                S. Marchesini, et al. PRB, 68, 140101 (2003)
 
         Parameters
         ----------
@@ -168,22 +165,34 @@ class PhaseRetrievalFuns():
         thrpara : float
             The threhold parameter for updating the suppoart.
             Value should be from 0 to 1.
+        hybrid_para : float, optional
+            The ratio of the avearge modulus to considered when updating the support.
+            Should be between 0, and 1.
+            The default is 0, where classical shrinkwrap method is used.
 
         Returns
         -------
         None.
 
         """
-        self.loop_index[5] += 1
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'Sup' in self.loop_dict.keys():
+            self.loop_dict['Sup'] += 1
+        else:
+            self.loop_dict['Sup'] = 1
+        self.print_loop_num()
+
+        if not hasattr(self, 'Modulus_sum'):
+            # the array to hold the previous image during the HIO calculation
+            self.Modulus_sum = np.zeros_like(self.ModulusFFT, dtype=float)
 
         # Update the support function according to the shrink wrap method
-        Bluredimg = gaussian_filter(np.absolute(self.img), sigma=Gaussiandelta)
+        self.Modulus_sum += np.abs(self.img)
+        Bluredimg = gaussian_filter(self.Modulus_sum / float(self.loop_dict['Sup']) * hybrid_para + (1.0 - hybrid_para) * np.abs(self.img), sigma=Gaussiandelta)
         threshold = thrpara * (np.amax(Bluredimg) - np.amin(Bluredimg)) + np.amin(Bluredimg)
         self.support = np.zeros_like(self.img, dtype=float)
         self.support[Bluredimg >= threshold] = 1.0
-        # the center the support to the center of the image
-        if self.loop_index[5] % 10 == 0:
+        # Center the support to the center of the image
+        if self.loop_dict['Sup'] % 10 == 0:
             self.CenterSup()
         return
 
@@ -205,8 +214,11 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[1] += num_ER_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'ER' in self.loop_dict.keys():
+            self.loop_dict['ER'] += num_ER_loop
+        else:
+            self.loop_dict['ER'] = num_ER_loop
+        self.print_loop_num()
 
         for i in range(num_ER_loop):
             self.img = self.support * self.img
@@ -227,7 +239,12 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.display_str = self.display_str + ', DETWIN'
+        if 'DETWIN' in self.loop_dict.keys():
+            self.loop_dict['DETWIN'] += 1
+        else:
+            self.loop_dict['DETWIN'] = 1
+        self.print_loop_num()
+
         if isinstance(axis, int):
             axis = (axis,)
         if self.dim == 2:
@@ -248,9 +265,9 @@ class PhaseRetrievalFuns():
                 self.img[:, :, int(xd / 2):] = 0
         return
 
-    def ConvexSup(self):
-        self.support = np.array(convex_hull_image(self.support), dtype=float)
-        return
+    # def ConvexSup(self):
+    #     self.support = np.array(convex_hull_image(self.support), dtype=float)
+    #     return
 
     def HIO(self, num_HIO_loop):
         """
@@ -270,8 +287,15 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[2] += num_HIO_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'HIO' in self.loop_dict.keys():
+            self.loop_dict['HIO'] += num_HIO_loop
+        else:
+            self.loop_dict['HIO'] = num_HIO_loop
+        self.print_loop_num()
+
+        if not hasattr(self, 'holderimg_HIO'):
+            # the array to hold the previous image during the HIO calculation
+            self.holderimg_HIO = np.zeros_like(self.ModulusFFT, dtype=complex)
 
         para = 0.9  # parameter for the HIO
 
@@ -298,8 +322,15 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[2] += num_NHIO_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'NHIO' in self.loop_dict.keys():
+            self.loop_dict['NHIO'] += num_NHIO_loop
+        else:
+            self.loop_dict['NHIO'] = num_NHIO_loop
+        self.print_loop_num()
+
+        if not hasattr(self, 'std_noise'):
+            # The standarded deviation of noise used for NHIO method
+            self.std_noise = np.sqrt(np.sum(self.intensity * (1.0 - self.MaskFFT)) / np.sum(1.0 - self.MaskFFT))
 
         para = 0.9  # parameter for the HIO
 
@@ -328,8 +359,15 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[3] += num_RAAR_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'RAAR' in self.loop_dict.keys():
+            self.loop_dict['RAAR'] += num_RAAR_loop
+        else:
+            self.loop_dict['RAAR'] = num_RAAR_loop
+        self.print_loop_num()
+
+        if not hasattr(self, 'holderimg_RAAR'):
+            # the array to hold the previous image during the RAAR calculation
+            self.holderimg_RAAR = np.zeros_like(self.ModulusFFT, dtype=complex)
 
         para0 = 0.75  # parameter for the RAAR
 
@@ -355,7 +393,7 @@ class PhaseRetrievalFuns():
 
         """
         AmpFFT = np.fft.fftn(point)
-        AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + self.MaskFFT * AmpFFT
+        AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + 0.98 * self.MaskFFT * AmpFFT
         point = np.fft.ifftn(AmpFFT)
         return point
 
@@ -395,8 +433,11 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.loop_index[4] += num_DIF_loop
-        sys.stdout.write(self.display_str % (*self.loop_index,))
+        if 'DIF' in self.loop_dict.keys():
+            self.loop_dict['DIF'] += num_DIF_loop
+        else:
+            self.loop_dict['DIF'] = num_DIF_loop
+        self.print_loop_num()
 
         para_dif = 0.9  # parameter for the difference map
         invpara = 1.0 / para_dif
@@ -577,6 +618,24 @@ class PhaseRetrievalFuns():
         else:
             loglikelihood = 0
         return loglikelihood
+
+    def print_loop_num(self):
+        """
+        Print the loop numbers already performed.
+
+        The print text would be like
+        'HIO: 120 RAAR: 340 Sup: 120'
+
+        Returns
+        -------
+        None.
+
+        """
+        display_str = '\r'
+        for key in self.loop_dict.keys():
+            display_str += '%s: %d ' % (key, self.loop_dict[key])
+        sys.stdout.write(display_str)
+        return
 
     def Algorithm_expander(self, algorithm0):
         """

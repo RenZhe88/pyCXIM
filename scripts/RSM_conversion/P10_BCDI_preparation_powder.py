@@ -40,31 +40,31 @@ def BCDI_preparation():
     # Inputs: general information
     year = "2024"
     beamtimeID = "11018562"
-    p10_newfile = 'WTY01'
-    scan_num = 54
+    p10_newfile = 'WTY04'
+    scan_num = 53
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
 
     # Inputs: Detector parameters
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [100, 100]
+    wxy = [180, 180]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [761 - 100, 761 + 100, 1866 - 100, 1866 + 100]
+    roi = [839 - 100, 839 + 100, 375 - 100, 375 + 100]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'weight center'
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [80, 80, 80]
+    RSM_bs = [80, 80, 50]
     use_prefilter = False
     save_full_3D_RSM = False
-    generating_3D_vtk_file = True
+    generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
     path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_cathode\WTY01"
+    pathsavefolder = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_cathode\WTY04"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
     pathcalib = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_cathode\calibration.txt'

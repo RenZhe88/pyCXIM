@@ -175,7 +175,7 @@ class PhaseRetrievalWidget():
         elif support_type == 'auto_correlation':
             assert ("Input/intensity" in imgfile), 'Please import the diffraction pattern first, so that the auto correlation funciton can be calculated!'
         elif support_type == 'import':
-            assert os.path.exits(path_import_initial_support), 'The support file to be imported does not exist! Please check the path again!'
+            assert os.path.exists(path_import_initial_support), 'The support file to be imported does not exist! Please check the path again!'
             assert path_import_initial_support[-4:] == '.npz', 'The support file has to be in the npz format, with data under the keyword name data.'
 
         self.para_dict['support_type'] = support_type
@@ -260,7 +260,7 @@ class PhaseRetrievalWidget():
                              threhold_update_method='exp_increase',
                              support_para_update_precent=0.8, thrpara_min=0.1,
                              thrpara_max=0.12, support_smooth_width_begin=3.5,
-                             support_smooth_width_end=1.0, detwin_axis=0,
+                             support_smooth_width_end=1.0, hybrid_para=0.0, detwin_axis=0,
                              flip_condition='Support', first_seed_flip=False,
                              phase_unwrap_method=6, display_image_num=5):
         """
@@ -393,8 +393,12 @@ class PhaseRetrievalWidget():
                     PR_seed.RAAR(loopnum)
                 elif method == 'DIF':
                     PR_seed.DIFFERNCE_MAP(loopnum)
+                elif method == 'ADMM':
+                    PR_seed.ADMM(loopnum)
+                elif method == 'ND':
+                    PR_seed.ND(loopnum, 0.02, 0.09)
                 elif method == 'Sup':
-                    PR_seed.Sup(Gaussiandelta, thrpara)
+                    PR_seed.Sup(Gaussiandelta, thrpara, hybrid_para)
                     if Gaussiandelta > support_smooth_width_end:
                         Gaussiandelta = Gaussiandelta * support_decay_rate
                         if threhold_update_method == 'random':
@@ -411,7 +415,7 @@ class PhaseRetrievalWidget():
                     PR_seed.End()
                     Support_final = PR_seed.get_support()
                     Modulus_final = PR_seed.get_img_Modulus()
-                    Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support(), phase_unwrap_method)
+                    Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support(), 0, phase_unwrap_method)
                     intensity_sum = intensity_sum + PR_seed.get_intensity()
 
                     # removing the symmetrical cases by fliping the images
@@ -429,9 +433,8 @@ class PhaseRetrievalWidget():
                         PR_seed.flip_img()
                         Support_final = PR_seed.get_support()
                         Modulus_final = PR_seed.get_img_Modulus()
-                        Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support(), phase_unwrap_method)
+                        Phase_final = -1.0 * np.flip(Phase_final)
                         err_ar[Seed, :] = np.array([Seed, np.sum(PR_seed.get_support()), PR_seed.get_Fourier_space_error(), PR_seed.get_Poisson_Likelihood(), PR_seed.get_Free_LogLikelihood(LLKmask), 1])
-                        sys.stdout.write(', flip:1')
                     else:
                         err_ar[Seed, :] = np.array([Seed, np.sum(PR_seed.get_support()), PR_seed.get_Fourier_space_error(), PR_seed.get_Poisson_Likelihood(), PR_seed.get_Free_LogLikelihood(LLKmask), 0])
             sys.stdout.write('\n')
@@ -464,7 +467,7 @@ class PhaseRetrievalWidget():
         self.para_dict['algorithm'] = algorithm
         self.para_dict['start_trial_num'] = start_trial_num
 
-        if int(algor_extend.count(('Sup', 1))) != 0:
+        if (int(algor_extend.count(('Sup', 1))) != 0):
             self.para_dict['support_update'] = True
             self.para_dict['support_smooth_width_begin'] = support_smooth_width_begin
             self.para_dict['support_smooth_width_end'] = support_smooth_width_end
@@ -472,6 +475,7 @@ class PhaseRetrievalWidget():
             self.para_dict['support_threshold_max'] = thrpara_max
             self.para_dict['support_update_loops'] = support_update_num
             self.para_dict['support_decay_rate'] = support_decay_rate
+            self.para_dict['hybrid_para'] = hybrid_para
             self.para_dict['threhold_update_method'] = threhold_update_method
             if 'increase' in threhold_update_method:
                 self.para_dict['threhold_increase_rate'] = thr_increase_rate
@@ -629,7 +633,7 @@ class PhaseRetrievalWidget():
                 Img = np.array(imgfile['Solutions/Seed%03d/image' % Seed], dtype=complex)
                 support = np.array(imgfile['Solutions/Seed%03d/support' % Seed], dtype=float)
                 Modulus = np.abs(Img)
-                Phase = pp.phase_corrector(np.angle(Img), support, 0)
+                Phase = pp.phase_corrector(np.angle(Img), support, 0, phase_unwrap_method)
                 Avr_Modulus = Avr_Modulus + Modulus
                 Avr_Phase = Avr_Phase + Phase
                 Avr_support = Avr_support + support
@@ -787,6 +791,26 @@ class PhaseRetrievalWidget():
         self.para_dict['Ortho_unit'] = Ortho_unit
         imgfile.close()
         return
+
+    def dataset_exists(self, dataset_group):
+        """
+        Check if the dataset exists in the file.
+
+        Parameters
+        ----------
+        dataset_group : str
+            The path of the dataset in the h5 file.
+
+        Returns
+        -------
+        exist : boolen
+            Whether the data group exist in the file.
+
+        """
+        imgfile = h5py.File(self.pathsaveimg, "r")
+        exist = (dataset_group in imgfile)
+        imgfile.close()
+        return exist
 
     def get_dataset(self, dataset_group):
         """
@@ -1412,7 +1436,7 @@ class PhaseRetrievalWidget():
         return
 
     def analysis_and_plot_3D(self, array_group, array_names, title, filename,
-                          save_image=True, save_as_vti=True, display_range=None):
+                             save_image=True, save_as_vti=True, display_range=None):
         data_description = self.get_para('data_description')
         if data_description == 'reciprocal_space_map_CDI':
             zd, yd, xd = self.get_para('data_shape')
@@ -1426,10 +1450,11 @@ class PhaseRetrievalWidget():
             zd, yd, xd = self.get_para('data_shape')
             unit = self.get_para('unit')
             voxel_size = ((2.0 * np.pi / zd / unit / 10.0), (2.0 * np.pi / yd / unit / 10.0), (2.0 * np.pi / xd / unit / 10.0))
-            self.add_para('voxel_size', voxel_size)
             q_vector = self.get_para('q_vector')
             phase_array_name = [array_name for array_name in array_names if 'Phase' in array_name][0]
-            self.BCDI_data_interpretation(array_group, phase_array_name, q_vector, voxel_size)
+            if not self.dataset_exists(array_group + '/' + phase_array_name.replace('Phase', 'Displacement')):
+                self.add_para('voxel_size', voxel_size)
+                self.BCDI_data_interpretation(array_group, phase_array_name, q_vector, voxel_size)
 
             array_names = list(array_names) + [phase_array_name.replace('Phase', 'Displacement'),
                                                phase_array_name.replace('Phase', 'strain_zz'),
@@ -1501,6 +1526,7 @@ class PhaseRetrievalWidget():
                                 title=title + '(orthonormalized)', subplot_config=subplot_config,
                                 save_image=save_image, filename=filename + "_orthonormalized")
         return
+
 
 def plt_result_2D_simple(plt_arrays, array_names, pathsave='', filename=''):
     """
@@ -1617,5 +1643,3 @@ def plt_result_3D_simple(plt_arrays, array_names, pathsave='', filename=''):
         plt.show()
     plt.close()
     return
-
-    

@@ -18,15 +18,15 @@ from pyCXIM.RSM.Calibration_6C import Calibration
 
 def calibration():
     # Inputs: general information
-    Calibration_type = 'detector'
+    # Calibration_type = 'detector'
     # Calibration_type = 'crystal infor'
     # Calibration_type = 'single Bragg 6C'
-    # Calibration_type = 'multiple Bragg 6C'
+    Calibration_type = 'multiple Bragg 6C'
     # Calibration_type = 'Calculate peak index'
 
     # Inputs: paths
     path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
-    pathsave = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_cathode"
+    pathsave = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Chiral_BFO"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
     detector = 'e4m'
 
@@ -38,21 +38,21 @@ def calibration():
     elif Calibration_type == 'crystal infor':
         surface_dir = np.array([0, 0, 1], dtype=float)
         inplane_dir = np.array([1, 0, 0], dtype=float)
-        lattice_constants = [3.905, 3.905, 3.905, 90.0, 90.0, 90.0]
+        lattice_constants = [3.791, 3.791, 3.791, 90.0, 90.0, 90.0]
 
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'single Bragg 6C':
-        p10_file = r"PVBM03"
-        scan_num = 7
+        p10_file = r"chiral_BFO_03"
+        scan_num = 256
         peak = np.array([1, 0, 3], dtype=float)
         # om, del, chi, phi, gamma, energy
         error_source = ['om', 'del', 'phi']
-        known_error_values = np.array([0, 0, -0.07216010425780271, 0, 0, 0], dtype=float)
+        known_error_values = np.array([0, 0, -0.3392776188960079, 0, 0, 0], dtype=float)
 
     # Inputs:Determine the U matrix based on measured Bragg peaks and their mill indexes
     elif Calibration_type == 'multiple Bragg 6C':
-        p10_file = r"PVBM03"
-        scan_num_ar = [8, 7]
+        p10_file = ["chiral_BFO_02", "chiral_BFO_03"]
+        scan_num_ar = [7, 256]
         peak_index_ar = np.array([[0, 0, 2], [1, 0, 3]], dtype=float)
 
     # Inputs:Determine the peak indexes based on the previously calculated U_matrix

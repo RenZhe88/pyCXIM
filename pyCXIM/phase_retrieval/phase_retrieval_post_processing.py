@@ -151,17 +151,11 @@ def phase_corrector(phase, support, cval=0.0, number_of_ffts=6):
 
     """
     phase = phase * support
-    phase = unwrap_phase(phase, number_of_ffts)
-    phase = phase * support
-    const = np.sum(phase) / np.sum(support)
-    i = 0
-    while np.abs(const - cval) > 0.1 and i < 10:
+    for i in range(10):
+        phase = unwrap_phase(phase, number_of_ffts)
         phase = phase * support
         const = np.sum(phase) / np.sum(support)
         phase = (phase - const + cval) * support
-        phase = unwrap_phase(phase, number_of_ffts)
-        i = i + 1
-    phase = phase * support
     return phase
 
 

@@ -30,8 +30,8 @@ class Calibration(object):
     3. The measured crystal orientation, which is determined by the two Bragg peaks.
 
     Now the code is implenmented for p10, p08 and 1w1a.
-    If you have a diffractometer at your beamline and want to use this calibration process.
-    Please contact the author renzhe@ihep.ac.cn
+    If you have a six circle diffractometer at your beamline and want to use this calibration process.
+    Please contact the author renzhe@ihep.ac.cn, renzhetu001@gmail.com
 
     Parameters
     ----------
@@ -520,7 +520,7 @@ class Calibration(object):
         """
         q_ar = np.zeros_like(peak_index_ar, dtype=float)
         for i, scan_num in enumerate(scan_num_ar):
-            if (type(sample_name_ar) == list) and (len(scan_num_ar) != len(sample_name_ar)):
+            if (type(sample_name_ar) == list) and (len(scan_num_ar) == len(sample_name_ar)):
                 sample_name = sample_name_ar[i]
             elif (type(sample_name_ar) == str):
                 sample_name = sample_name_ar
