@@ -64,7 +64,7 @@ def BCDI_preparation():
     # the folder that stores the raw data of the beamtime
     path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_cathode\WTY04"
+    pathsavefolder = r"F:\Work place 4\Temp"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
     pathcalib = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_cathode\calibration.txt'
@@ -95,8 +95,9 @@ def BCDI_preparation():
         print("peak at phi = %f" % (phi))
     scan_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
     delta = scan.get_motor_pos('del')
-    chi = scan.get_motor_pos('chi') - 90.0
+    chi = scan.get_motor_pos('chi')
     gamma = scan.get_motor_pos('gam')
+    mu = scan.get_motor_pos('mu')
     energy = scan.get_motor_pos('fmbenergy')
 
     calibinfor = InformationFileIO(pathcalib)
@@ -113,7 +114,7 @@ def BCDI_preparation():
     # Load the detector images
     scan.write_fio()
 
-    q_vector = cal_q_pos(pch[1:], [omega, delta, chi, phi, gamma, energy], [distance, pixelsize, det_rot, cch])
+    q_vector = cal_q_pos(pch[1:], [omega, delta, chi, phi, gamma, mu, energy], [distance, pixelsize, det_rot, cch])
     print(q_vector)
 
     leastsq_solution = least_squares(q_error_symmetric_peak, np.array([10.0, 10.0]), args=(q_vector, ))
@@ -124,7 +125,7 @@ def BCDI_preparation():
     additional_rotation_matrix = rotation_matrix.as_matrix()
 
     RSM_converter = RC2RSM_6C(scan_motor_ar, geometry,
-                              omega, delta, chi, phi, gamma, energy,
+                              omega, delta, chi, phi, gamma, mu, energy,
                               distance, pixelsize, det_rot, cch,
                               additional_rotation_matrix)
 
@@ -151,6 +152,7 @@ def BCDI_preparation():
     infor.add_para('chi', section_ar[2], chi)
     infor.add_para('phi', section_ar[2], phi)
     infor.add_para('gamma', section_ar[2], gamma)
+    infor.add_para('mu', section_ar[2], mu)
     infor.add_para('energy', section_ar[2], scan.get_motor_pos('fmbenergy'))
 
     infor.add_para('direct_beam_position', section_ar[2], list(cch))

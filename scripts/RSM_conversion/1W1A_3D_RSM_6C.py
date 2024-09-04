@@ -40,7 +40,7 @@ def RSM_6C():
 
     # Inputs: paths
     path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
-    pathsave = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\result"
+    pathsave = r"F:\Work place 4\Temp"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\badpix_mask.tif'
     pathcalib = r'F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\result\calibration.txt'
 
@@ -59,9 +59,10 @@ def RSM_6C():
     scan_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
     eta = scan.get_motor_pos('eta')
     delta = scan.get_motor_pos('del')
-    chi = scan.get_motor_pos('chi') - 90.0
+    chi = scan.get_motor_pos('chi')
     phi = scan.get_motor_pos('phi')
     nu = scan.get_motor_pos('nu')
+    mu = scan.get_motor_pos('mu')
     energy = scan.get_motor_pos('energy')
     scan.write_scan()
 
@@ -82,7 +83,7 @@ def RSM_6C():
     dataset, mask3D, pch, roi = scan.pilatus_load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)))
 
     RSM_converter = RC2RSM_6C(scan_motor_ar, geometry,
-                              eta, delta, chi, phi, nu, energy,
+                              eta, delta, chi, phi, nu, mu, energy,
                               distance, pixelsize, det_rot, cch,
                               additional_rotation_matrix)
 
@@ -119,6 +120,7 @@ def RSM_6C():
     infor.add_para('chi', section_ar[2], chi)
     infor.add_para('phi', section_ar[2], phi)
     infor.add_para('nu', section_ar[2], nu)
+    infor.add_para('mu', section_ar[2], mu)
 
     infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix.tolist())
     infor.add_para('direct_beam_position', section_ar[2], list(cch))

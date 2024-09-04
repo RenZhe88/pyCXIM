@@ -79,11 +79,11 @@ class Calibration(object):
 
         """
         if beamline == 'p10':
-            motor_names = ['om', 'del', 'chi', 'phi', 'gam', 'energy']
+            motor_names = ['om', 'del', 'chi', 'phi', 'gam', 'mu', 'energy']
         elif beamline == 'p08':
-            motor_names = ['om', 'tt', 'chi', 'phis', 'tth', 'energy']
+            motor_names = ['om', 'tt', 'chi', 'phis', 'tth', 'omh', 'energy']
         elif beamline == '1w1a':
-            motor_names = ['eta', 'del', 'chi', 'phi', 'nu', 'energy']
+            motor_names = ['eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy']
         else:
             raise KeyError('Now the code has only been implemented for the six circle diffractometer at P10 beamline, Desy and 1w1a beamline, BSRF! For other beamlines, please contact the author! renzhe@ihep.ac.cn')
 
@@ -156,19 +156,17 @@ class Calibration(object):
 
         if beamline == 'p10':
             scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            print(scan)
             energy = scan.get_motor_pos('fmbenergy')
             X_pos, Y_pos, int_ar = scan.eiger_peak_pos_per_frame()
         elif beamline == 'p08':
             scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            print(scan)
             energy = scan.get_motor_pos('energyfmb')
             X_pos, Y_pos, int_ar = scan.eiger_peak_pos_per_frame()
         elif beamline == '1w1a':
             scan = BSRFPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            print(scan)
             energy = scan.get_motor_pos('energy')
             X_pos, Y_pos, int_ar = scan.pilatus_peak_pos_per_frame()
+        print(scan)
         motor = scan.get_scan_motor()
         angle_ar = scan.get_scan_data(motor)
         pixelsize = scan.get_detector_pixelsize()
@@ -177,8 +175,8 @@ class Calibration(object):
         angle_ar = angle_ar[int_ar > np.amax(int_ar) * 0.5]
         X_pos = X_pos[int_ar > np.amax(int_ar) * 0.5]
         Y_pos = Y_pos[int_ar > np.amax(int_ar) * 0.5]
-        fit_x = np.polyfit(np.radians(angle_ar), X_pos, 1)
-        fit_y = np.polyfit(np.radians(angle_ar), Y_pos, 1)
+        fit_x = np.polyfit(np.tan(np.deg2rad(angle_ar)), X_pos, 1)
+        fit_y = np.polyfit(np.tan(np.deg2rad(angle_ar)), Y_pos, 1)
         distance = np.sqrt(fit_x[0]**2.0 + fit_y[0]**2.0) * pixelsize
         cch[0] = np.round(fit_y[1])
         cch[1] = np.round(fit_x[1])
@@ -189,9 +187,9 @@ class Calibration(object):
         print('detector rotation angle:     %f' % (-np.degrees(fit_x[0] / fit_y[0])))
 
         plt.plot(angle_ar, X_pos, 'r+', label='X position')
-        plt.plot(angle_ar, np.poly1d(fit_x)(np.radians(angle_ar)), 'r-', label='X fit')
+        plt.plot(angle_ar, np.poly1d(fit_x)(np.tan(np.deg2rad(angle_ar))), 'r-', label='X fit')
         plt.plot(angle_ar, Y_pos, 'b+', label='Y position')
-        plt.plot(angle_ar, np.poly1d(fit_y)(np.radians(angle_ar)), 'b-', label='Y fit')
+        plt.plot(angle_ar, np.poly1d(fit_y)(np.tan(np.deg2rad(angle_ar))), 'b-', label='Y fit')
         plt.xlabel("angle (degree)")
         plt.ylabel('Beam position (pixel)')
         plt.legend()
@@ -351,7 +349,7 @@ class Calibration(object):
         pixel_position : list
             The peak position on the detector in the form of [Y, X].
         motor_position : list
-            The motor position of the diffractometer in the order of ['om', 'del', 'chi', 'phi', 'gam', 'energy'] or ['eta', 'del', 'chi', 'phi', 'nu', 'energy'].
+            The motor position of the diffractometer in the order of ['om', 'del', 'chi', 'phi', 'gam', 'mu', 'energy'] or ['eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy'].
         detector_para : list
             The detector parameter from the calibration scan in the order of ['detector_distance', 'pixelsize', 'detector_rotation', 'direct_beam_position'].
 
@@ -361,11 +359,11 @@ class Calibration(object):
 
         if beamline == 'p10' or beamline == 'p08':
             scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            print(scan)
             pixel_position, motor_position = scan.load_6C_peak_infor()
         elif beamline == '1w1a':
             scan = BSRFPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
             pixel_position, motor_position = scan.load_6C_peak_infor()
+        print(scan)
 
         q_vector = cal_q_pos(pixel_position, motor_position, detector_para)
         self.infor.add_para('sample_name', self.section_ar[3] % (sample_name, scan_num), sample_name)
@@ -415,7 +413,7 @@ class Calibration(object):
         return error_ar
 
     def single_Bragg_peak_tilt_cal(self, sample_name, scan_num, peak_index, error_source,
-                                   known_error_values=np.zeros(6)):
+                                   known_error_values=np.zeros(7)):
         """
         Calculate offsets of certain motors according to a given Bragg peak.
 
@@ -430,7 +428,7 @@ class Calibration(object):
         error_source : list
             Three motors where the offset should be considered. For symmetric diffraction peak, this usually is ['om', 'del', 'chi'], and for asymmetric diffraction peak, this usually is ['om', 'del', 'phi'].
         known_error_values : list, optional
-            The known offsets values of the diffractometers in the order of ['om', 'del', 'chi', 'phi', 'gam', 'energy']. The default is np.zeros(6).
+            The known offsets values of the diffractometers in the order of ['om', 'del', 'chi', 'phi', 'gam', 'mu', 'energy']. The default is np.zeros(6).
 
         Returns
         -------
@@ -496,7 +494,7 @@ class Calibration(object):
         U_matrix = rotation_matrix.as_matrix()
         error_ar = np.array([])
         for i in np.arange(hkl_ar.shape[0]):
-            error = np.flip(np.dot(U_matrix, np.dot(B_matrix, hkl_ar[i, :]))) - q_ar[i, :]
+            error = np.dot(U_matrix, np.dot(B_matrix, hkl_ar[i, :])) - np.flip(q_ar[i, :])
             error_ar = np.append(error_ar, error)
         return error_ar
 
@@ -541,7 +539,7 @@ class Calibration(object):
         expected_U_matrix = self.infor.get_para_value('expected_U_matrix', self.section_ar[2])
         print('expected_UB')
         print(np.around(expected_U_matrix, 2))
-        additional_rotation_matrix = np.dot(np.flip(expected_U_matrix, axis=0), np.linalg.inv(np.flip(U_matrix, axis=0)))
+        additional_rotation_matrix = np.flip(np.dot(expected_U_matrix, np.linalg.inv(U_matrix)))
         additional_rotation = R.from_matrix(additional_rotation_matrix)
         print('Angular deviations')
         angular_deviations = additional_rotation.as_euler('yxz', degrees=True)
@@ -612,7 +610,7 @@ class Calibration(object):
         cch = detector_para[3]
 
         expected_q = np.flip(np.dot(U_matrix, np.dot(B_matrix, aimed_hkl)))
-        position_parameters = np.zeros(6)
+        position_parameters = np.zeros(7)
         para_selected = []
         for i, element in enumerate(motor_names):
             if element in rotation_axis:
@@ -622,9 +620,8 @@ class Calibration(object):
         para_selected = np.array(para_selected, dtype='bool')
         if limitations is None:
             limitations = ([-180, -180, -180], [180, 180, 180])
-        offsets = least_squares(self.q_error_single_peak, [10.0, 10.0, -10.0], bounds=limitations, args=(cch, position_parameters, detector_para, para_selected, expected_q, given_motor_values))
+        offsets = least_squares(self.q_error_single_peak, [10.0, 10.0, 10.0], bounds=limitations, args=(cch, position_parameters, detector_para, para_selected, expected_q, given_motor_values))
         given_motor_values[para_selected] = offsets.x
-        given_motor_values[2] += 90.0
-        for i in range(6):
+        for i in range(len(motor_names)):
             print('%s = %.3f' % (motor_names[i], given_motor_values[i]))
         return

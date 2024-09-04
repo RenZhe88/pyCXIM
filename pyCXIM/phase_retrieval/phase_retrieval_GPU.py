@@ -297,23 +297,23 @@ class PhaseRetrievalFuns():
             self.CenterSup()
         return
 
-    # def ND(self, num_ND_loop, vl, vu):
-    #     if 'ND' in self.loop_dict.keys():
-    #         self.loop_dict['ND'] += num_ND_loop
-    #     else:
-    #         self.loop_dict['ND'] = num_ND_loop
-    #     self.print_loop_num()
+    def ND(self, num_ND_loop, vl, vu):
+        if 'ND' in self.loop_dict.keys():
+            self.loop_dict['ND'] += num_ND_loop
+        else:
+            self.loop_dict['ND'] = num_ND_loop
+        self.print_loop_num()
 
-    #     self.img = self.img * self.support
-    #     img_phase = torch.angle(self.img)
-    #     img_modulus = torch.abs(self.img)
-    #     for i in range(num_ND_loop):
-    #         img_max = torch.amax(img_modulus)
-    #         img_modulus -= vl * img_max
-    #         img_modulus = img_modulus / (1 - vu - vl)
-    #         img_modulus = torch.clip(img_modulus, 0, (1 - vu) * img_max)
-    #     self.img = torch.multiply(img_modulus, torch.exp(1j * img_phase))
-    #     return
+        self.img = self.img * self.support
+        img_phase = torch.angle(self.img)
+        img_modulus = torch.abs(self.img)
+        for i in range(num_ND_loop):
+            img_max = torch.amax(img_modulus)
+            img_modulus -= vl * img_max
+            img_modulus = img_modulus / (1 - vu - vl)
+            img_modulus = torch.clip(img_modulus, 0, (1 - vu) * img_max)
+        self.img = torch.multiply(img_modulus, torch.exp(1j * img_phase))
+        return
 
     def ER(self, num_ER_loop):
         """
@@ -809,11 +809,11 @@ class PhaseRetrievalFuns():
         """
         steps = []
         # Pattern 0 matches all three types of pattern like RAAR**50, (HIO**20*ER**20)**20, Sup
-        pattern0 = r'(\w+\*\*\d+)|(\(.+?\)\*\*\d+)|(\w+)'
+        pattern0 = r'(\w+\*\*\d+)|(\(.+?\)\*\*\d+)|([a-zA-Z]+)'
         # Pattern 1 matches pattern like RAAR**50
         pattern1 = r'(\w+)\*\*(\d+)'
         # Pattern 2 matches pattern like Sup
-        pattern2 = r'(\w+)'
+        pattern2 = r'([a-zA-Z]+)'
         # Pattern 3 matches pattern like (HIO**20*ER**20)**20
         pattern3 = r'\((.+?)\)\*\*(\d+)'
 

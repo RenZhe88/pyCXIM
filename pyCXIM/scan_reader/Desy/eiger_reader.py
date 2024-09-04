@@ -956,6 +956,8 @@ class DesyEigerImporter(DesyScanImporter):
             The region of interest. If not given, the complete detector image will be used. The default is None.
         cut_width : list, optional
             The cut width in Y, X direction. The default is [50, 50].
+        geometry : str, optional
+            Can be selected between 'out_of_plane' and 'in_plane'. The default is 'out_of_plane'.
 
         Returns
         -------
@@ -976,8 +978,9 @@ class DesyEigerImporter(DesyScanImporter):
                 omega = self.get_motor_pos('om')
                 phi = scan_motor_ar[int(pch[0])]
             delta = self.get_motor_pos('tt')
-            chi = self.get_motor_pos('chi') - 90.0
+            chi = self.get_motor_pos('chi')
             gamma = self.get_motor_pos('tth')
+            mu = self.get_motor_pos('omh')
             energy = self.get_motor_pos('energyfmb')
         elif self.beamline == 'p10':
             if scan_motor == 'om':
@@ -987,10 +990,12 @@ class DesyEigerImporter(DesyScanImporter):
                 omega = self.get_motor_pos('om')
                 phi = scan_motor_ar[int(pch[0])]
             delta = self.get_motor_pos('del')
-            chi = self.get_motor_pos('chi') - 90.0
+            chi = self.get_motor_pos('chi')
             gamma = self.get_motor_pos('gam')
+            mu = self.get_motor_pos('mu')
             energy = self.get_motor_pos('fmbenergy')
-        motor_position = np.array([omega, delta, chi, phi, gamma, energy], dtype=float)
+
+        motor_position = np.array([omega, delta, chi, phi, gamma, mu, energy], dtype=float)
         pixel_position = np.array([pch[1], pch[2]])
         return pixel_position, motor_position
 

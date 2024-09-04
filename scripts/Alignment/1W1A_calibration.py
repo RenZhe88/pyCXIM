@@ -18,14 +18,14 @@ from pyCXIM.RSM.Calibration_6C import Calibration
 def calibration():
     # Inputs: general information
     # Calibration_type = 'detector'
-    Calibration_type = 'crystal infor'
+    # Calibration_type = 'crystal infor'
     # Calibration_type = 'single Bragg 6C'
     # Calibration_type = 'multiple Bragg 6C'
-    # Calibration_type = 'hkl_to_angles'
+    Calibration_type = 'hkl_to_angles'
 
     # Inputs: paths
     path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
-    pathsave = r"F:\Work place 4\sample\XRD"
+    pathsave = r"F:\Work place 4\Temp"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\badpix_mask.tif'
     detector = '300K-A'
 
@@ -44,9 +44,9 @@ def calibration():
         file_1w1a = r"sample_1"
         scan_num = 9
         peak = np.array([-1.0, 0, 3.0], dtype=float)
-        # 'eta', 'del', 'chi', 'phi', 'nu', 'energy'
+        # 'eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy'
         error_source = ['eta', 'del', 'phi']
-        known_error_values = np.array([0, 0, 0.3217048221225212, 0, 0, 0], dtype=float)
+        known_error_values = np.array([0, 0, 0.3216347582932135, 0, 0, 0, 0], dtype=float)
 
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'multiple Bragg 6C':
@@ -55,10 +55,10 @@ def calibration():
         peak_index_ar = np.array([[0, 0, 2], [-1, 0, 3]], dtype=float)
 
     elif Calibration_type == 'hkl_to_angles':
-        # 'eta', 'del', 'chi', 'phi', 'nu', 'energy'
+        # 'eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy'
         aimed_hkl = [0, 0, 2.0]
         rotation_source = ['eta', 'del', 'chi']
-        fixed_values = np.array([0, 0, 0, 0, 0, 8016.564], dtype=float)
+        fixed_values = np.array([0, 0, 90, 0, 0, 0, 8016.564], dtype=float)
         limitations = None
 
     Calibinfor = Calibration(pathsave)

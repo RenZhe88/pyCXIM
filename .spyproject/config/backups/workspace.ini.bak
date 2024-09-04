@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['..\\X-ray diffraction\\BCDI\\20240603_BFO_LiNiMnO2_P10_Desy\\P10_BCDI_preparation_symmetric_20240725.py', 'scripts\\phase_retrieval\\phase_retrieval_3D.py', 'pyCXIM\\phase_retrieval\\phase_retrieval_post_processing.py', 'pyCXIM\\RSM\\Calibration_6C.py', 'scripts\\RSM_conversion\\P10_3D_RSM_6C.py', '..\\test\\svd_analysis.py', '..\\X-ray diffraction\\BCDI\\20240603_BFO_LiNiMnO2_P10_Desy\\P10_BCDI_preparation_symmetric_20240722.py']
+recent_files = ['..\\X-ray diffraction\\BCDI\\20240603_BFO_LiNiMnO2_P10_Desy\\P10_BCDI_preparation_symmetric_20240722.py', 'pyCXIM\\RSM\\RC2RSM_6C.py', 'pyCXIM\\RSM\\RSM_post_processing.py', 'scripts\\phase_retrieval\\phase_retrieval_3D.py', 'scripts\\RSM_conversion\\P10_BCDI_preparation_2C.py']
 
 [main]
 version = 0.2.0

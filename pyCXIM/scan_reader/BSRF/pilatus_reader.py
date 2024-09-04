@@ -598,10 +598,11 @@ class BSRFPilatusImporter(BSRFScanImporter):
             eta = self.get_motor_pos('eta')
             phi = scan_motor_ar[int(pch[0])]
         delta = self.get_motor_pos('del')
-        chi = self.get_motor_pos('chi') - 90.0
+        chi = self.get_motor_pos('chi')
         nu = self.get_motor_pos('nu')
+        mu = self.get_motor_pos('mu')
         energy = self.get_motor_pos('energy')
 
-        motor_position = np.array([eta, delta, chi, phi, nu, energy], dtype=float)
+        motor_position = np.array([eta, delta, chi, phi, nu, mu, energy], dtype=float)
         pixel_position = np.array([pch[1], pch[2]])
         return pixel_position, motor_position

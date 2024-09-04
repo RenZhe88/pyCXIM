@@ -260,7 +260,8 @@ class PhaseRetrievalWidget():
                              threhold_update_method='exp_increase',
                              support_para_update_precent=0.8, thrpara_min=0.1,
                              thrpara_max=0.12, support_smooth_width_begin=3.5,
-                             support_smooth_width_end=1.0, hybrid_para=0.0, detwin_axis=0,
+                             support_smooth_width_end=1.0, hybrid_para_begin=0.0,
+                             hybrid_para_end=0.0, detwin_axis=0,
                              flip_condition='Support', first_seed_flip=False,
                              phase_unwrap_method=6, display_image_num=5):
         """
@@ -296,6 +297,14 @@ class PhaseRetrievalWidget():
             The standard deviation of Gaussian kernal used at the begining of the shrink wrap process. The default is 3.5.
         support_smooth_width_end : float, optional
             The standard deviation of Gaussian kernal to be reached at the end of the shrink wrap process. The default is 1.0.
+        hybrid_para_begin : float, optional
+            The beginning hybrid parameter for the hybrid shrink-wrap method.
+            If hybrid parameter is 0, tranditional shrink-wrap method is applied.
+            Else, the integrated modulus during the phase retrieval process will be considered during the support update process.
+            The default is 0.0.
+        hybrid_para_end : float, optional
+            The end hybrid parameter for the hybrid shrink-wrap method.
+            The default is 0.0.
         detwin_axis : int|tuple, optional
             Axis for detwin operation. The default is 0.
         flip_condition : str, optional
@@ -375,8 +384,11 @@ class PhaseRetrievalWidget():
             if int(algor_extend.count(('Sup', 1))) > 0:
                 Gaussiandelta = support_smooth_width_begin
                 thrpara = thrpara_min
+                hybrid_para = hybrid_para_begin
+
                 support_update_num = np.around(algor_extend.count(('Sup', 1)) * support_para_update_precent)
                 support_decay_rate = np.power(support_smooth_width_end / support_smooth_width_begin, 1.0 / support_update_num)
+                hybrid_para_increase_rate = (hybrid_para_end - hybrid_para_begin) / support_update_num
                 if threhold_update_method == 'exp_increase':
                     thr_increase_rate = np.power(thrpara_max / thrpara_min, 1.0 / support_update_num)
                 elif threhold_update_method == 'lin_increase':
@@ -401,6 +413,7 @@ class PhaseRetrievalWidget():
                     PR_seed.Sup(Gaussiandelta, thrpara, hybrid_para)
                     if Gaussiandelta > support_smooth_width_end:
                         Gaussiandelta = Gaussiandelta * support_decay_rate
+                        hybrid_para += hybrid_para_increase_rate
                         if threhold_update_method == 'random':
                             thrpara = thrpara_min + np.random.rand() * (thrpara_max - thrpara_min)
                         elif threhold_update_method == 'exp_increase':
@@ -475,7 +488,8 @@ class PhaseRetrievalWidget():
             self.para_dict['support_threshold_max'] = thrpara_max
             self.para_dict['support_update_loops'] = support_update_num
             self.para_dict['support_decay_rate'] = support_decay_rate
-            self.para_dict['hybrid_para'] = hybrid_para
+            self.para_dict['hybrid_para_begin'] = hybrid_para_begin
+            self.para_dict['hybrid_para_end'] = hybrid_para_end
             self.para_dict['threhold_update_method'] = threhold_update_method
             if 'increase' in threhold_update_method:
                 self.para_dict['threhold_increase_rate'] = thr_increase_rate

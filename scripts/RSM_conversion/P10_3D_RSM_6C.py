@@ -28,7 +28,7 @@ def RSM_6C():
     year = "2024"
     beamtimeID = "11018562"
     p10_file = r"PVBM03"
-    scan_num = 17
+    scan_num = 16
     detector = 'e4m'
     geometry = 'out_of_plane'
 
@@ -36,14 +36,14 @@ def RSM_6C():
     roi = [150, 1800, 1338 - 600, 1338 + 600]
 
     # Inputs: reciprocal space box size in pixels
-    save_full_3D_RSM = True
-    generating_3D_vtk_file = True
+    save_full_3D_RSM = False
+    generating_3D_vtk_file = False
 
     # Inputs: paths
     path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
-    pathsave = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\PVBM_STO\Sample3_PVBM8_STO"
+    pathsave = r"F:\Work place 4\Temp"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
-    pathcalib = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\PVBM_STO\Sample3_PVBM8_STO\calibration.txt'
+    pathcalib = r'F:\Work place 4\Temp\calibration.txt'
 
     # %% Generate the RSM
     print("#################")
@@ -60,9 +60,10 @@ def RSM_6C():
     scan_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
     omega = scan.get_motor_pos('om')
     delta = scan.get_motor_pos('del')
-    chi = scan.get_motor_pos('chi') - 90.0
+    chi = scan.get_motor_pos('chi')
     phi = scan.get_motor_pos('phi')
     gamma = scan.get_motor_pos('gam')
+    mu = scan.get_motor_pos('mu')
     energy = scan.get_motor_pos('fmbenergy')
     scan.write_scan()
 
@@ -78,12 +79,14 @@ def RSM_6C():
     distance = calibinfor.get_para_value('detector_distance', section='Detector calibration')
     pixelsize = calibinfor.get_para_value('pixelsize', section='Detector calibration')
     det_rot = calibinfor.get_para_value('detector_rotation', section='Detector calibration')
-    additional_rotation_matrix = np.array(calibinfor.get_para_value('additional_rotation_matrix', section='Calculated UB matrix'), dtype=float)
+    additional_rotation_matrix = calibinfor.get_para_value('additional_rotation_matrix', section='Calculated UB matrix')
+    if additional_rotation_matrix is not None:
+        additional_rotation_matrix = np.array(additional_rotation_matrix, dtype=float)
 
     dataset, mask3D, pch, roi = scan.eiger_load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)))
 
     RSM_converter = RC2RSM_6C(scan_motor_ar, geometry,
-                              omega, delta, chi, phi, gamma, energy,
+                              omega, delta, chi, phi, gamma, mu, energy,
                               distance, pixelsize, det_rot, cch,
                               additional_rotation_matrix)
 
@@ -91,7 +94,7 @@ def RSM_6C():
     rebinfactor = RSM_converter.cal_rebinfactor()
 
     # Finding the maximum peak position
-    print("peak at omega = %.2f, delta = %.2f, chi = %.2f, phi = %.2f, gamma = %.2f" % (omega, delta, chi, phi, gamma))
+    print("peak at omega = %.2f, delta = %.2f, chi = %.2f, phi = %.2f, gamma = %.2f, mu = %.2f" % (omega, delta, chi, phi, gamma, mu))
 
     # writing the scan information to the aimed file
     section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map']
@@ -120,9 +123,11 @@ def RSM_6C():
     infor.add_para('chi', section_ar[2], chi)
     infor.add_para('phi', section_ar[2], phi)
     infor.add_para('gamma', section_ar[2], gamma)
+    infor.add_para('mu', section_ar[2], mu)
     infor.add_para('energy', section_ar[2], scan.get_motor_pos('fmbenergy'))
 
-    infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix.tolist())
+    if additional_rotation_matrix is not None:
+        infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix.tolist())
     infor.add_para('direct_beam_position', section_ar[2], list(cch))
     infor.add_para('detector_distance', section_ar[2], distance)
     infor.add_para('pixelsize', section_ar[2], pixelsize)

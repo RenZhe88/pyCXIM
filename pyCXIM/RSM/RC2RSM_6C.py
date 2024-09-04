@@ -59,7 +59,7 @@ class RC2RSM_6C(object):
     """
 
     def __init__(self, scan_motor_ar, geometry='out_of_plane',
-                 omega=0, delta=0, chi=0, phi=0, gamma=0, energy=8000,
+                 omega=0, delta=0, chi=0, phi=0, gamma=0, mu=0, energy=8000,
                  distance=1830, pixelsize=0.075, det_rot=0, cch=[0, 0],
                  additional_rotation_matrix=None):
 
@@ -71,11 +71,13 @@ class RC2RSM_6C(object):
         self.chi = np.deg2rad(chi)
         self.phi = np.deg2rad(phi)
         self.gamma = np.deg2rad(gamma)
+        self.mu = np.deg2rad(mu)
         self.det_rot = np.deg2rad(det_rot)
         self.distance = distance
         self.pixelsize = pixelsize
         self.energy = energy
         self.cch = cch
+
         if additional_rotation_matrix is None:
             self.additional_rotation_matrix = np.eye(3)
             print('calibration rotation matrix does not exist?')
@@ -115,7 +117,7 @@ class RC2RSM_6C(object):
             self.phi = self.scan_motor_ar[int(pch[0])]
 
         pixel_position = pch[1:]
-        motor_position = [self.omega, self.delta, self.chi, self.phi, self.gamma, self.energy]
+        motor_position = [self.omega, self.delta, self.chi, self.phi, self.gamma, self.mu, self.energy]
         detector_para = [self.distance, self.pixelsize, self.det_rot, self.cch]
         q_vector = cal_q_pos(pixel_position, motor_position, detector_para, DEG=False)
         q_vector = np.dot(self.additional_rotation_matrix, q_vector)
@@ -186,45 +188,64 @@ class RC2RSM_6C(object):
         """
         step_C = self.distance * self.scan_step / self.pixelsize
 
-        if self.geometry == 'out_of_plane':
-            flip_matrix = np.array([[1, 0, 0],
-                                    [0, -1, 0],
-                                    [0, 0, -1]])
-            det_rot_matrix = np.array([[1, 0, 0],
-                                       [0, np.cos(self.det_rot), -np.sin(self.det_rot)],
-                                       [0, np.sin(self.det_rot), np.cos(self.det_rot)]])
-            rocking_matrix = np.array([[(np.cos(self.omega) - np.cos(self.delta - self.omega)) * step_C, np.cos(self.delta - self.omega), 0],
-                                       [0, 0, 1],
-                                       [(np.sin(self.delta - self.omega) + np.sin(self.omega)) * step_C, -np.sin(self.delta - self.omega), 0]])
-            chi_transform = np.array([[np.cos(self.chi), -np.sin(self.chi), 0],
-                                      [np.sin(self.chi), np.cos(self.chi), 0],
-                                      [0, 0, 1]])
-            phi_transform = np.array([[1, 0, 0],
-                                      [0, np.cos(self.phi), np.sin(self.phi)],
-                                      [0, -np.sin(self.phi), np.cos(self.phi)]])
+        flip_matrix = np.array([[1, 0, 0],
+                                [0, -1, 0],
+                                [0, 0, -1]])
+        det_rot_transform = np.array([[np.cos(self.det_rot), -np.sin(self.det_rot), 0],
+                                      [np.sin(self.det_rot), np.cos(self.det_rot), 0],
+                                      [0, 0, 1.0]])
+        delta_transform = np.array([[np.cos(self.delta), 0, np.sin(self.delta)],
+                                    [0, 1, 0],
+                                    [-np.sin(self.delta), 0, np.cos(self.delta)]])
+        gamma_transform = np.array([[1, 0, 0],
+                                    [0, np.cos(self.gamma), np.sin(self.gamma)],
+                                    [0, -np.sin(self.gamma), np.cos(self.gamma)]])
+        mu_transform = np.array([[1.0, 0, 0],
+                                 [0, np.cos(self.mu), -np.sin(self.mu)],
+                                 [0, np.sin(self.mu), np.cos(self.mu)]])
+        omega_transform = np.array([[np.cos(self.omega), 0, -np.sin(self.omega)],
+                                    [0, 1, 0],
+                                    [np.sin(self.omega), 0, np.cos(self.omega)]])
+        chi_transform = np.array([[np.cos(self.chi - np.pi / 2.0), -np.sin(self.chi - np.pi / 2.0), 0],
+                                  [np.sin(self.chi - np.pi / 2.0), np.cos(self.chi - np.pi / 2.0), 0],
+                                  [0, 0, 1]])
+        phi_transform = np.array([[1, 0, 0],
+                                  [0, np.cos(self.phi), np.sin(self.phi)],
+                                  [0, -np.sin(self.phi), np.cos(self.phi)]])
 
+        if self.geometry == 'out_of_plane':
+
+            matrix1 = np.dot(mu_transform,
+                             np.dot(gamma_transform,
+                                    np.dot(delta_transform,
+                                           det_rot_transform)))
+
+            matrix2 = np.dot(phi_transform, np.dot(chi_transform, omega_transform))
+
+            matrix3 = np.array([[step_C * (np.cos(self.mu) - matrix1[2, 2]), matrix1[0, 0], matrix1[0, 1]],
+                                [0, matrix1[1, 0], matrix1[1, 1]],
+                                [step_C * matrix1[0, 2], matrix1[2, 0], matrix1[2, 1]]])
             transformation_matrix = np.dot(self.additional_rotation_matrix,
-                                           np.dot(phi_transform,
-                                                  np.dot(chi_transform,
-                                                         np.dot(rocking_matrix,
-                                                                np.dot(det_rot_matrix, flip_matrix)))))
+                                           np.dot(matrix2,
+                                                  np.dot(matrix3, flip_matrix)))
         elif self.geometry == 'in_plane':
-            flip_matrix = np.array([[1, 0, 0],
-                                    [0, -1, 0],
-                                    [0, 0, -1]])
-            det_rot_matrix = np.array([[1, 0, 0],
-                                       [0, np.cos(self.det_rot), -np.sin(self.det_rot)],
-                                       [0, np.sin(self.det_rot), np.cos(self.det_rot)]])
-            delta_transform = np.array([[np.cos(self.delta), 0, np.sin(self.delta)],
-                                        [0, 1, 0],
-                                        [-np.sin(self.delta), 0, np.cos(self.delta)]])
-            rocking_matrix = np.array([[0, 1, 0],
-                                       [(np.cos(self.phi + self.gamma) - np.cos(self.phi)) * step_C, 0, np.cos(self.gamma + self.phi)],
-                                       [(np.sin(self.phi) - np.sin(self.phi + self.gamma)) * step_C, 0, -np.sin(self.phi + self.gamma)]])
+            matrix1 = np.dot(phi_transform,
+                             np.dot(chi_transform,
+                                    np.dot(omega_transform,
+                                           np.dot(mu_transform,
+                                                  np.dot(gamma_transform,
+                                                         np.dot(delta_transform,
+                                                                det_rot_transform))))))
+            matrix2 = np.dot(phi_transform,
+                             np.dot(chi_transform,
+                                    np.dot(omega_transform,
+                                           mu_transform)))
+            matrix3 = np.array([[0, matrix1[0, 0], matrix1[0, 1]],
+                                [step_C * (matrix1[2, 2] - matrix2[2, 2]), matrix1[1, 0], matrix1[1, 1]],
+                                [step_C * (matrix2[1, 2] - matrix1[1, 2]), matrix1[2, 0], matrix1[2, 1]]])
             transformation_matrix = np.dot(self.additional_rotation_matrix,
-                                           np.dot(rocking_matrix,
-                                                  np.dot(delta_transform,
-                                                         np.dot(det_rot_matrix, flip_matrix))))
+                                           np.dot(matrix3, flip_matrix))
+
         transformation_matrix = transformation_matrix / rebinfactor
         return transformation_matrix
 
@@ -270,10 +291,6 @@ class RC2RSM_6C(object):
         RSM_unit = self.units * rebinfactor
         q_center = self.cal_abs_q_pos(pch)
         q_origin = q_center - np.ptp(corners_q, axis=0) / 2.0
-
-        if self.geometry == 'in_plane':
-            q_origin[[0, 1]] = q_origin[[1, 0]]
-            new_shape[[0, 1]] = new_shape[[1, 0]]
 
         print("number of points for the reciprocal space:")
         print(" qz  qy  qx")
@@ -343,11 +360,11 @@ def cal_q_pos(pixel_position, motor_position, detector_para, DEG=True):
         q_vector = [qz, qy, qx] in inverse angstrom.
 
     """
-    omega, delta, chi, phi, gamma, energy = motor_position
+    omega, delta, chi, phi, gamma, mu, energy = motor_position
     distance, pixelsize, det_rot, cch = detector_para
 
     if DEG:
-        omega, delta, chi, phi, gamma, det_rot = np.deg2rad([omega, delta, chi, phi, gamma, det_rot])
+        omega, delta, chi, phi, gamma, mu, det_rot = np.deg2rad([omega, delta, chi, phi, gamma, mu, det_rot])
 
     pixel_distance = np.linalg.norm([distance, (cch[0] - pixel_position[0]) * pixelsize, (cch[1] - pixel_position[1]) * pixelsize])
     q_vector = np.array([cch[0] - pixel_position[0], cch[1] - pixel_position[1], distance / pixelsize])
@@ -364,12 +381,16 @@ def cal_q_pos(pixel_position, motor_position, detector_para, DEG=True):
                                 [0, -np.sin(gamma), np.cos(gamma)]])
     q_vector = np.dot(gamma_transform, q_vector)
     q_vector = q_vector - np.array([0, 0, pixel_distance / pixelsize])
+    mu_transform = np.array([[1.0, 0, 0],
+                             [0, np.cos(mu), -np.sin(mu)],
+                             [0, np.sin(mu), np.cos(mu)]])
+    q_vector = np.dot(mu_transform, q_vector)
     omega_transform = np.array([[np.cos(omega), 0, -np.sin(omega)],
                                 [0, 1, 0],
                                 [np.sin(omega), 0, np.cos(omega)]])
     q_vector = np.dot(omega_transform, q_vector)
-    chi_transform = np.array([[np.cos(chi), -np.sin(chi), 0],
-                              [np.sin(chi), np.cos(chi), 0],
+    chi_transform = np.array([[np.cos(chi - np.pi / 2.0), -np.sin(chi - np.pi / 2.0), 0],
+                              [np.sin(chi - np.pi / 2.0), np.cos(chi - np.pi / 2.0), 0],
                               [0, 0, 1]])
     q_vector = np.dot(chi_transform, q_vector)
     phi_transform = np.array([[1, 0, 0],

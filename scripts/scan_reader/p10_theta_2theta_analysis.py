@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+Treat and plot the theta-2theta scans.
+
+
 Created on Tue Jul 30 16:26:36 2024
 
 @author: renzh
@@ -17,6 +20,7 @@ from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.RSM.TT2RSM import det2q_2D
 
 if __name__ == '__main__':
+    # %% Input
     scan_num = 3
     p10_newfile = "xpcs_liquid_Sample1_Cap1_a"
     rebinfactor = 5.0
@@ -27,6 +31,9 @@ if __name__ == '__main__':
     pathsavefolder = r"E:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_liquid"
     path_calib = r'E:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_liquid\calibration.txt'
 
+    delta_offset = 0.0
+    energy_offset = 0.0
+    # %%
     calibinfor = InformationFileIO(path_calib)
     calibinfor.infor_reader()
     cch = calibinfor.get_para_value('direct_beam_position', section='Detector calibration')
@@ -43,8 +50,6 @@ if __name__ == '__main__':
     gamma = scan.get_motor_pos('gam')
     energy = scan.get_motor_pos('fmbenergy')
 
-    delta_offset = 0.0
-    energy_offset = 0.0
     delta_pos += delta_offset
     energy += energy_offset
 

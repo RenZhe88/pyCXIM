@@ -28,9 +28,9 @@ def BCDI_preparation():
 
     # Inputs: general information
     year = "2021"
-    beamtimeID = "11013318"
-    p10_newfile = 'B12SYNS1P1'
-    scan_num = 144
+    beamtimeID = "11012366"
+    p10_newfile = 'B3_syn_S4'
+    scan_num = 136
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -39,30 +39,30 @@ def BCDI_preparation():
     # qz_direction = 'diffraction vector direction'
 
     # Inputs: Detector parameters
-    detector_distance = 1827.3602090248223
+    detector_distance = 1827.7768813447321
     pixelsize = 0.075
     # Direct beam position on the detector Y, X
-    cch = [1038, 1341]
+    cch = [1049, 1341]
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [300, 300]
+    wxy = [250, 250]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [400, 1200, 1000, 1700]
+    roi = [1000, 1700, 1000, 1700]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'maximum integration'
     # Half size for the direct cut in pixels
     DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [64, 30, 30]
-    use_prefilter = True
+    RSM_bs = [80, 80, 80]
+    use_prefilter = False
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20211004_P10_BFO_Pt\raw"
+    path = r"F:\Raw Data\20210701_P10_FeNi_islands\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane"
+    pathsavefolder = r"F:\Work place 4\sample\XRD\High strain test\20210701_FeNi_islands_Marie_Ingrid"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
