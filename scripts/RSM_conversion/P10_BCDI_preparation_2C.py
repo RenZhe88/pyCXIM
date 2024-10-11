@@ -27,10 +27,10 @@ def BCDI_preparation():
     Functions_selected = ['Gif', 'Reciprocal_space_map', '2D_cuts']
 
     # Inputs: general information
-    year = "2021"
-    beamtimeID = "11012366"
-    p10_newfile = 'B3_syn_S4'
-    scan_num = 136
+    year = "2023"
+    beamtimeID = "11017662"
+    p10_newfile = 'Pt001'
+    scan_num = 156
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -39,14 +39,14 @@ def BCDI_preparation():
     # qz_direction = 'diffraction vector direction'
 
     # Inputs: Detector parameters
-    detector_distance = 1827.7768813447321
+    detector_distance = 1829.0575596879414
     pixelsize = 0.075
     # Direct beam position on the detector Y, X
-    cch = [1049, 1341]
+    cch = [1048, 1340]
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [250, 250]
+    wxy = [300, 300]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [1000, 1700, 1000, 1700]
+    roi = [500, 1100, 1500, 2000]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'maximum integration'
     # Half size for the direct cut in pixels
@@ -60,9 +60,9 @@ def BCDI_preparation():
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20210701_P10_FeNi_islands\raw"
+    path = r"F:\Raw Data\20230925_P10_BFO_Pt_LiNiMnO2_AlScN\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\sample\XRD\High strain test\20210701_FeNi_islands_Marie_Ingrid"
+    pathsavefolder = r"F:\Work place 4\sample\XRD\High strain test\20230924_Pt_islands_Zhe"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 

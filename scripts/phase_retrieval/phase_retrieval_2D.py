@@ -38,14 +38,15 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 def phase_retrieval_2D(scan_num):
     # %%Input
     starting_time = time.time()
-    path_scan_infor = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Chiral_BFO_02\chiral_BFO_03_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
+    path_scan_infor = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\polarized_BFO_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
     SeedNum = 100
     # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
     data_description = 'cutqz'
-    pathsave = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Chiral_BFO_02\chiral_BFO_03_%05d\cutqz' % scan_num
+    pathsave = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\polarized_BFO_%05d\cutqz' % scan_num
     intensity_file = "%s.npy" % data_description
     mask_file = "%s_mask.npy" % data_description
 
+    precision = '64'
     algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
     # algorithm = "DIF**200*DETWIN*(RAAR**50*ER**10)**40"
 
@@ -78,12 +79,12 @@ def phase_retrieval_2D(scan_num):
     threhold_update_method = 'exp_increase'
     # threhold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
-    thrpara_min = 0.12
-    thrpara_max = 0.15
+    thrpara_min = 0.08
+    thrpara_max = 0.10
     support_smooth_width_begin = 3.5
-    support_smooth_width_end = 0.5
-    hybrid_para_begin = 0.3
-    hybrid_para_end = 0.3
+    support_smooth_width_end = 1.0
+    hybrid_para_begin = 0.0
+    hybrid_para_end = 0.0
 
     # Input: parameters for the detwin operation
     detwin_axis = 0
@@ -92,7 +93,7 @@ def phase_retrieval_2D(scan_num):
     # flip_condition = 'Support'
     flip_condition = 'Phase'
     # flip_condition ='Modulus'
-    first_seed_flip = False
+    first_seed_flip = True
     phase_unwrap_method = 0
 
     # Input: Parameters for further analysis like SVD and average
@@ -150,7 +151,7 @@ def phase_retrieval_2D(scan_num):
                                    path_import_initial_support)
 
     # %% Start the retrieval process
-    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, Free_LLK,
+    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision, Free_LLK,
                                  FLLK_percentage, FLLK_radius, threhold_update_method,
                                  support_para_update_precent, thrpara_min, thrpara_max,
                                  support_smooth_width_begin, support_smooth_width_end,
@@ -200,7 +201,7 @@ def phase_retrieval_2D(scan_num):
     section = 'Trial %02d' % trial_num
     para_name_list = [
         'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
-        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'flip_condition',
+        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'flip_condition',
         'first_seed_flip', 'total_calculation_time', 'support_type',
         'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
         'Initial_support_threshold', 'percent_selected',
@@ -215,4 +216,4 @@ def phase_retrieval_2D(scan_num):
     return
 
 if __name__ == '__main__':
-    phase_retrieval_2D(46)
+    phase_retrieval_2D(83)

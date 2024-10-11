@@ -35,13 +35,13 @@ from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 
-def phase_retrieval_3D():
+def phase_retrieval_3D(scan_num, first_img_flip):
     # %%Input
     starting_time = time.time()
-    pathsave = r'F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
-    intensity_file = 'scan0043.npz'
-    mask_file = 'scan0043_mask.npz'
-    path_scan_infor = r"F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\scan_0043_information.txt"
+    pathsave = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\polarized_BFO_%05d\pynxpre\reciprocal_space_map' % scan_num
+    intensity_file = 'scan%04d.npz' % scan_num
+    mask_file = 'scan%04d_mask.npz' % scan_num
+    path_scan_infor = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\polarized_BFO_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -54,18 +54,19 @@ def phase_retrieval_3D():
     # If support_type is 'auto_correlation'
     auto_corr_thrpara = 0.004
     # If support_type is 'average', 'support_selected', or'modulus_selected'
-    Initial_support_threshold = 0.7
+    Initial_support_threshold = 0.15
     # If support_type is 'support_selected' or 'modulus_selected'
     percent_selected = 10
     # If support_type is 'modulus_selected'
-    modulus_smooth_width = 0.8
+    modulus_smooth_width = 1.0
     # If support_type is 'import'
     path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00087\cutqz\Trial02.npz'
 
     # Input: starting image inherented from trial
     start_trial_num = 0
     SeedNum = 100
-    algorithm = "(HIO**40*Sup)**20*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40"
+    precision = '32'
+    algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
     # algorithm = "DIF**200*(RAAR**60*ER**10)**40"
 
     # Input: parameters for the free Log likelihood
@@ -79,9 +80,9 @@ def phase_retrieval_3D():
     # threhold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
     thrpara_min = 0.08
-    thrpara_max = 0.12
+    thrpara_max = 0.105
     support_smooth_width_begin = 3.5
-    support_smooth_width_end = 0.95
+    support_smooth_width_end = 1.0
     hybrid_para_begin = 0.0
     hybrid_para_end = 0.0
 
@@ -89,10 +90,10 @@ def phase_retrieval_3D():
     detwin_axis = 0
 
     # Input: parameters for flipping the images to remove the trival solutions.
-    flip_condition = 'Support'
-    # flip_condition = 'Phase'
+    # flip_condition = 'Support'
+    flip_condition = 'Phase'
     # flip_condition = 'Modulus'
-    first_seed_flip = True
+    first_seed_flip = first_img_flip
     phase_unwrap_method = 6
 
     # Input: The number of images selected for further analysis like SVD and average
@@ -152,7 +153,7 @@ def phase_retrieval_3D():
                                    path_import_initial_support)
 
     # %% Start the retrieval process
-    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, Free_LLK,
+    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision, Free_LLK,
                                  FLLK_percentage, FLLK_radius, threhold_update_method,
                                  support_para_update_precent, thrpara_min, thrpara_max,
                                  support_smooth_width_begin, support_smooth_width_end,
@@ -210,7 +211,7 @@ def phase_retrieval_3D():
     section = 'Trial %02d' % trial_num
     para_name_list = [
         'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
-        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'flip_condition',
+        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'flip_condition',
         'first_seed_flip', 'total_calculation_time', 'support_type',
         'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
         'Initial_support_threshold', 'percent_selected',
@@ -226,6 +227,6 @@ def phase_retrieval_3D():
 
 
 if __name__ == '__main__':
-    phase_retrieval_3D()
-
+    phase_retrieval_3D(88, True)
+    phase_retrieval_3D(113, False)
     

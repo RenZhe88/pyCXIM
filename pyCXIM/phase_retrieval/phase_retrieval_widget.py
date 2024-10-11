@@ -255,7 +255,7 @@ class PhaseRetrievalWidget():
         imgfile.close()
         return
 
-    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0,
+    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, precision='64',
                              Free_LLK=False, FLLK_percentage=1, FLLK_radius=3,
                              threhold_update_method='exp_increase',
                              support_para_update_precent=0.8, thrpara_min=0.1,
@@ -275,6 +275,10 @@ class PhaseRetrievalWidget():
             The total number of runs to be performed with different initial starting point.
         start_trial_num : int, optional
             Start the phase retrieval based on the solutions generated from the previous trials. To start with the random guesses, use 0. The default is 0.
+        precision : str, optional
+            The btye lenght of the arrays, which determines the accuracy of the calculation.
+            If precision equals 32, then dtype of float32 and complex64 will be used. The calculation speed would be faster.
+            If precision equals 64, then dtype of float64 and complex128 will be used. The calculation will be more accurate.
         Free_LLK : bool, optional
             If true, the free log likelihood mask will be generated and used during the phase retrieval process. The default is False.
         FLLK_percentage : float, optional
@@ -330,9 +334,16 @@ class PhaseRetrievalWidget():
         assert ("Input/intensity" in imgfile), 'Please import the diffraction pattern first!'
         assert ("Initial_support/support" in imgfile), 'Please generated the initial suppport for the phase retrieval process first!'
 
-        image = np.array(imgfile["Input/intensity"], dtype=float)
-        MaskFFT = np.array(imgfile["Input/mask"], dtype=float)
-        support = np.array(imgfile["Initial_support/support"], dtype=float)
+        if precision == '64':
+            dtype_list = [np.float64, np.complex128]
+        elif precision == '32':
+            dtype_list = [np.float32, np.complex64]
+        else:
+            raise AttributeError('Precision could only be chosen between "32" and "64"!')
+
+        image = np.array(imgfile["Input/intensity"], dtype=dtype_list[0])
+        MaskFFT = np.array(imgfile["Input/mask"], dtype=dtype_list[0])
+        support = np.array(imgfile["Initial_support/support"], dtype=dtype_list[0])
 
         if start_trial_num != 0:
             path_start_trial = os.path.join(self.pathsave, 'Trial%02d.h5' % start_trial_num)
@@ -358,26 +369,26 @@ class PhaseRetrievalWidget():
             self.para_dict['Free_LLK'] = True
             self.para_dict['FLLK_percentage'] = FLLK_percentage
             self.para_dict['FLLK_radius'] = FLLK_radius
-            imgfile.create_dataset("Free_LLK_mask/LLKmask", data=LLKmask, dtype='f', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("Free_LLK_mask/MaskFFT", data=MaskFFT, dtype='f', chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Free_LLK_mask/LLKmask", data=LLKmask, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
+            imgfile.create_dataset("Free_LLK_mask/MaskFFT", data=MaskFFT, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
         else:
             LLKmask = None
             self.para_dict['Free_LLK'] = False
 
-        Modulus_sum = np.zeros_like(image)
-        Phase_sum = np.zeros_like(image)
-        Img_sum = np.zeros_like(image, dtype=complex)
-        Support_sum = np.zeros_like(image)
-        intensity_sum = np.zeros_like(image)
+        Modulus_sum = np.zeros_like(image, dtype=dtype_list[0])
+        Phase_sum = np.zeros_like(image, dtype=dtype_list[0])
+        Img_sum = np.zeros_like(image, dtype=dtype_list[1])
+        Support_sum = np.zeros_like(image, dtype=dtype_list[0])
+        intensity_sum = np.zeros_like(image, dtype=dtype_list[0])
         err_ar = np.zeros((SeedNum, 6))
 
         # Making folders to store the images
         for Seed in range(SeedNum):
             if start_trial_num != 0:
-                starting_img = np.array(previous_result_file['Solutions/Seed%03d/image' % Seed], dtype=complex)
-                PR_seed = pr(image, Seed, starting_img=starting_img, support=support, MaskFFT=MaskFFT)
+                starting_img = np.array(previous_result_file['Solutions/Seed%03d/image' % Seed], dtype=dtype_list[1])
+                PR_seed = pr(image, Seed, starting_img=starting_img, support=support, MaskFFT=MaskFFT, precision=precision)
             else:
-                PR_seed = pr(image, Seed, support=support, MaskFFT=MaskFFT)
+                PR_seed = pr(image, Seed, support=support, MaskFFT=MaskFFT, precision=precision)
 
             algor_extend = PR_seed.Algorithm_expander(algorithm)
 
@@ -452,8 +463,8 @@ class PhaseRetrievalWidget():
                         err_ar[Seed, :] = np.array([Seed, np.sum(PR_seed.get_support()), PR_seed.get_Fourier_space_error(), PR_seed.get_Poisson_Likelihood(), PR_seed.get_Free_LogLikelihood(LLKmask), 0])
             sys.stdout.write('\n')
             Seed_group = Solution_group.create_group("Seed%03d" % Seed)
-            Seed_group.create_dataset("image", data=PR_seed.get_img(), dtype='complex128', chunks=chunks_size, compression="gzip")
-            Seed_group.create_dataset("support", data=PR_seed.get_support(), dtype='f', chunks=chunks_size, compression="gzip")
+            Seed_group.create_dataset("image", data=PR_seed.get_img(), dtype=dtype_list[1], chunks=chunks_size, compression="gzip")
+            Seed_group.create_dataset("support", data=PR_seed.get_support(), dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
 
             Support_sum = Support_sum + Support_final
             Modulus_sum = Modulus_sum + Modulus_final
@@ -479,6 +490,7 @@ class PhaseRetrievalWidget():
         self.para_dict['nb_run'] = SeedNum
         self.para_dict['algorithm'] = algorithm
         self.para_dict['start_trial_num'] = start_trial_num
+        self.para_dict['precision'] = precision
 
         if (int(algor_extend.count(('Sup', 1))) != 0):
             self.para_dict['support_update'] = True
@@ -505,12 +517,12 @@ class PhaseRetrievalWidget():
 
         imgfile.create_dataset("Error/error", data=err_ar, dtype='float')
         imgfile['Error'].attrs['column_names'] = ['Seed', 'support_size', 'Fourier space error', 'Poisson logLikelihood', 'Free logLikelihood', 'Flip']
-        imgfile.create_dataset("Average_All/Support_sum", data=Support_sum, dtype='float', chunks=chunks_size, compression="gzip")
-        imgfile.create_dataset("Average_All/Modulus_sum", data=Modulus_sum, dtype='float', chunks=chunks_size, compression="gzip")
-        imgfile.create_dataset("Average_All/Img_sum", data=Img_sum, dtype='complex128', chunks=chunks_size, compression="gzip")
-        imgfile.create_dataset("Average_All/Phase_sum", data=Phase_sum, dtype='float', chunks=chunks_size, compression="gzip")
-        imgfile.create_dataset("Average_All/intensity_sum", data=intensity_sum, dtype='float', chunks=chunks_size, compression="gzip")
-        imgfile.create_dataset("Average_All/phase_retrieval_transfer_function", data=PRTF, dtype='float')
+        imgfile.create_dataset("Average_All/Support_sum", data=Support_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
+        imgfile.create_dataset("Average_All/Modulus_sum", data=Modulus_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
+        imgfile.create_dataset("Average_All/Img_sum", data=Img_sum, dtype=dtype_list[1], chunks=chunks_size, compression="gzip")
+        imgfile.create_dataset("Average_All/Phase_sum", data=Phase_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
+        imgfile.create_dataset("Average_All/intensity_sum", data=intensity_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
+        imgfile.create_dataset("Average_All/phase_retrieval_transfer_function", data=PRTF, dtype=dtype_list[0])
         imgfile.close()
         return
 

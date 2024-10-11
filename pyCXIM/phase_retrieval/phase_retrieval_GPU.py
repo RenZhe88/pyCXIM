@@ -69,10 +69,14 @@ class PhaseRetrievalFuns():
         the result support
     """
 
-    def __init__(self, measured_intensity, Seed, starting_img=None, support=None, MaskFFT=None):
+    def __init__(self, measured_intensity, Seed, starting_img=None, support=None, MaskFFT=None, precision='64'):
         print('Seed %04d' % Seed)
-        self.intensity = np.array(measured_intensity, dtype=float)
-        self.ModulusFFT = np.fft.fftshift(np.sqrt(measured_intensity))
+        if precision == '64':
+            self.dtype_list = [np.float64, np.complex128, torch.float64, torch.complex128]
+        elif precision == '32':
+            self.dtype_list = [np.float32, np.complex64, torch.float32, torch.complex64]
+        self.intensity = np.array(measured_intensity, dtype=self.dtype_list[0])
+        self.ModulusFFT = np.fft.fftshift(np.sqrt(np.array(measured_intensity, dtype=self.dtype_list[0])))
         self.dim = self.intensity.ndim
 
         # loop index records number of loops performed for different algorithms
@@ -81,17 +85,18 @@ class PhaseRetrievalFuns():
         # generate or import the starting image for the phase retrieval process
         if starting_img is not None:
             print('Given starting image used.')
-            self.img = np.array(starting_img, dtype=complex)
+            self.img = np.array(starting_img, dtype=self.dtype_list[1])
         else:
             print('Random starting image used.')
             np.random.seed(seed=Seed)
             self.img = np.fft.ifftn(np.multiply(self.ModulusFFT, np.exp(1j * np.random.rand(*self.ModulusFFT.shape) * 2 * np.pi)))
+            self.img = self.img.astype(self.dtype_list[1])
 
         # generate according to the autocorrelation or import the starting support
         if support is not None:
-            self.support = np.array(support, dtype=float)
+            self.support = np.array(support, dtype=self.dtype_list[0])
         else:
-            self.support = np.zeros_like(self.ModulusFFT, dtype=float)
+            self.support = np.zeros_like(self.ModulusFFT, dtype=self.dtype_list[0])
             Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
             # Gaussian filter to be added
             threshold = 4.0 / 1000.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
@@ -99,10 +104,10 @@ class PhaseRetrievalFuns():
 
         # Indicate the bad pixels during the phase retrieval process
         if MaskFFT is not None:
-            self.MaskFFT = np.array(MaskFFT, dtype=float)
+            self.MaskFFT = np.array(MaskFFT, dtype=self.dtype_list[0])
             self.MaskFFT = np.fft.fftshift(self.MaskFFT)
         else:
-            self.MaskFFT = np.zeros_like(self.ModulusFFT, dtype=float)
+            self.MaskFFT = np.zeros_like(self.ModulusFFT, dtype=self.dtype_list[0])
 
         # Transfer all the attributes to GPU
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -176,7 +181,7 @@ class PhaseRetrievalFuns():
         kernel_size = int(round(14.0 * sigma))
         if kernel_size % 2 == 0:
             kernel_size += 1
-        x = torch.linspace(-(kernel_size // 2), (kernel_size // 2), kernel_size, dtype=torch.float64, device=self.device)
+        x = torch.linspace(-(kernel_size // 2), (kernel_size // 2), kernel_size, dtype=self.dtype_list[2], device=self.device)
         gaussian1d = torch.exp(-torch.square(x / sigma) / 2)
         gaussian1d = gaussian1d / torch.sum(gaussian1d)
         for i in range(self.dim):
@@ -284,13 +289,13 @@ class PhaseRetrievalFuns():
 
         if not hasattr(self, 'Modulus_sum'):
             # the array to hold the previous image during the HIO calculation
-            self.Modulus_sum = torch.zeros_like(self.ModulusFFT, dtype=torch.float64).to(self.device)
+            self.Modulus_sum = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[2]).to(self.device)
 
         # Update the support function according to the shrink wrap method
         self.Modulus_sum += torch.abs(self.img)
         Bluredimg = self.GaussianBlur(self.Modulus_sum / float(self.loop_dict['Sup']) * hybrid_para + (1.0 - hybrid_para) * torch.abs(self.img), Gaussiandelta)
         threshold = thrpara * (torch.amax(Bluredimg) - torch.amin(Bluredimg)) + torch.amin(Bluredimg)
-        self.support = torch.zeros_like(self.img, dtype=float)
+        self.support = torch.zeros_like(self.img, dtype=self.dtype_list[2])
         self.support[Bluredimg >= threshold] = 1.0
         # Center the support to the center of the image
         if self.loop_dict['Sup'] % 10 == 0:
@@ -416,7 +421,7 @@ class PhaseRetrievalFuns():
 
         if not hasattr(self, 'holderimg_HIO'):
             # the array to hold the previous image during the HIO calculation
-            self.holderimg_HIO = torch.zeros_like(self.ModulusFFT, dtype=torch.complex128).to(self.device)
+            self.holderimg_HIO = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[3]).to(self.device)
 
         para = 0.9  # Parameter for the HIO
 
@@ -489,7 +494,7 @@ class PhaseRetrievalFuns():
 
         if not hasattr(self, 'holderimg_RAAR'):
             # the array to hold the previous image during the RAAR calculation
-            self.holderimg_RAAR = torch.zeros_like(self.ModulusFFT, dtype=torch.complex128).to(self.device)
+            self.holderimg_RAAR = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[3]).to(self.device)
 
         para0 = 0.75  # Starting parameter for the RAAR
 
@@ -580,7 +585,7 @@ class PhaseRetrievalFuns():
 
     #     if not hasattr(self, 'holderimg_ADMM1'):
     #         # the array to hold the previous image during the HIO calculation
-    #         self.holderimg_ADMM = torch.zeros_like(self.ModulusFFT, dtype=torch.complex128).to(self.device)
+    #         self.holderimg_ADMM = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[3]).to(self.device)
 
     #     para_admm = 0.5  # parameter for the difference map
     #     for i in range(num_ADMM_loop):
@@ -632,7 +637,7 @@ class PhaseRetrievalFuns():
             Modulus of the result reconstruction (data with float type).
 
         """
-        return np.array(np.abs(self.img) * self.support, dtype=float)
+        return np.array(np.abs(self.img) * self.support, dtype=self.dtype_list[0])
 
     def get_img_Phase(self):
         """
@@ -648,7 +653,7 @@ class PhaseRetrievalFuns():
             Phase of the result reconstruction (data with float type).
 
         """
-        return np.array(np.angle(self.img) * self.support, dtype=float)
+        return np.array(np.angle(self.img) * self.support, dtype=self.dtype_list[0])
 
     def get_FFT_Modulus(self):
         """
@@ -663,7 +668,7 @@ class PhaseRetrievalFuns():
             Modulus of the reconstructed intensity (data with float type).
 
         """
-        return np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support)))
+        return np.array(np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support))), dtype=self.dtype_list[0])
 
     def get_FFT_amplitude(self):
         """
@@ -680,7 +685,7 @@ class PhaseRetrievalFuns():
             Amplitude of the reconstructed intensity (data with complex type).
 
         """
-        return np.fft.fftshift(np.fft.fftn(self.img * self.support))
+        return np.fft.fftshift(np.fft.fftn(self.img * self.support)).astype(self.dtype_list[1])
 
     def get_intensity(self):
         """
@@ -695,7 +700,7 @@ class PhaseRetrievalFuns():
             The reconstructed intensity (data with float type).
 
         """
-        return np.array(np.square(np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support)))), dtype=float)
+        return np.square(np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support)))).astype(self.dtype_list[0])
 
     def get_support_size(self):
         """
@@ -745,7 +750,7 @@ class PhaseRetrievalFuns():
             The loglikeihood error of the result reconstruction.
 
         """
-        loglikelihood = np.sum(np.fft.fftshift(1.0 - self.MaskFFT) * ((self.get_intensity() + np.finfo(float).eps) + gammaln(self.intensity + np.finfo(float).eps) - (self.intensity + np.finfo(float).eps) * np.log(self.get_intensity() + np.finfo(float).eps))) / np.sum(1.0 - self.MaskFFT)
+        loglikelihood = np.sum(np.fft.fftshift(1.0 - self.MaskFFT) * ((self.get_intensity() + np.finfo(self.dtype_list[0]).eps) + gammaln(self.intensity + np.finfo(self.dtype_list[0]).eps) - (self.intensity + np.finfo(self.dtype_list[0]).eps) * np.log(self.get_intensity() + np.finfo(self.dtype_list[0]).eps))) / np.sum(1.0 - self.MaskFFT)
         return loglikelihood
 
     def get_Free_LogLikelihood(self, LLKmask=None):
@@ -764,7 +769,7 @@ class PhaseRetrievalFuns():
 
         """
         if LLKmask is not None:
-            loglikelihood = np.sum(np.fft.fftshift(LLKmask) * ((self.get_intensity() + np.finfo(float).eps) + gammaln(self.intensity + np.finfo(float).eps) - (self.intensity + np.finfo(float).eps) * np.log(self.get_intensity() + np.finfo(float).eps))) / np.sum(LLKmask)
+            loglikelihood = np.sum(np.fft.fftshift(LLKmask) * ((self.get_intensity() + np.finfo(self.dtype_list[0]).eps) + gammaln(self.intensity + np.finfo(self.dtype_list[0]).eps) - (self.intensity + np.finfo(self.dtype_list[0]).eps) * np.log(self.get_intensity() + np.finfo(self.dtype_list[0]).eps))) / np.sum(LLKmask)
         else:
             loglikelihood = 0
         return loglikelihood
