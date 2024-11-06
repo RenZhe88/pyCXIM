@@ -137,15 +137,15 @@ def CDI_4C():
     infor.add_para('pathmask', section_ar[1], pathmask)
     infor.add_para('path3dmask', section_ar[1], path3dmask)
 
-    infor.add_para('roi', section_ar[2], list(roi))
-    infor.add_para('direct_beam_position', section_ar[2], list(cch))
+    infor.add_para('roi', section_ar[2], roi)
+    infor.add_para('direct_beam_position', section_ar[2], cch)
     infor.add_para('detector_distance', section_ar[2], distance)
     infor.add_para('pixelsize', section_ar[2], pixelsize)
     infor.add_para('energy', section_ar[2], energy)
     infor.add_para('RSM_unit', section_ar[2], unit)
-    infor.add_para('pynx_box_size', section_ar[2], list(RSM_bs))
+    infor.add_para('pynx_box_size', section_ar[2], RSM_bs)
 
-    infor.add_para('roi_width', section_ar[2], list(wxy))
+    infor.add_para('roi_width', section_ar[2], wxy)
 
     infor.infor_writer()
     return

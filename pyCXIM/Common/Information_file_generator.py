@@ -8,6 +8,7 @@ Created on Thu Mar 30 11:35:00 2023
 @email: renzhe@ihep.ac.cn
 """
 import ast
+import numpy as np
 import pandas as pd
 import os
 
@@ -137,6 +138,8 @@ class InformationFileIO():
             self.para_list = pd.DataFrame({'value': 'to be filled'}, index=index)
         else:
             self.para_list.at[(section, para_name), 'value'] = 'to be filled'
+        if type(para_value) == np.ndarray:
+            para_value = para_value.tolist()
         self.para_list.at[(section, para_name), 'value'] = para_value
         return
 

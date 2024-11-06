@@ -197,7 +197,7 @@ class Calibration(object):
         self.infor.del_para_section(self.section_ar[1])
         self.infor.add_para('sample_name', self.section_ar[1], sample_name)
         self.infor.add_para('scan_number', self.section_ar[1], scan_num)
-        self.infor.add_para('direct_beam_position', self.section_ar[1], list(cch))
+        self.infor.add_para('direct_beam_position', self.section_ar[1], cch)
         self.infor.add_para('detector_distance', self.section_ar[1], distance)
         self.infor.add_para('pixelsize', self.section_ar[1], pixelsize)
         self.infor.add_para('detector_rotation', self.section_ar[1], det_rot)
@@ -226,8 +226,8 @@ class Calibration(object):
                              [0, b * np.sin(gamma), c * (np.cos(alpha) - np.cos(beta) * np.cos(gamma)) / np.sin(gamma)],
                              [0, 0, c * f / np.sin(gamma)]])
         B_matrix = 2.0 * np.pi * np.linalg.inv(A_matrix).T
-        self.infor.add_para('lattice_constants', self.section_ar[2], list(lattice_constants))
-        self.infor.add_para('B_matrix', self.section_ar[2], B_matrix.tolist())
+        self.infor.add_para('lattice_constants', self.section_ar[2], lattice_constants)
+        self.infor.add_para('B_matrix', self.section_ar[2], B_matrix)
         return
 
     def expected_U_matrix_cal(self, surface_hkl, inplane_hkl):
@@ -257,9 +257,9 @@ class Calibration(object):
 
         inv_U = np.array([inplane_dir1, inplane_dir2, surface_dir]).T
         expected_U_matrix = np.linalg.inv(inv_U)
-        self.infor.add_para('surface_direction', self.section_ar[2], list(surface_hkl))
-        self.infor.add_para('inplane_direction', self.section_ar[2], list(inplane_hkl))
-        self.infor.add_para('expected_U_matrix', self.section_ar[2], expected_U_matrix.tolist())
+        self.infor.add_para('surface_direction', self.section_ar[2], surface_hkl)
+        self.infor.add_para('inplane_direction', self.section_ar[2], inplane_hkl)
+        self.infor.add_para('expected_U_matrix', self.section_ar[2], expected_U_matrix)
         return
 
     def crystal_information(self, lattice_constants, surface_dir, inplane_dir):
@@ -366,9 +366,9 @@ class Calibration(object):
         q_vector = cal_q_pos(pixel_position, motor_position, detector_para)
         self.infor.add_para('sample_name', self.section_ar[3] % (sample_name, scan_num), sample_name)
         self.infor.add_para('scan_number', self.section_ar[3] % (sample_name, scan_num), scan_num)
-        self.infor.add_para('motor_position', self.section_ar[3] % (sample_name, scan_num), motor_position.tolist())
-        self.infor.add_para('pixel_position', self.section_ar[3] % (sample_name, scan_num), pixel_position.tolist())
-        self.infor.add_para('q_vector', self.section_ar[3] % (sample_name, scan_num), q_vector.tolist())
+        self.infor.add_para('motor_position', self.section_ar[3] % (sample_name, scan_num), motor_position)
+        self.infor.add_para('pixel_position', self.section_ar[3] % (sample_name, scan_num), pixel_position)
+        self.infor.add_para('q_vector', self.section_ar[3] % (sample_name, scan_num), q_vector)
         self.infor.infor_writer()
         return pixel_position, motor_position, detector_para
 
@@ -458,9 +458,9 @@ class Calibration(object):
 
         full_offsets_ar = known_error_values
         full_offsets_ar[para_selected] = leastsq_solution.x
-        self.infor.add_para('peak_index', self.section_ar[3] % (sample_name, scan_num), list(peak_index))
+        self.infor.add_para('peak_index', self.section_ar[3] % (sample_name, scan_num), peak_index)
         self.infor.add_para('error_source', self.section_ar[3] % (sample_name, scan_num), error_source)
-        self.infor.add_para('offsets_parameters', self.section_ar[3] % (sample_name, scan_num), list(full_offsets_ar))
+        self.infor.add_para('offsets_parameters', self.section_ar[3] % (sample_name, scan_num), full_offsets_ar)
         for i, paraname in enumerate(paranames):
             if paraname in error_source:
                 print('%s_offset=%.2f' % (paraname, known_error_values[i]))
@@ -544,12 +544,12 @@ class Calibration(object):
         print(angular_deviations)
         self.infor.del_para_section(self.section_ar[4])
         self.infor.add_para('sample_names', self.section_ar[4], sample_name_ar)
-        self.infor.add_para('scan_num_list', self.section_ar[4], list(scan_num_ar))
-        self.infor.add_para('peak_index_list', self.section_ar[4], peak_index_ar.tolist())
+        self.infor.add_para('scan_num_list', self.section_ar[4], scan_num_ar)
+        self.infor.add_para('peak_index_list', self.section_ar[4], peak_index_ar)
         self.infor.add_para('find_U_matrix', self.section_ar[4], leastsq_solution.success)
-        self.infor.add_para('U_matrix', self.section_ar[4], U_matrix.tolist())
-        self.infor.add_para('additional_rotation_matrix', self.section_ar[4], additional_rotation_matrix.tolist())
-        self.infor.add_para('angular_deviations', self.section_ar[4], angular_deviations.tolist())
+        self.infor.add_para('U_matrix', self.section_ar[4], U_matrix)
+        self.infor.add_para('additional_rotation_matrix', self.section_ar[4], additional_rotation_matrix)
+        self.infor.add_para('angular_deviations', self.section_ar[4], angular_deviations)
         self.infor.infor_writer()
         return
 

@@ -115,8 +115,8 @@ def RSM_6C():
     infor.add_para('path3dmask', section_ar[1], path3dmask)
 
     infor.add_para('geometry', section_ar[2], geometry)
-    infor.add_para('roi', section_ar[2], list(roi))
-    infor.add_para('peak_position', section_ar[2], list(pch))
+    infor.add_para('roi', section_ar[2], roi)
+    infor.add_para('peak_position', section_ar[2], pch)
     infor.add_para('scan_step', section_ar[2], scan_step)
     infor.add_para('omega', section_ar[2], omega)
     infor.add_para('delta', section_ar[2], delta)
@@ -127,8 +127,8 @@ def RSM_6C():
     infor.add_para('energy', section_ar[2], scan.get_motor_pos('fmbenergy'))
 
     if additional_rotation_matrix is not None:
-        infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix.tolist())
-    infor.add_para('direct_beam_position', section_ar[2], list(cch))
+        infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix)
+    infor.add_para('direct_beam_position', section_ar[2], cch)
     infor.add_para('detector_distance', section_ar[2], distance)
     infor.add_para('pixelsize', section_ar[2], pixelsize)
     infor.add_para('det_rot', section_ar[2], det_rot)
@@ -181,7 +181,7 @@ def RSM_6C():
     infor.add_para('RSM_shape', section_ar[3], list(new_shape))
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
     infor.add_para('RSM_unit', section_ar[3], RSM_unit)
-    infor.add_para('q_origin', section_ar[3], list(q_origin))
+    infor.add_para('q_origin', section_ar[3], q_origin)
     end_time = time.time()
     infor.add_para('total_time', section_ar[3], end_time - start_time)
     # infor.add_para('qmax', section_ar[3], qmax)

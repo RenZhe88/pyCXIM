@@ -43,11 +43,11 @@ def calibration():
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'single Bragg 6C':
         p10_file = r"PVBM01"
-        scan_num = 6
-        peak = np.array([0, 0, 2], dtype=float)
+        scan_num = 5
+        peak = np.array([1, 0, 3], dtype=float)
         # om, del, chi, phi, gamma, energy
-        error_source = ['om', 'del', 'chi']
-        known_error_values = np.array([0, 0, 0, 0, 0, 0, 0], dtype=float)
+        error_source = ['om', 'del', 'phi']
+        known_error_values = np.array([0, 0, 0.36774792649788696, 0, 0, 0, 0], dtype=float)
 
     # Inputs:Determine the U matrix based on measured Bragg peaks and their mill indexes
     elif Calibration_type == 'multiple Bragg 6C':

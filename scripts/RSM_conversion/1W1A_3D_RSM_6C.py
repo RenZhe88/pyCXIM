@@ -112,8 +112,8 @@ def RSM_6C():
     infor.add_para('path3dmask', section_ar[1], path3dmask)
 
     infor.add_para('geometry', section_ar[2], geometry)
-    infor.add_para('roi', section_ar[2], list(roi))
-    infor.add_para('peak_position', section_ar[2], list(pch))
+    infor.add_para('roi', section_ar[2], roi)
+    infor.add_para('peak_position', section_ar[2], pch)
     infor.add_para('scan_step', section_ar[2], scan_step)
     infor.add_para('eta', section_ar[2], eta)
     infor.add_para('delta', section_ar[2], delta)
@@ -122,8 +122,8 @@ def RSM_6C():
     infor.add_para('nu', section_ar[2], nu)
     infor.add_para('mu', section_ar[2], mu)
 
-    infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix.tolist())
-    infor.add_para('direct_beam_position', section_ar[2], list(cch))
+    infor.add_para('additional_rotation_matrix', section_ar[2], additional_rotation_matrix)
+    infor.add_para('direct_beam_position', section_ar[2], cch)
     infor.add_para('detector_distance', section_ar[2], distance)
     infor.add_para('pixelsize', section_ar[2], pixelsize)
     infor.add_para('det_rot', section_ar[2], det_rot)
