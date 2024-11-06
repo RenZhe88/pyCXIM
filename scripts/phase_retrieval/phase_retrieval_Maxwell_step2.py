@@ -14,10 +14,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def plot_phase_retrieval_results():
     # %%Inputs
-    pathsave = r'F:\Work place 4\Temp\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
+    pathsave = r'F:\Work place 4\Temp\O32_1_00034\pynxpre'
     trial_num = 1
-    path_scan_infor = r"F:\Work place 4\Temp\B12SYNS1P1_00043\scan_0043_information.txt"
-    display_range = [500, 500, 500]
+    path_scan_infor = r"F:\Work place 4\Temp\O32_1_00034\scan_0034_information.txt"
+    display_range = [1200, 1200, 1200]
 
     # %%Load the information file
     print("Loading the information file...")

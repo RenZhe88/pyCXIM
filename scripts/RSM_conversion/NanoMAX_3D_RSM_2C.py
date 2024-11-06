@@ -3,6 +3,7 @@ import numpy as np
 import os
 import sys
 import time
+import matplotlib.pyplot as plt
 
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
@@ -32,8 +33,6 @@ def BCDI_preparation():
     wxy = [200, 200, 200, 200]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
     roi = [100, 400, 100, 400]
-    # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight_center'
-    cut_central_pos = 'maximum integration'
 
     # Half width of reciprocal space box size in pixels
     generating_3D_vtk_file = False
@@ -60,13 +59,14 @@ def BCDI_preparation():
     pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan_num)
 
     # Load the detector images
-    dataset, mask3D, pch, wxy = scan.merlin_load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)))
+    dataset, mask3D, pch, wxy = scan.load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)), normalize_signal='alba2_1')
     wxy = np.array(wxy, dtype=int)
     dataset = np.flip(np.swapaxes(dataset, 1, 2), axis=1)
     mask3D = np.flip(np.swapaxes(mask3D, 1, 2), axis=1)
     pch[[1, 2]] = pch[[2, 1]]
     pch[1] = 515 - pch[1]
     wxy[[0, 1, 2, 3]] = wxy[[3, 2, 0, 1]]
+    print(wxy)
 
     # load the scan motors
     # read the phi values
@@ -172,6 +172,7 @@ def BCDI_preparation():
     del RSM_int, RSM_mask
 
     # save the information
+    scan.write_scan()
     infor.add_para('path3DRSM', section_ar[1], path3dRSM)
     infor.add_para('path3Dmask', section_ar[1], path3dmask)
     infor.add_para('roi_width', section_ar[3], list(wxy))
@@ -179,7 +180,6 @@ def BCDI_preparation():
     infor.add_para('RSM_shape', section_ar[3], list(new_shape))
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
     infor.add_para('q_origin', section_ar[3], list(q_origin))
-    infor.add_para('RSM_cut_central_mode', section_ar[3], cut_central_pos)
     infor.add_para('qcen', section_ar[3], list(qmax))
     infor.infor_writer()
 

@@ -20,13 +20,13 @@ def calibration():
     # Calibration_type = 'detector'
     # Calibration_type = 'crystal infor'
     # Calibration_type = 'single Bragg 6C'
-    # Calibration_type = 'multiple Bragg 6C'
-    Calibration_type = 'hkl_to_angles'
+    Calibration_type = 'multiple Bragg 6C'
+    # Calibration_type = 'hkl_to_angles'
 
     # Inputs: paths
     path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
     pathsave = r"F:\Work place 4\Temp"
-    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\badpix_mask.tif'
+    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\1w1a_pilatus_mask.npy'
     detector = '300K-A'
 
     # Inputs:Detector parameters
@@ -42,11 +42,11 @@ def calibration():
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'single Bragg 6C':
         file_1w1a = r"sample_1"
-        scan_num = 9
-        peak = np.array([-1.0, 0, 3.0], dtype=float)
+        scan_num = 8
+        peak = np.array([0.0, 0, 2.0], dtype=float)
         # 'eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy'
-        error_source = ['eta', 'del', 'phi']
-        known_error_values = np.array([0, 0, 0.3216347582932135, 0, 0, 0, 0], dtype=float)
+        error_source = ['eta', 'del', 'chi']
+        known_error_values = np.array([0, 0, 0, 0, 0, 0, 0], dtype=float)
 
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'multiple Bragg 6C':

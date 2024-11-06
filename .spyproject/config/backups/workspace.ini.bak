@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['..\\X-ray diffraction\\BCDI\\20240603_BFO_LiNiMnO2_P10_Desy\\P10_BCDI_preparation_symmetric_20240722.py', 'scripts\\phase_retrieval\\phase_retrieval_3D.py', '..\\test\\simple 2D fft cal.py']
+recent_files = ['pyCXIM\\scan_reader\\Desy\\eiger_reader.py', 'pyCXIM\\scan_reader\\BSRF\\pilatus_reader.py', 'pyCXIM\\scan_reader\\ESRF\\edf_reader.py', 'pyCXIM\\scan_reader\\MAXIV\\nanomax_scan_reader.py', 'pyCXIM\\scan_reader\\MAXIV\\nanomax_merlin_reader.py', 'pyCXIM\\scan_reader\\general_detector.py', 'scripts\\RSM_conversion\\P10_BCDI_preparation_2C.py', 'scripts\\scan_reader\\p10_theta_2theta_analysis.py', 'pyCXIM\\scan_reader\\ESRF\\spec_reader.py', 'pyCXIM\\scan_reader\\general_scan.py', 'scripts\\RSM_conversion\\1W1A_3D_RSM_6C.py', 'scripts\\scan_reader\\P10_Scan.py']
 
 [main]
 version = 0.2.0

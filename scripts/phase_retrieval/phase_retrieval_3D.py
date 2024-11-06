@@ -38,10 +38,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 def phase_retrieval_3D(scan_num, first_img_flip):
     # %%Input
     starting_time = time.time()
-    pathsave = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\polarized_BFO_%05d\pynxpre\reciprocal_space_map' % scan_num
+    pathsave = r'F:\Work place 4\Temp\AUNW_C3_00065\pynxpre\reciprocal_space_map'
     intensity_file = 'scan%04d.npz' % scan_num
     mask_file = 'scan%04d_mask.npz' % scan_num
-    path_scan_infor = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\polarized_BFO_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
+    path_scan_infor = r"F:\Work place 4\Temp\AUNW_C3_00065\scan_%04d_information.txt" % scan_num
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -54,11 +54,11 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     # If support_type is 'auto_correlation'
     auto_corr_thrpara = 0.004
     # If support_type is 'average', 'support_selected', or'modulus_selected'
-    Initial_support_threshold = 0.15
+    Initial_support_threshold = 0.2
     # If support_type is 'support_selected' or 'modulus_selected'
     percent_selected = 10
     # If support_type is 'modulus_selected'
-    modulus_smooth_width = 1.0
+    modulus_smooth_width = 0.3
     # If support_type is 'import'
     path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00087\cutqz\Trial02.npz'
 
@@ -67,7 +67,7 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     SeedNum = 100
     precision = '32'
     algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
-    # algorithm = "DIF**200*(RAAR**60*ER**10)**40"
+    # algorithm = "DIF**200*(RAAR**60*ER**10)**40*(ND**20*RAAR**60*ER**10)**10"
 
     # Input: parameters for the free Log likelihood
     Free_LLK = False
@@ -80,9 +80,9 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     # threhold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
     thrpara_min = 0.08
-    thrpara_max = 0.105
+    thrpara_max = 0.11
     support_smooth_width_begin = 3.5
-    support_smooth_width_end = 1.0
+    support_smooth_width_end = 0.9
     hybrid_para_begin = 0.0
     hybrid_para_end = 0.0
 
@@ -94,7 +94,7 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     flip_condition = 'Phase'
     # flip_condition = 'Modulus'
     first_seed_flip = first_img_flip
-    phase_unwrap_method = 6
+    phase_unwrap_method = 0
 
     # Input: The number of images selected for further analysis like SVD and average
     further_analysis_selected = 10
@@ -135,6 +135,9 @@ def phase_retrieval_3D(scan_num, first_img_flip):
                 pr_infor.copy_para_values(scan_infor, ['RSM_q_center', 'RSM_unit'], 'General Information', ['q_vector', 'unit'])
             elif data_description == 'stacked_detector_images_BCDI':
                 pr_infor.copy_para_values(scan_infor, ['direct_cut_q_center', 'DC_unit'], 'General Information', ['q_vector', 'unit'])
+            elif data_description == 'reciprocal_space_map_CDI':
+                pr_infor.copy_para_values(scan_infor, ['RSM_unit'], 'General Information', ['unit'])
+
         else:
             print('Could not find the desired scan parameter file! Generate the file with desired parameters!')
             pr_infor.gen_empty_para_file(para_name_list, 'General Information')
@@ -227,6 +230,5 @@ def phase_retrieval_3D(scan_num, first_img_flip):
 
 
 if __name__ == '__main__':
-    phase_retrieval_3D(88, True)
-    phase_retrieval_3D(113, False)
+    phase_retrieval_3D(65, False)
     

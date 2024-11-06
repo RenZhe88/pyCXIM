@@ -66,7 +66,7 @@ for i, scan_num in enumerate(scan_num_ar):
         angle_ar[i] = np.radians(scan.get_motor_pos('om'))
     elif geometry == 'in_plane':
         angle_ar[i] = np.radians(scan.get_motor_pos('phi'))
-    scan.eiger_roi_sum([pch[0] - wxy[0], pch[0] + wxy[0], pch[1] - wxy[1], pch[1] + wxy[1]], roi_order='XY', save_img_sum=False)
+    scan.image_roi_sum([pch[0] - wxy[0], pch[0] + wxy[0], pch[1] - wxy[1], pch[1] + wxy[1]], roi_order='XY', save_img_sum=False)
     motor_name = scan.get_scan_motor()
     if motor_name == 'hpx' or motor_name == 'hpy':
         amp, cen, FWHM = scan.Gaussian_estimation('e4m_roi1', sigma=1, normalize=True, plot=True)

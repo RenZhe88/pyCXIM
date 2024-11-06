@@ -44,7 +44,7 @@ def CDI_4C():
     wxy = [400, 400]
 
     # Inputs: reciprocal space box size in pixels
-    RSM_bs = [150, 150, 150]
+    RSM_bs = [120, 120, 120]
 
     # Inputs: paths
     # The path for the scan folder
@@ -59,14 +59,14 @@ def CDI_4C():
     pathsave = scan_data.get_pathsave()
     pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan)
 
-    wxy = scan_data.eiger_cut_check(cch, wxy)
+    wxy = scan_data.image_cut_check(cch, wxy)
     roi = [cch[0] - wxy[0], cch[0] + wxy[0], cch[1] - wxy[1], cch[1] + wxy[1]]
     if not os.path.exists(pathinfor):
-        img = scan_data.eiger_img_sum(sum_img_num=20)
+        img = scan_data.image_sum(start_frame=0, end_frame=20, correction_mode='constant')
         plt.imshow(np.log10(img + 1.0), cmap='jet')
         plt.show()
-    scan_data.eiger_mask_circle(cch, 7)
-    dataset, mask3D, pch, roi = scan_data.eiger_load_rois(roi)
+    scan_data.add_mask_circle(cch, 8)
+    dataset, mask3D, pch, roi = scan_data.load_rois(roi, normalize_signal='curpetra', correction_mode='constant')
 
     # reading the omega values for each step in the rocking curve
     phi_ar = scan_data.get_scan_data('abrz')
@@ -88,8 +88,8 @@ def CDI_4C():
     print("Calculating the final mask....")
     maskfinal = RSM_converter.grid_cdi(mask3D, Npos, rebinfactor, cval=1)
     del mask3D
-    maskfinal[maskfinal >= 0.1] = 1
-    maskfinal[maskfinal < 0.1] = 0
+    maskfinal[maskfinal >= 0.01] = 1
+    maskfinal[maskfinal < 0.01] = 0
 
     nz, ny, nx = intensityfinal.shape
     # save the qx qy qz cut of the 3D intensity

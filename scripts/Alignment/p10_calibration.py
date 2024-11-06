@@ -20,13 +20,13 @@ def calibration():
     # Inputs: general information
     # Calibration_type = 'detector'
     # Calibration_type = 'crystal infor'
-    Calibration_type = 'single Bragg 6C'
-    # Calibration_type = 'multiple Bragg 6C'
+    # Calibration_type = 'single Bragg 6C'
+    Calibration_type = 'multiple Bragg 6C'
     # Calibration_type = 'Calculate peak index'
 
     # Inputs: paths
     path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
-    pathsave = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Chiral_BFO_01"
+    pathsave = r"F:\Work place 4\Temp"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
     detector = 'e4m'
 
@@ -38,12 +38,12 @@ def calibration():
     elif Calibration_type == 'crystal infor':
         surface_dir = np.array([0, 0, 1], dtype=float)
         inplane_dir = np.array([1, 0, 0], dtype=float)
-        lattice_constants = [3.791, 3.791, 3.791, 90, 90, 90]
+        lattice_constants = [3.905, 3.905, 3.905, 90.0, 90.0, 90.0]
 
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'single Bragg 6C':
-        p10_file = r"chiral_BFO_01"
-        scan_num = 4
+        p10_file = r"PVBM01"
+        scan_num = 6
         peak = np.array([0, 0, 2], dtype=float)
         # om, del, chi, phi, gamma, energy
         error_source = ['om', 'del', 'chi']
@@ -51,8 +51,8 @@ def calibration():
 
     # Inputs:Determine the U matrix based on measured Bragg peaks and their mill indexes
     elif Calibration_type == 'multiple Bragg 6C':
-        p10_file = "PVBM03"
-        scan_num_ar = [8, 7]
+        p10_file = "PVBM01"
+        scan_num_ar = [6, 5]
         peak_index_ar = np.array([[0, 0, 2], [1, 0, 3]], dtype=float)
 
     # Inputs:Determine the peak indexes based on the previously calculated U_matrix

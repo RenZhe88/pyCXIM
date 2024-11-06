@@ -27,8 +27,8 @@ def RSM_6C():
     # %%Inputs: general information
     year = "2024"
     beamtimeID = "11018562"
-    p10_file = r"PVBM03"
-    scan_num = 16
+    p10_file = r"PVBM01"
+    scan_num = 11
     detector = 'e4m'
     geometry = 'out_of_plane'
 
@@ -83,7 +83,7 @@ def RSM_6C():
     if additional_rotation_matrix is not None:
         additional_rotation_matrix = np.array(additional_rotation_matrix, dtype=float)
 
-    dataset, mask3D, pch, roi = scan.eiger_load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)))
+    dataset, mask3D, pch, roi = scan.load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)), normalize_signal='curpetra')
 
     RSM_converter = RC2RSM_6C(scan_motor_ar, geometry,
                               omega, delta, chi, phi, gamma, mu, energy,

@@ -255,7 +255,7 @@ class PhaseRetrievalWidget():
         imgfile.close()
         return
 
-    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, precision='64',
+    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, precision='32',
                              Free_LLK=False, FLLK_percentage=1, FLLK_radius=3,
                              threhold_update_method='exp_increase',
                              support_para_update_precent=0.8, thrpara_min=0.1,

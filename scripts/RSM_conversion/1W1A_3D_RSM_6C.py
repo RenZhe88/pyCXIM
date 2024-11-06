@@ -41,7 +41,7 @@ def RSM_6C():
     # Inputs: paths
     path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
     pathsave = r"F:\Work place 4\Temp"
-    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\badpix_mask.tif'
+    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\1w1a_pilatus_mask.npy'
     pathcalib = r'F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\result\calibration.txt'
 
     # %% Generate the RSM
@@ -80,7 +80,7 @@ def RSM_6C():
     det_rot = calibinfor.get_para_value('detector_rotation', section='Detector calibration')
     additional_rotation_matrix = np.array(calibinfor.get_para_value('additional_rotation_matrix', section='Calculated UB matrix'), dtype=float)
 
-    dataset, mask3D, pch, roi = scan.pilatus_load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)))
+    dataset, mask3D, pch, roi = scan.load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)), normalize_signal='Monitor', correction_mode='constant')
 
     RSM_converter = RC2RSM_6C(scan_motor_ar, geometry,
                               eta, delta, chi, phi, nu, mu, energy,
@@ -173,6 +173,7 @@ def RSM_6C():
     RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qmax)
 
     # save the information
+    scan.write_scan()
     infor.add_para('RSM_shape', section_ar[3], list(new_shape))
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
     infor.add_para('RSM_unit', section_ar[3], RSM_unit)

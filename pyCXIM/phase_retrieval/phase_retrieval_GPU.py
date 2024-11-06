@@ -456,16 +456,16 @@ class PhaseRetrievalFuns():
 
         if not hasattr(self, 'std_noise'):
             # The standarded deviation of noise used for NHIO method
-            self.std_noise = np.sqrt(np.sum(self.intensity * (1.0 - self.MaskFFT)) / np.sum(1.0 - self.MaskFFT))
-            self.std_noise = torch.from_numpy(self.std_noise).to(self.device)
+            self.holderimg_NHIO = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[3]).to(self.device)
+            self.std_noise = torch.sqrt(torch.sum(self.intensity * (1.0 - self.MaskFFT)) / torch.sum(1.0 - self.MaskFFT))
 
         para = 0.9  # Parameter for the HIO
 
         for i in range(num_NHIO_loop):
-            self.holderimg_HIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_HIO - self.img * para)
-            zero_select_con = torch.logical_and(self.support == 0, torch.abs(self.holderimg_HIO) < 3.0 * self.std_noise)
-            self.holderimg_HIO[zero_select_con] = 0
-            self.img = self.ModulusProj(self.holderimg_HIO)
+            self.holderimg_NHIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_NHIO - self.img * para)
+            zero_select_con = torch.logical_and(self.support == 0, torch.abs(self.holderimg_NHIO) < 3.0 * self.std_noise)
+            self.holderimg_NHIO[zero_select_con] = 0
+            self.img = self.ModulusProj(self.holderimg_NHIO)
         return
 
     def RAAR(self, num_RAAR_loop):

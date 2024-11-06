@@ -81,7 +81,7 @@ def BCDI_preparation():
     # Generate the paths for saving the data
     pathsave = scan.get_pathsave()
     pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan_num)
-    dataset, mask3D, pch, wxy = scan.eiger_load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)))
+    dataset, mask3D, pch, wxy = scan.load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)), normalize_signal='curpetra', correction_mode='constant')
 
     if geometry == 'out_of_plane':
         scan_motor_ar = scan.get_scan_data('om')

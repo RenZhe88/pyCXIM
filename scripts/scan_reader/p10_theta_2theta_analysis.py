@@ -21,19 +21,19 @@ from pyCXIM.RSM.TT2RSM import det2q_2D
 
 if __name__ == '__main__':
     # %% Input
-    scan_num = 3
-    p10_newfile = "xpcs_liquid_Sample1_Cap1_a"
-    rebinfactor = 5.0
+    scan_num = 9
+    p10_newfile = "Alfoil"
+    rebinfactor = 2.0
 
     # path information
-    path = r"D:\Beamtime_11018562\raw"
-    path_e4m_mask = r'E:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
-    pathsavefolder = r"E:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_liquid"
-    path_calib = r'E:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_liquid\calibration.txt'
+    path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
+    path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
+    pathsavefolder = r"F:\Work place 4\Temp"
+    path_calib = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_cathode\calibration.txt'
 
     delta_offset = 0.0
     energy_offset = 0.0
-    # %%
+    # %% reading scan information
     calibinfor = InformationFileIO(path_calib)
     calibinfor.infor_reader()
     cch = calibinfor.get_para_value('direct_beam_position', section='Detector calibration')
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     plt.axis("off")
     img_frames = []
     for i in range(scan.get_num_points()):
-        img = scan.eiger_load_single_image(i)
+        img = scan.load_single_image(i, correction_mode='constant')
         plt_im = plt.imshow(np.log10(img + 1.0), cmap='jet')
         img_frames.append([plt_im])
     fig.tight_layout()
@@ -85,14 +85,21 @@ if __name__ == '__main__':
     print('GIF image saved')
     plt.close()
 
-    # %% Calculate the theta 2theta scan
-    mask = np.load(path_e4m_mask)
-    det_corr = np.indices(detector_size) - np.array([1070, 1300])[:, np.newaxis, np.newaxis]
-    det_corr = np.linalg.norm(det_corr, axis=0)
-    mask[det_corr > 1260] = 1
-    del det_corr
+    # %% Plot for mask determination
+    image_sum = scan.image_sum()
+    scan.add_mask_inverse_circle([1070, 1300], 1260)
+    mask_for_plot = scan.get_mask_for_plot()
 
-    # Generate Gif
+    plt.figure()
+    plt.subplot(1, 2, 1)
+    plt.imshow(image_sum, cmap='jet')
+    plt.subplot(1, 2, 2)
+    plt.imshow(image_sum, cmap='Blues')
+    plt.imshow(mask_for_plot, cmap='Reds', alpha=0.2, vmax=1.0, vmin=0)
+    plt.show()
+
+    # %% Calculate the theta 2theta scan
+    mask = scan.get_mask()
     hc = 1.23984 * 10000.0
     wavelength = hc / energy
     unit = 2 * np.pi * pixelsize / wavelength / distance
@@ -117,7 +124,7 @@ if __name__ == '__main__':
 
     for i in range(scan.get_num_points()):
         delta = delta_pos[i]
-        image = scan.eiger_load_single_image(i) / curpetra_ar[i]
+        image = scan.image_mask_correction(scan.load_single_image(i)) / curpetra_ar[i]
         detector2q = det2q_2D([delta, gamma, energy], [distance, pixelsize, det_rot, cch], detector_size)
         q_select = np.logical_and(q_val >= np.amin(detector2q), q_val < np.amax(detector2q))
         q_indice_select = np.arange(len(q_val))[q_select]

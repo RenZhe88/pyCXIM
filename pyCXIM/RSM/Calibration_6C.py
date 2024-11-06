@@ -157,15 +157,13 @@ class Calibration(object):
         if beamline == 'p10':
             scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
             energy = scan.get_motor_pos('fmbenergy')
-            X_pos, Y_pos, int_ar = scan.eiger_peak_pos_per_frame()
         elif beamline == 'p08':
             scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
             energy = scan.get_motor_pos('energyfmb')
-            X_pos, Y_pos, int_ar = scan.eiger_peak_pos_per_frame()
         elif beamline == '1w1a':
             scan = BSRFPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
             energy = scan.get_motor_pos('energy')
-            X_pos, Y_pos, int_ar = scan.pilatus_peak_pos_per_frame()
+        X_pos, Y_pos, int_ar = scan.image_peak_pos_per_frame()
         print(scan)
         motor = scan.get_scan_motor()
         angle_ar = scan.get_scan_data(motor)

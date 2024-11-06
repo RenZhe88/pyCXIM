@@ -38,27 +38,27 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 def phase_retrieval_2D(scan_num):
     # %%Input
     starting_time = time.time()
-    path_scan_infor = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\polarized_BFO_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
+    path_scan_infor = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Chiral_BFO_01\chiral_BFO_01_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
     SeedNum = 100
     # For 2D images the data description can be 'cutqz', 'cutqy', 'cutqx', 'cuty'
     data_description = 'cutqz'
-    pathsave = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\polarized_BFO_%05d\cutqz' % scan_num
+    pathsave = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Chiral_BFO_01\chiral_BFO_01_%05d\cutqz' % scan_num
     intensity_file = "%s.npy" % data_description
     mask_file = "%s_mask.npy" % data_description
 
     precision = '64'
-    algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
-    # algorithm = "DIF**200*DETWIN*(RAAR**50*ER**10)**40"
+    # algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
+    algorithm = "DIF**200*DETWIN*(RAAR**50*ER**10)**40*(ND**10*RAAR**60*ER**10)**10"
 
     # Input: parameters for creating the initial suppport.
     # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-    support_type = 'auto_correlation'
-    support_from_trial = 0
+    support_type = 'support_selected'
+    support_from_trial = 1
 
     # If support_type is 'auto_correlation'
     auto_corr_thrpara = 0.008
     # If support_type is 'average', 'support_selected', or'modulus_selected'
-    Initial_support_threshold = 0.8
+    Initial_support_threshold = 0.7
     # If support_type is 'support_selected' or 'modulus_selected'
     percent_selected = 10
     # If support_type is 'modulus_selected'
@@ -79,8 +79,8 @@ def phase_retrieval_2D(scan_num):
     threhold_update_method = 'exp_increase'
     # threhold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
-    thrpara_min = 0.08
-    thrpara_max = 0.10
+    thrpara_min = 0.09
+    thrpara_max = 0.125
     support_smooth_width_begin = 3.5
     support_smooth_width_end = 1.0
     hybrid_para_begin = 0.0
@@ -93,7 +93,7 @@ def phase_retrieval_2D(scan_num):
     # flip_condition = 'Support'
     flip_condition = 'Phase'
     # flip_condition ='Modulus'
-    first_seed_flip = True
+    first_seed_flip = False
     phase_unwrap_method = 0
 
     # Input: Parameters for further analysis like SVD and average
@@ -216,4 +216,4 @@ def phase_retrieval_2D(scan_num):
     return
 
 if __name__ == '__main__':
-    phase_retrieval_2D(83)
+    phase_retrieval_2D(159)

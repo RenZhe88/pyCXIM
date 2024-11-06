@@ -62,7 +62,7 @@ def BCDI_preparation():
     # the folder that stores the raw data of the beamtime
     path = r"F:\Raw Data\20230925_P10_BFO_Pt_LiNiMnO2_AlScN\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\sample\XRD\High strain test\20230924_Pt_islands_Zhe"
+    pathsavefolder = r"F:\Work place 4\Temp"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
@@ -80,7 +80,7 @@ def BCDI_preparation():
     pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan_num)
 
     # Load the detector images
-    dataset, mask3D, pch, wxy = scan.eiger_load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)))
+    dataset, mask3D, pch, wxy = scan.load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)), normalize_signal='curpetra', correction_mode='constant')
     scan.write_fio()
 
     # load the scan motors

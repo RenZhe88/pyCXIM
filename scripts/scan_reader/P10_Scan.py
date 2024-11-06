@@ -28,8 +28,8 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [1]
-p10_file = ["det_cal"]
+scan_num_ar = [9]
+p10_file = ["Alfoil"]
 
 # path information
 path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
@@ -38,7 +38,7 @@ path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e
 pathsavefolder = r"F:\Work place 4\Temp"
 
 # The rois for the Eiger 4M detector
-e4m_roi1 = [1340 - 250, 1340 + 250, 1365 - 250, 1365 + 250]
+e4m_roi1 = [1020, 1620, 1040, 1640]
 e4m_roi2 = [1340 - 300, 1340 - 100, 1320 - 200, 1320 + 200]
 e4m_roi3 = [1340 - 300, 1340 + 300, 1320 - 300, 1320 - 100]
 e4m_roi4 = [1340 - 300, 1340 + 300, 1320 + 100, 1320 + 300]
@@ -60,43 +60,45 @@ e500_roi1 = [300, 800, 100, 600]
 e500_roi2 = [100, 300, 100, 600]
 cal_e500_roi = []
 
-# Fluo channels
-fluo_05 = [1520, 1574]
-fluo_06 = [1020, 1374]
-cal_fluo_channels = []
-
 # Plot selection
-counter_select = ['e4m_full']
+counter_select = ['e4m_full', 'e4m_roi1']
 scale = 'Linear'
 # scale = 'Normalized'
 # scale = 'Log'
 
-# %%Integrating the detector roi, write new fio and spec file
-for i, scan_num in enumerate(scan_num_ar):
-    if len(scan_num_ar) != len(p10_file):
-        p10_newfile = p10_file[0]
-    else:
-        p10_newfile = p10_file[i]
+# %% Sorting the scan types
+if len(scan_num_ar) != len(p10_file):
+    p10_newfile = p10_file[0] * len(scan_num_ar)
+else:
+    p10_newfile = p10_file
 
+dscan_scan_num = []
+d2scan_scan_num = []
+mesh_scan_num = []
+for i, scan_num in enumerate(scan_num_ar):
+    scan = DesyScanImporter('p10', path, p10_newfile[i], scan_num, pathsavefolder)
+
+    if scan.get_scan_type() in ['ascan', 'dscan']:
+        dscan_scan_num.append((p10_newfile[i], scan_num))
+    elif scan.get_scan_type() in ['a2scan', 'd2scan']:
+        d2scan_scan_num.append((p10_newfile[i], scan_num))
+    elif scan.get_scan_type() in ['dmesh', 'mesh']:
+        mesh_scan_num.append((p10_newfile[i], scan_num))
+
+# %% Calculate the roi intensity
+for i, scan_num in enumerate(scan_num_ar):
     if len(cal_e4m_roi) != 0:
-        scan = DesyEigerImporter('p10', path, p10_newfile, scan_num, 'e4m', pathsavefolder, path_e4m_mask)
-        scan.eiger_roi_sum(cal_e4m_roi, roi_order='XY', save_img_sum=True)
+        scan = DesyEigerImporter('p10', path, p10_newfile[i], scan_num, 'e4m', pathsavefolder, path_e4m_mask)
+        scan.image_roi_sum(cal_e4m_roi, roi_order='XY', save_img_sum=True)
         scan.write_fio()
 
     if len(cal_e500_roi) != 0:
-        scan = DesyEigerImporter('p10', path, p10_newfile, scan_num, 'e500', pathsavefolder, path_e500_mask)
-        scan.eiger_roi_sum(cal_e500_roi, roi_order='XY', save_img_sum=True)
+        scan = DesyEigerImporter('p10', path, p10_newfile[i], scan_num, 'e500', pathsavefolder, path_e500_mask)
+        scan.image_roi_sum(cal_e500_roi, roi_order='XY', save_img_sum=True)
         scan.write_fio()
 
-    # if len(cal_fluo_channels) != 0:
-    #     scan = P10FluoScan(path, p10_newfile, scan_num, pathsavefolder)
-    #     fluo_spectrum = scan.fluo_spec_reader(cal_fluo_channels)
-    #     scan.write_fio()
-    #     plt.plot(fluo_spectrum)
-    #     plt.show()
-
-    if (len(cal_e4m_roi) == 0) and (len(cal_e500_roi) == 0) and (len(cal_fluo_channels) == 0):
-        scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
+    if (len(cal_e4m_roi) == 0) and (len(cal_e500_roi) == 0):
+        scan = DesyScanImporter('p10', path, p10_newfile[i], scan_num, pathsavefolder)
 
     print(scan)
     print('Following counters are available, please select at least one of them to plot:')
@@ -108,35 +110,13 @@ for i, scan_num in enumerate(scan_num_ar):
 assert len(counter_select) > 0, 'Please select at least one of the counters to plot!'
 for counter in counter_select:
     assert (counter in scan.get_counter_names()), 'The counter %s does not exist! Please check the name of the counter again!' % counter
-dscan_scan_num = []
-d2scan_scan_num = []
-mesh_scan_num = []
-for i, scan_num in enumerate(scan_num_ar):
-    if len(scan_num_ar) != len(p10_file):
-        p10_newfile = p10_file[0]
-    else:
-        p10_newfile = p10_file[i]
-
-    scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
-
-    if scan.get_scan_type() in ['ascan', 'dscan']:
-        dscan_scan_num.append(scan_num)
-    elif scan.get_scan_type() in ['a2scan', 'd2scan']:
-        d2scan_scan_num.append(scan_num)
-    elif scan.get_scan_type() in ['dmesh', 'mesh']:
-        mesh_scan_num.append(scan_num)
 
 # Plot one motor line scans
 if len(dscan_scan_num) > 0:
     plt_y = int(np.sqrt(len(counter_select)))
     plt_x = len(counter_select) // plt_y
     plt.figure(figsize=(8 * plt_x, 8 * plt_y))
-    for i, scan_num in enumerate(dscan_scan_num):
-        if len(scan_num_ar) != len(p10_file):
-            p10_newfile = p10_file[0]
-        else:
-            p10_newfile = p10_file[i]
-
+    for p10_newfile, scan_num in dscan_scan_num:
         scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
         command_infor = scan.get_command_infor()
         curpetra_ar = scan.get_scan_data('curpetra') / np.round(np.average(scan.get_scan_data('curpetra')))
@@ -160,11 +140,7 @@ if len(dscan_scan_num) > 0:
             plt.legend()
     plt.show()
 
-    for i, scan_num in enumerate(dscan_scan_num):
-        if len(scan_num_ar) != len(p10_file):
-            p10_newfile = p10_file[0]
-        else:
-            p10_newfile = p10_file[i]
+    for p10_newfile, scan_num in dscan_scan_num:
         scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
 
         e4mcounters = [counter_name for counter_name in counter_select if 'e4m' in counter_name]
@@ -194,12 +170,7 @@ if len(d2scan_scan_num) > 0:
     plt_y = int(np.sqrt(len(counter_select)))
     plt_x = len(counter_select) // plt_y * 2
     plt.figure(figsize=(8 * plt_x, 8 * plt_y))
-    for i, scan_num in enumerate(d2scan_scan_num):
-        if len(scan_num_ar) != len(p10_file):
-            p10_newfile = p10_file[0]
-        else:
-            p10_newfile = p10_file[i]
-
+    for p10_newfile, scan_num in dscan_scan_num:
         scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
         command_infor = scan.get_command_infor()
         curpetra_ar = scan.get_scan_data('curpetra') / np.round(np.average(scan.get_scan_data('curpetra')))
@@ -238,10 +209,6 @@ if len(d2scan_scan_num) > 0:
     plt.show()
 
     for i, scan_num in enumerate(d2scan_scan_num):
-        if len(scan_num_ar) != len(p10_file):
-            p10_newfile = p10_file[0]
-        else:
-            p10_newfile = p10_file[i]
         scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
 
         e4mcounters = [counter_name for counter_name in counter_select if 'e4m' in counter_name]
@@ -268,11 +235,7 @@ if len(d2scan_scan_num) > 0:
 
 # Plot mesh scans
 if len(mesh_scan_num) > 0:
-    for i, scan_num in enumerate(mesh_scan_num):
-        if len(scan_num_ar) != len(p10_file):
-            p10_newfile = p10_file[0]
-        else:
-            p10_newfile = p10_file[i]
+    for p10_newfile, scan_num in mesh_scan_num:
         scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
 
         command_infor = scan.get_command_infor()

@@ -68,23 +68,25 @@ factor_large = 0.26897
 factor_small = 0.26897
 
 # Inputs: paths
-path = r"E:\Work place 3\sample\XRD\20200330 Inhouse P10 desy\Ptychography raw"
-pathsave = r"E:\Work place 3\sample\XRD\Test"
-pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\general_mask.npy'
+path = r"F:\Work place 3\sample\XRD\20200330 Inhouse P10 desy\Ptychography raw"
+pathsave = r"F:\Work place 4\Temp"
+pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
 # %%Mask generator
 scan = DesyEigerImporter('p10', path, p10_file, scan_num, detector, pathsave, pathmask)
-img = scan.eiger_img_sum(sum_img_num=200)
+img = scan.image_sum(start_frame=0, end_frame=200)
 plt.subplot(2, 2, 1)
 plt.imshow(np.log10(img + 1.0), cmap='jet')
 draw_rectangular(bs1, margin)
 draw_rectangular(bs2, margin)
 plt.subplot(2, 2, 2)
-mask, correction = scan.eiger_semi_transparent_mask(cch, r0, bs1, factor_large, bs2, factor_small, margin)
+scan.add_mask_circle(cch, r0)
+scan.add_semi_transparent_mask(bs1, factor_large, margin)
+mask, correction = scan.add_semi_transparent_mask(bs2, factor_small, margin)
 plt.imshow(np.log10((img * correction + 1.0)), cmap='Blues')
 plt.imshow(np.ma.masked_where(mask == 0, mask), cmap='Reds', alpha=0.5, vmin=0, vmax=1)
 plt.subplot(2, 2, 3)
-wxy = scan.eiger_cut_check(cch, wxy)
+wxy = scan.image_cut_check(cch, wxy)
 plt.imshow(np.log10((img * correction + 1.0)[(cch[0] - wxy[0]):(cch[0] + wxy[0]), (cch[1] - wxy[1]):(cch[1] + wxy[1])]), cmap='Blues')
 plt.imshow(np.ma.masked_where(mask == 0, mask)[(cch[0] - wxy[0]):(cch[0] + wxy[0]), (cch[1] - wxy[1]):(cch[1] + wxy[1])], cmap='Reds', alpha=0.5, vmin=0, vmax=1)
 plt.subplot(2, 2, 4)
@@ -95,4 +97,4 @@ plt.show()
 hpy = scan.get_scan_data('hpy')
 hpz = scan.get_scan_data('hpz')
 index_array = np.logical_and(hpy > 410.9, hpz < 344)
-scan.eiger_ptycho_cxi(cch, wxy, detector_distance=distance, index_array=index_array)
+scan.ptycho_cxi(cch, wxy, detector_distance=distance, index_array=index_array)

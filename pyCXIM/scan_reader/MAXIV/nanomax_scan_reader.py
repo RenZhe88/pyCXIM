@@ -64,12 +64,14 @@ class NanoMaxScan(GeneralScanStructure):
             self.command = scanfile['entry/description'][0].decode('UTF-8')
             self.motor_position_pre_scan = {}
             self.motor_position_post_scan = {}
+            self.add_scan_section('Motor Position Prescan')
+            self.add_scan_section('Motor Position Postscan')
             for parameter_name in scanfile['entry/snapshots/pre_scan'].keys():
                 self.motor_position_pre_scan[parameter_name] = scanfile['entry/snapshots/pre_scan/%s' % parameter_name][0]
             for parameter_name in scanfile['entry/snapshots/post_scan'].keys():
                 self.motor_position_post_scan[parameter_name] = scanfile['entry/snapshots/post_scan/%s' % parameter_name][0]
 
-        self.add_scan_section = 'Data'
+        self.add_scan_section('Data')
         self.load_default_data()
         self.load_pseudo_data()
         self.load_alba2_data()
