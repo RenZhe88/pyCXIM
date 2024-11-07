@@ -42,11 +42,11 @@ def calibration():
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'single Bragg 6C':
         file_1w1a = r"sample_1"
-        scan_num = 9
-        peak = np.array([-1.0, 0, 3.0], dtype=float)
+        scan_num = 8
+        peak = np.array([0.0, 0, 2.0], dtype=float)
         # 'eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy'
-        error_source = ['eta', 'del', 'phi']
-        known_error_values = np.array([0, 0, 0.3216347582932135, 0, 0, 0, 0], dtype=float)
+        error_source = ['eta', 'del', 'chi']
+        known_error_values = np.array([0, 0, 0, 0, 0, 0, 0], dtype=float)
 
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'multiple Bragg 6C':

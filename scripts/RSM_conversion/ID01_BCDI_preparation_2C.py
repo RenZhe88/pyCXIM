@@ -31,7 +31,7 @@ def BCDI_preparation():
     beamtimeID = "hs4670"
     spec_name = 'AUNW_C3'
     prefix = 'C3_NW2'
-    scan_num = 65
+    scan_num = 67
     detector = 'maxipix'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'

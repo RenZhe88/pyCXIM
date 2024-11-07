@@ -55,7 +55,7 @@ class NanoMaxScan(GeneralScanStructure):
 
         self.path = os.path.join(path, sample_name)
         # Try to locate the fio file, first look at the folder to save the results, then try to look at the folder in the raw data.
-        if os.path.exists(os.path.join(self.path, r"%06d.h5" % (scan))):
+        if os.path.exists(os.path.join(self.path, r"%06d.h5" % scan)):
             self.pathh5 = os.path.join(self.path, r"%06d.h5" % scan)
         else:
             raise IOError('Could not find the scan files please check the path, sample name, and the scan number again!')

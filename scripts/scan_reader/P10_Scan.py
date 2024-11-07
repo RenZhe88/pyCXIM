@@ -28,8 +28,8 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [9]
-p10_file = ["Alfoil"]
+scan_num_ar = [33]
+p10_file = ["polarized_BFO"]
 
 # path information
 path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
@@ -61,7 +61,7 @@ e500_roi2 = [100, 300, 100, 600]
 cal_e500_roi = []
 
 # Plot selection
-counter_select = ['e4m_full', 'e4m_roi1']
+counter_select = ['e4m_roi1']
 scale = 'Linear'
 # scale = 'Normalized'
 # scale = 'Log'
@@ -167,10 +167,11 @@ if len(dscan_scan_num) > 0:
 
 # Plot two motor line scans
 if len(d2scan_scan_num) > 0:
-    plt_y = int(np.sqrt(len(counter_select)))
-    plt_x = len(counter_select) // plt_y * 2
+    plt_y = 2
+    plt_x = int(len(counter_select))
+
     plt.figure(figsize=(8 * plt_x, 8 * plt_y))
-    for p10_newfile, scan_num in dscan_scan_num:
+    for p10_newfile, scan_num in d2scan_scan_num:
         scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
         command_infor = scan.get_command_infor()
         curpetra_ar = scan.get_scan_data('curpetra') / np.round(np.average(scan.get_scan_data('curpetra')))
@@ -195,7 +196,7 @@ if len(d2scan_scan_num) > 0:
             plt.ylabel('Intensity (a.u.)')
             plt.legend()
 
-            plt.subplot(plt_y, plt_x, i + 2)
+            plt.subplot(plt_y, plt_x, i + plt_x + 1)
             if scale == 'Linear':
                 plt.plot(motor2_pos, intensity, label='scan%d' % (scan_num))
             elif scale == 'Normalized':
@@ -208,7 +209,7 @@ if len(d2scan_scan_num) > 0:
             plt.legend()
     plt.show()
 
-    for i, scan_num in enumerate(d2scan_scan_num):
+    for p10_newfile, scan_num in d2scan_scan_num:
         scan = DesyScanImporter('p10', path, p10_newfile, scan_num, pathsavefolder)
 
         e4mcounters = [counter_name for counter_name in counter_select if 'e4m' in counter_name]

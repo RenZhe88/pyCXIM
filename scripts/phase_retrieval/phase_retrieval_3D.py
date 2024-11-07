@@ -38,10 +38,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 def phase_retrieval_3D(scan_num, first_img_flip):
     # %%Input
     starting_time = time.time()
-    pathsave = r'F:\Work place 4\Temp\AUNW_C3_00065\pynxpre\reciprocal_space_map'
+    pathsave = r'F:\Work place 4\Temp\AUNW_C3_00067\pynxpre\reciprocal_space_map'
     intensity_file = 'scan%04d.npz' % scan_num
     mask_file = 'scan%04d_mask.npz' % scan_num
-    path_scan_infor = r"F:\Work place 4\Temp\AUNW_C3_00065\scan_%04d_information.txt" % scan_num
+    path_scan_infor = r"F:\Work place 4\Temp\AUNW_C3_00067\scan_%04d_information.txt" % scan_num
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -230,5 +230,5 @@ def phase_retrieval_3D(scan_num, first_img_flip):
 
 
 if __name__ == '__main__':
-    phase_retrieval_3D(65, False)
+    phase_retrieval_3D(67, False)
     

@@ -65,11 +65,11 @@ class DesyScanImporter(GeneralScanStructure):
             if os.path.exists(os.path.join(self.pathsave, r"%s_%05d.fio" % (sample_name, scan))):
                 self.path = os.path.join(path, r"%s_%05d" % (sample_name, scan))
                 self.pathfio = os.path.join(self.pathsave, r"%s_%05d.fio" % (sample_name, scan))
-            elif os.path.exists(os.path.join(path, r"%s_%05d\%s_%05d.fio" % (sample_name, scan, sample_name, scan))):
+            elif os.path.exists(os.path.join(path, r"%s_%05d" % (sample_name, scan), "%s_%05d.fio" % (sample_name, scan))):
                 self.path = os.path.join(path, r'%s_%05d' % (sample_name, scan))
                 self.pathfio = os.path.join(self.path, r"%s_%05d.fio" % (sample_name, scan))
-            elif os.path.exists(os.path.join(path, r"%s\%s_%05d.fio" % (sample_name, sample_name, scan))):
-                self.path = os.path.join(path, r'%s' % (sample_name))
+            elif os.path.exists(os.path.join(path, sample_name, "%s_%05d.fio" % (sample_name, scan))):
+                self.path = os.path.join(path, r'%s' % sample_name)
                 self.pathfio = os.path.join(self.path, r"%s_%05d.fio" % (sample_name, scan))
             else:
                 raise IOError('Could not find the fio files please check the beamline, p10_newfile name, and the scan number again!')
@@ -645,7 +645,7 @@ def spec_writer(beamline, beamtimeID, path, sample_name, pathsave):
     list_of_lines.append('\n')
 
     for scan in range(1, 10000):
-        if os.path.exists(os.path.join(pathsave, r"%s_%05d.fio" % (sample_name, scan))) or os.path.exists(os.path.join(path, r"%s_%05d\%s_%05d.fio" % (sample_name, scan, sample_name, scan))) or os.path.exists(os.path.join(path, r"%s\%s_%05d.fio" % (sample_name, sample_name, scan))):
+        if os.path.exists(os.path.join(pathsave, r"%s_%05d.fio" % (sample_name, scan))) or os.path.exists(os.path.join(path, "%s_%05d" % (sample_name, scan), "%s_%05d.fio" % (sample_name, scan))) or os.path.exists(os.path.join(path, sample_name, "%s_%05d.fio" % (sample_name, scan))):
             scan_data = DesyScanImporter(beamline, path, sample_name, scan, pathsave, creat_save_folder=False)
             if scan_data.get_command is not None:
                 list_of_lines = list_of_lines + (scan_data.fio_to_spec(list_of_motors))

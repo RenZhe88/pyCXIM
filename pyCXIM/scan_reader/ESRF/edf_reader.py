@@ -72,7 +72,7 @@ class ESRFEdfImporter(ESRFScanImporter, DetectorMixin):
                 self.detector_size = (2164, 1030)
                 self.pixel_size = 75e-3
 
-            self.path_image_folder = os.path.join(path, r'images\%s' % self.sample_name)
+            self.path_image_folder = os.path.join(path, 'images', '%s' % self.sample_name)
             if not os.path.exists(self.path_image_folder):
                 warnings.warn('Default image folder does not exist, please change it with image folder function!', category=RuntimeWarning)
             if self.start_time < datetime.datetime(2016, 10, 1):

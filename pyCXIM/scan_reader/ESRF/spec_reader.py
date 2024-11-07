@@ -62,7 +62,7 @@ class ESRFScanImporter(GeneralScanStructure):
             self.pathspec = os.path.join(self.path, r"%s.spec" % sample_name)
         elif beamline == 'BM32':
             self.path = path
-            self.pathspec = os.path.join(self.path, r"spec\%s.spec" % sample_name)
+            self.pathspec = os.path.join(self.path, "spec", "%s.spec" % sample_name)
         else:
             raise KeyError('Now this code is developed for only esrf ID01 and BM32 beamline! Please contact the author if you want to use data from other beamlines! email: renzhe@ihep.ac.cn')
 

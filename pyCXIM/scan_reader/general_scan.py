@@ -58,7 +58,7 @@ class GeneralScanStructure(object):
         if pathsave != '':
             assert os.path.exists(pathsave), \
                 "The save folder %s does not exist, please check it again!" % pathsave
-            self.pathsave = os.path.join(pathsave, '%s_%05d' % (sample_name, scan))
+            self.pathsave = os.path.join(pathsave, '%s_%05d' % (self.sample_name, self.scan))
             if (not os.path.exists(self.pathsave)) and (not creat_save_folder):
                 self.pathsave = ''
             elif not os.path.exists(self.pathsave):

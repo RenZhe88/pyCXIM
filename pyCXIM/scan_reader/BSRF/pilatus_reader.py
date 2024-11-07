@@ -56,7 +56,7 @@ class BSRFPilatusImporter(BSRFScanImporter, DetectorMixin):
         if beamline == '1w1a' and self.detector == '300K-A':
             self.detector_size = (487, 195)
             self.pixel_size = 172e-3
-            self.path_image_folder = os.path.join(self.path, r'images\%s\S%03d' % (self.sample_name, self.scan))
+            self.path_image_folder = os.path.join(self.path, 'images', self.sample_name, 'S%03d' % self.scan)
             self.path_img = os.path.join(self.path_image_folder, "%s_S%03d_%05d.tif")
             self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, self.detector))
         else:
