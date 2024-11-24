@@ -18,7 +18,7 @@ import re
 
 class GeneralScanStructure(object):
     """
-    A generalized scan structure, which should be the parent class of all the scan readers.
+    A generalized scan structure, which is designed to be the parent class of all the scan readers.
 
     Parameters
     ----------

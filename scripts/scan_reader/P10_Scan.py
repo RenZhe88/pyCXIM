@@ -28,14 +28,14 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [33]
+scan_num_ar = [35]
 p10_file = ["polarized_BFO"]
 
 # path information
 path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
 path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e500_mask.npy'
-pathsavefolder = r"F:\Work place 4\Temp"
+pathsavefolder = r"F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Polarized_BFO2\Maps"
 
 # The rois for the Eiger 4M detector
 e4m_roi1 = [1020, 1620, 1040, 1640]
@@ -53,7 +53,7 @@ e4m_roi11 = [1330 + 150, 1330 + 450, 340 - 200, 340 + 200]
 e4m_roi12 = [1330 + 450, 1330 + 750, 340 - 200, 340 + 200]
 
 # cal_e4m_roi = []
-cal_e4m_roi = [e4m_roi1]
+cal_e4m_roi = []
 
 # The rois for the Eiger500 detector
 e500_roi1 = [300, 800, 100, 600]

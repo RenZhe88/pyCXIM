@@ -24,7 +24,7 @@ from ..general_detector import DetectorMixin
 
 class DesyEigerImporter(DesyScanImporter, DetectorMixin):
     """
-    Read and treat the scans with eiger detector. It is a child class of DesyScanImporter.
+    Read and treat the scans with eiger detector. It is a child class of DesyScanImporter and DetectorMixin.
 
     Parameters
     ----------
@@ -98,17 +98,24 @@ class DesyEigerImporter(DesyScanImporter, DetectorMixin):
 
     def load_single_image(self, img_index, correction_mode='constant'):
         """
-        Load a single image in the scan.
+        Read a single eiger image stored in h5 format.
 
         Parameters
         ----------
         img_index : int
-            The index of the image in the scan.
+            The index of the single image in the scan.
+        correction_mode : str, optional
+            If correction_mode is 'constant',intensity of the masked pixels will be corrected according to the img_correction array generated before.
+            Most of the time, intensity of the masked pixels will be set to zero.
+            However, for the semitransparent mask the intensity will be corrected according to the transmission.
+            If the correction_mode is 'medianfilter', the intensity of the masked pixels will be set to the median filter value according the surrounding pixels.
+            If the correction_mode is 'off', the intensity of the masked pixels will not be corrected.
+            The default is 'constant'.
 
         Returns
         -------
         image : ndarray
-            The result image in the scan.
+            The image of the pilatus detector.
 
         """
         assert img_index < self.npoints, 'The image number wanted is larger than the total image number in the scan!'
@@ -269,8 +276,6 @@ class DesyEigerImporter(DesyScanImporter, DetectorMixin):
             The region of interest. If not given, the complete detector image will be used. The default is None.
         cut_width : list, optional
             The cut width in Y, X direction. The default is [50, 50].
-        geometry : str, optional
-            Can be selected between 'out_of_plane' and 'in_plane'. The default is 'out_of_plane'.
 
         Returns
         -------

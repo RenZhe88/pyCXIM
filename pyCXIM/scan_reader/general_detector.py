@@ -14,6 +14,17 @@ from scipy.ndimage import median_filter
 
 
 class DetectorMixin(object):
+    """
+    A Mixin class that adds detector methods to the scan classes.
+
+    This Mixin provides methods for the two dimensional detectors, which can be used
+    to generate detector masks, loop through detector images, and load the two-dimensional detector data.
+
+    Methods:
+        get_detector_size() : Get the size of detector.
+        get_detector_pixelsize() : Get the pixel size of detector.
+        load_mask(pathmask) : Load the mask files defining the bad pixels on the detector.
+    """
 
     def get_detector_size(self):
         """
@@ -29,7 +40,7 @@ class DetectorMixin(object):
 
     def get_detector_pixelsize(self):
         """
-        Get the pixel_size of detector.
+        Get the pixel size of detector.
 
         Returns
         -------
@@ -39,7 +50,7 @@ class DetectorMixin(object):
         """
         return self.pixel_size
 
-    def load_mask(self, pathmask='', threhold=1.0e6):
+    def load_mask(self, pathmask=''):
         """
         Load the mask files defining the bad pixels on the detector.
 
@@ -72,12 +83,41 @@ class DetectorMixin(object):
         return self.mask
 
     def get_mask(self):
+        """
+        Get the mask file of the detector.
+
+        Returns
+        -------
+        ndarray
+            The generated mask file.
+
+        """
         return self.mask
 
     def get_image_correction(self):
+        """
+        Get the image correction file used for the mask correction.
+
+        Returns
+        -------
+        ndarray
+            The image used for the mask correction.
+
+        """
         return self.img_correction
 
     def get_mask_for_plot(self):
+        """
+        Get the mask for the plot.
+
+        The zeros in the mask are masked, so that it would not shadow the real image in the plotting process.
+
+        Returns
+        -------
+        ndarray
+            The mask image where zeros are masked.
+
+        """
         return np.ma.masked_where(self.mask == 0, self.mask)
 
     def add_mask_circle(self, cen, r0):
@@ -116,7 +156,7 @@ class DetectorMixin(object):
         Returns
         -------
         ndarray
-            The updated version of the maks file leaving the central circular area free.
+            The updated version of the mask file leaving the central circular area free.
 
         """
         temp = np.linalg.norm(np.indices(self.mask.shape) - np.array(cen)[:, np.newaxis, np.newaxis], axis=0)
@@ -237,7 +277,7 @@ class DetectorMixin(object):
 
     def image_cut_check(self, cen, width):
         """
-        Cut the maximum symmetric width that can be cutted around the peak position on the detector.
+        Check the maximum width that can be cutted around the peak position on the detector.
 
         Parameters
         ----------
@@ -266,7 +306,7 @@ class DetectorMixin(object):
 
     def load_rois(self, roi=None, show_cen_image=False, normalize_signal=None, correction_mode='constant'):
         """
-        Load the images with certain region of interest.
+        Load the images within the region of interest.
 
         Parameters
         ----------
@@ -274,7 +314,7 @@ class DetectorMixin(object):
             The region of interest in [Ymin, Ymax, Xmin, Xmax] order.
             If not given, the complete detector image will be loaded. The default is None.
         show_cen_image : bool, optional
-            If true the central image of the data will be shown to help select the rois. The default is False.
+            If true the central image of the data will be shown to help select the roi. The default is False.
         normalize_signal : str, optional
             The name of the signal used to normalize the diffraction intensity. The default is None.
 

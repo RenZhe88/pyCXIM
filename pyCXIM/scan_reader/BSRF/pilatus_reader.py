@@ -73,8 +73,15 @@ class BSRFPilatusImporter(BSRFScanImporter, DetectorMixin):
 
         Parameters
         ----------
-        pathimg : str
-            The path of the pilatus image.
+        img_index : int
+            The index of the single image in the scan.
+        correction_mode : str, optional
+            If correction_mode is 'constant',intensity of the masked pixels will be corrected according to the img_correction array generated before.
+            Most of the time, intensity of the masked pixels will be set to zero.
+            However, for the semitransparent mask the intensity will be corrected according to the transmission.
+            If the correction_mode is 'medianfilter', the intensity of the masked pixels will be set to the median filter value according the surrounding pixels.
+            If the correction_mode is 'off', the intensity of the masked pixels will not be corrected.
+            The default is 'constant'.
 
         Returns
         -------

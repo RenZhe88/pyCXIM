@@ -38,10 +38,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 def phase_retrieval_3D(scan_num, first_img_flip):
     # %%Input
     starting_time = time.time()
-    pathsave = r'F:\Work place 4\Temp\AUNW_C3_00067\pynxpre\reciprocal_space_map'
+    pathsave = r'F:\Work place 4\Temp\Pt001_00156\pynxpre\reciprocal_space_map'
     intensity_file = 'scan%04d.npz' % scan_num
     mask_file = 'scan%04d_mask.npz' % scan_num
-    path_scan_infor = r"F:\Work place 4\Temp\AUNW_C3_00067\scan_%04d_information.txt" % scan_num
+    path_scan_infor = r"F:\Work place 4\Temp\Pt001_00156\scan_%04d_information.txt" % scan_num
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -66,7 +66,7 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
+    algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40*(ND**20*RAAR**60*ER**10)**5"
     # algorithm = "DIF**200*(RAAR**60*ER**10)**40*(ND**20*RAAR**60*ER**10)**10"
 
     # Input: parameters for the free Log likelihood
@@ -80,21 +80,21 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     # threhold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
     thrpara_min = 0.08
-    thrpara_max = 0.11
+    thrpara_max = 0.10
     support_smooth_width_begin = 3.5
-    support_smooth_width_end = 0.9
-    hybrid_para_begin = 0.0
-    hybrid_para_end = 0.0
+    support_smooth_width_end = 1.0
+    hybrid_para_begin = 0.2
+    hybrid_para_end = 0.2
 
     # Input: parameters for the detwin operation
     detwin_axis = 0
 
     # Input: parameters for flipping the images to remove the trival solutions.
-    # flip_condition = 'Support'
-    flip_condition = 'Phase'
+    flip_condition = 'Support'
+    # flip_condition = 'Phase'
     # flip_condition = 'Modulus'
     first_seed_flip = first_img_flip
-    phase_unwrap_method = 0
+    phase_unwrap_method = 6
 
     # Input: The number of images selected for further analysis like SVD and average
     further_analysis_selected = 10
@@ -230,5 +230,5 @@ def phase_retrieval_3D(scan_num, first_img_flip):
 
 
 if __name__ == '__main__':
-    phase_retrieval_3D(67, False)
+    phase_retrieval_3D(156, False)
     

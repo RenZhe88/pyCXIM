@@ -62,23 +62,24 @@ class NanoMaxMerlinScan(NanoMaxScan, DetectorMixin):
 
     def load_single_image(self, img_index, correction_mode='constant'):
         """
-        Load a single merlin detector image in the scan.
+        Read a single image stored in h5 format.
 
         Parameters
         ----------
         img_index : int
-            The index of the image in the scan.
-        mask_correction : bool, optional
-            If true, the intensity of the masked pixels will be changed according to the correction mode given. The default is True.
-        mode : str, optional
-            If mode is 'constant', intensity of the masked pixels will be set to zero.
-            If the mode is 'medianfilter', the intensity of the masked pixels will be set to the median filter value according the surrounding pixels.
+            The index of the single image in the scan.
+        correction_mode : str, optional
+            If correction_mode is 'constant',intensity of the masked pixels will be corrected according to the img_correction array generated before.
+            Most of the time, intensity of the masked pixels will be set to zero.
+            However, for the semitransparent mask the intensity will be corrected according to the transmission.
+            If the correction_mode is 'medianfilter', the intensity of the masked pixels will be set to the median filter value according the surrounding pixels.
+            If the correction_mode is 'off', the intensity of the masked pixels will not be corrected.
             The default is 'constant'.
 
         Returns
         -------
         image : ndarray
-            The result image in the scan.
+            The image of the pilatus detector.
 
         """
         assert img_index < self.npoints, 'The image number wanted is larger than the total image number in the scan!'

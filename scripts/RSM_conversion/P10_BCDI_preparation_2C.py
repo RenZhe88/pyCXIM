@@ -315,7 +315,7 @@ def BCDI_preparation():
         infor.add_para('use_prefilter', section_ar[3], use_prefilter)
         infor.add_para('roi_width', section_ar[3], wxy)
         infor.add_para('RSM_unit', section_ar[3], RSM_unit)
-        infor.add_para('RSM_shape', section_ar[3], list(new_shape))
+        infor.add_para('RSM_shape', section_ar[3], new_shape)
         infor.add_para('rebinfactor', section_ar[3], rebinfactor)
         infor.add_para('q_origin', section_ar[3], q_origin)
         infor.add_para('RSM_cut_central_mode', section_ar[3], cut_central_pos)

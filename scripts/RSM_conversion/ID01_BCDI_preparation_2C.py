@@ -31,7 +31,7 @@ def BCDI_preparation():
     beamtimeID = "hs4670"
     spec_name = 'AUNW_C3'
     prefix = 'C3_NW2'
-    scan_num = 67
+    scan_num = 83
     detector = 'maxipix'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -47,14 +47,14 @@ def BCDI_preparation():
     # The half width of the detector roi in the order of [Y, X]
     wxy = [150, 150]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [0, 515, 0, 515]
+    roi = [365 - 149, 365 + 149, 191 - 149, 191 + 149]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'weight center'
     # Half size for the direct cut in pixels
     DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [100, 100, 100]
+    RSM_bs = [140, 140, 140]
     use_prefilter = False
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
@@ -82,7 +82,7 @@ def BCDI_preparation():
     pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan_num)
 
     # Load the detector images
-    dataset, mask3D, pch, wxy = scan.load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)), correction_mode='constant')
+    dataset, mask3D, pch, wxy = scan.load_rois(roi, show_cen_image=(not os.path.exists(pathinfor)), correction_mode='constant')
     scan.write_scan()
 
     # load the scan motors
@@ -127,13 +127,13 @@ def BCDI_preparation():
     infor.add_para('pathinfor', section_ar[1], pathinfor)
     infor.add_para('pathmask', section_ar[1], pathmask)
 
-    infor.add_para('roi', section_ar[2], list(roi))
-    infor.add_para('peak_position', section_ar[2], list(pch))
+    infor.add_para('roi', section_ar[2], roi)
+    infor.add_para('peak_position', section_ar[2], pch)
     infor.add_para('omega', section_ar[2], omega)
     infor.add_para('delta', section_ar[2], two_theta)
     infor.add_para('omegastep', section_ar[2], om_step)
     infor.add_para('omega_error', section_ar[2], scan_motor_offset)
-    infor.add_para('direct_beam_position', section_ar[2], list(cch))
+    infor.add_para('direct_beam_position', section_ar[2], cch)
     infor.add_para('detector_distance', section_ar[2], detector_distance)
     infor.add_para('energy', section_ar[2], scan.get_motor_pos('energy'))
     infor.add_para('pixelsize', section_ar[2], pixelsize)
@@ -220,9 +220,9 @@ def BCDI_preparation():
         infor.add_para('path_stacked_mask', section_ar[1], path_stacked_mask)
         infor.add_para('direct_cut_center_mode', section_ar[4], cut_central_pos)
         infor.add_para('direct_cut_box_size', section_ar[4], DC_bs)
-        infor.add_para('direct_cut_centeral_pixel', section_ar[4], list(npch))
+        infor.add_para('direct_cut_centeral_pixel', section_ar[4], npch)
         infor.add_para('DC_unit', section_ar[4], RSM_converter.get_RSM_unit())
-        infor.add_para('direct_cut_q_center', section_ar[4], list(q_cen_dir))
+        infor.add_para('direct_cut_q_center', section_ar[4], q_cen_dir)
         infor.infor_writer()
 
     if ("2D_cuts" in Functions_selected) and ('Direct_cut' in Functions_selected):
@@ -261,7 +261,7 @@ def BCDI_preparation():
         rebinfactor = RSM_converter.cal_rebinfactor()
 
         # calculate the qx, qy, qz ranges of the scan
-        q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], rebinfactor=rebinfactor)
+        q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range(roi, rebinfactor=rebinfactor)
 
         # generate the 3D reciprocal space map
         print('Calculating intensity...')
@@ -270,7 +270,7 @@ def BCDI_preparation():
 
         if save_full_3D_RSM:
             print('saving the full 3D RSM')
-            filename = "%s_%05d_RSM.npz" % (p10_newfile, scan_num)
+            filename = "%s_%05d_RSM.npz" % (spec_name, scan_num)
             pathsaveRSM = os.path.join(pathsave, filename)
             np.savez_compressed(pathsaveRSM, data=RSM_int)
             infor.add_para('pathRSM', section_ar[1], pathsaveRSM)
@@ -315,15 +315,15 @@ def BCDI_preparation():
         infor.add_para('path3DRSM', section_ar[1], path3dRSM)
         infor.add_para('path3Dmask', section_ar[1], path3dmask)
         infor.add_para('use_prefilter', section_ar[3], use_prefilter)
-        infor.add_para('roi_width', section_ar[3], list(wxy))
+        infor.add_para('roi_width', section_ar[3], wxy)
         infor.add_para('RSM_unit', section_ar[3], RSM_unit)
-        infor.add_para('RSM_shape', section_ar[3], list(new_shape))
+        infor.add_para('RSM_shape', section_ar[3], new_shape)
         infor.add_para('rebinfactor', section_ar[3], rebinfactor)
-        infor.add_para('q_origin', section_ar[3], list(q_origin))
+        infor.add_para('q_origin', section_ar[3], q_origin)
         infor.add_para('RSM_cut_central_mode', section_ar[3], cut_central_pos)
         infor.add_para('pynx_box_size', section_ar[3], RSM_bs)
-        infor.add_para('RSM_q_center', section_ar[3], list(q_cen_rsm))
-        infor.add_para('q_centeral_pixel', section_ar[3], list(qcen))
+        infor.add_para('RSM_q_center', section_ar[3], q_cen_rsm)
+        infor.add_para('q_centeral_pixel', section_ar[3], qcen)
         infor.infor_writer()
 
     if ("2D_cuts" in Functions_selected) and ('Reciprocal_space_map' in Functions_selected):

@@ -178,7 +178,7 @@ def RSM_6C():
     RSM_post_processing.plot_with_units(RSM_int, q_origin, RSM_unit, pathsavetmp, qmax=qmax)
 
     # save the information
-    infor.add_para('RSM_shape', section_ar[3], list(new_shape))
+    infor.add_para('RSM_shape', section_ar[3], (new_shape))
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
     infor.add_para('RSM_unit', section_ar[3], RSM_unit)
     infor.add_para('q_origin', section_ar[3], q_origin)

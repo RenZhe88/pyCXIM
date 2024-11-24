@@ -174,7 +174,7 @@ def RSM_6C():
 
     # save the information
     scan.write_scan()
-    infor.add_para('RSM_shape', section_ar[3], list(new_shape))
+    infor.add_para('RSM_shape', section_ar[3], new_shape)
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
     infor.add_para('RSM_unit', section_ar[3], RSM_unit)
     infor.add_para('q_origin', section_ar[3], q_origin)

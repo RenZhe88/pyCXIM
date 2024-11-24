@@ -34,7 +34,9 @@ class ESRFEdfImporter(ESRFScanImporter, DetectorMixin):
     scan_num : int
         The scan number.
     detector : str, optional
-        The name of the detecter. Now only image '300K-A' is supported. The default is '300K-A'.
+        The name of the detecter. Now only image '300K-A' is supported. The default is 'mixipix'.
+    prefix : str, optional
+        The prefix of the edf detector images. The default is ''.
     pathsave : str, optional
         The folder to save the results, if not given no results will be saved. The default is ''.
     pathmask : str, optional
@@ -86,6 +88,24 @@ class ESRFEdfImporter(ESRFScanImporter, DetectorMixin):
         return
 
     def change_image_infor(self, path_image_folder):
+        """
+        Change the image folder for the edf files.
+
+        Parameters
+        ----------
+        path_image_folder : str
+            The new path for the image folder.
+
+        Raises
+        ------
+        IOError
+            If the path does not exist, raise io error.
+
+        Returns
+        -------
+        None.
+
+        """
         self.path_image_folder = path_image_folder
         if not os.path.exists(self.path_image_folder):
             raise IOError('The image folder for %s images %s does not exist, please check the path again!' % (self.detector, self.path_image_folder))
@@ -97,17 +117,24 @@ class ESRFEdfImporter(ESRFScanImporter, DetectorMixin):
 
     def load_single_image(self, img_index, correction_mode='constant'):
         """
-        Load a single image image in the scan.
+        Read a single image stored in edf or edf.gz format.
 
         Parameters
         ----------
         img_index : int
-            The index of the image in the scan.
+            The index of the single image in the scan.
+        correction_mode : str, optional
+            If correction_mode is 'constant',intensity of the masked pixels will be corrected according to the img_correction array generated before.
+            Most of the time, intensity of the masked pixels will be set to zero.
+            However, for the semitransparent mask the intensity will be corrected according to the transmission.
+            If the correction_mode is 'medianfilter', the intensity of the masked pixels will be set to the median filter value according the surrounding pixels.
+            If the correction_mode is 'off', the intensity of the masked pixels will not be corrected.
+            The default is 'constant'.
 
         Returns
         -------
         image : ndarray
-            The result image in the scan.
+            The image of the pilatus detector.
 
         """
         assert img_index < self.npoints, \
