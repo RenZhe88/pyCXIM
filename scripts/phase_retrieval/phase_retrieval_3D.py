@@ -35,13 +35,13 @@ from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 
-def phase_retrieval_3D(scan_num, first_img_flip):
+def phase_retrieval_3D(scan_num):
     # %%Input
     starting_time = time.time()
-    pathsave = r'F:\Work place 4\Temp\Pt001_00156\pynxpre\reciprocal_space_map'
+    pathsave = r'F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\LXD\WTY_P3_D46\WTY_P3_D46_%05d\pynxpre\reciprocal_space_map' % scan_num
     intensity_file = 'scan%04d.npz' % scan_num
     mask_file = 'scan%04d_mask.npz' % scan_num
-    path_scan_infor = r"F:\Work place 4\Temp\Pt001_00156\scan_%04d_information.txt" % scan_num
+    path_scan_infor = r"F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\LXD\WTY_P3_D46\WTY_P3_D46_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -54,11 +54,11 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     # If support_type is 'auto_correlation'
     auto_corr_thrpara = 0.004
     # If support_type is 'average', 'support_selected', or'modulus_selected'
-    Initial_support_threshold = 0.2
+    Initial_support_threshold = 0.7
     # If support_type is 'support_selected' or 'modulus_selected'
     percent_selected = 10
     # If support_type is 'modulus_selected'
-    modulus_smooth_width = 0.3
+    modulus_smooth_width = 0.5
     # If support_type is 'import'
     path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00087\cutqz\Trial02.npz'
 
@@ -66,8 +66,9 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40*(ND**20*RAAR**60*ER**10)**5"
-    # algorithm = "DIF**200*(RAAR**60*ER**10)**40*(ND**20*RAAR**60*ER**10)**10"
+    algorithm = "(HIO**50*Sup)**20*(DIF**50)**2*(RAAR**80*ER**10*Sup)**40"
+    # algorithm = "(HIO**50*DETWIN)**5*(RAAR**60*ER**10)**30*(ADMM**80*ER**10)**15*CRITcheck*DIF**200*(ADMM**80*ER**10*CRITcheck)**15"
+    critical_error = 0.0166
 
     # Input: parameters for the free Log likelihood
     Free_LLK = False
@@ -80,21 +81,20 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     # threhold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
     thrpara_min = 0.08
-    thrpara_max = 0.10
+    thrpara_max = 0.12
     support_smooth_width_begin = 3.5
     support_smooth_width_end = 1.0
-    hybrid_para_begin = 0.2
-    hybrid_para_end = 0.2
+    hybrid_para = 0.0
 
     # Input: parameters for the detwin operation
-    detwin_axis = 0
+    detwin_axis = (0, 1, 2)
 
     # Input: parameters for flipping the images to remove the trival solutions.
     flip_condition = 'Support'
     # flip_condition = 'Phase'
     # flip_condition = 'Modulus'
-    first_seed_flip = first_img_flip
-    phase_unwrap_method = 6
+    first_seed_flip = False
+    phase_unwrap_method = 0
 
     # Input: The number of images selected for further analysis like SVD and average
     further_analysis_selected = 10
@@ -156,13 +156,12 @@ def phase_retrieval_3D(scan_num, first_img_flip):
                                    path_import_initial_support)
 
     # %% Start the retrieval process
-    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision, Free_LLK,
+    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision, critical_error, Free_LLK,
                                  FLLK_percentage, FLLK_radius, threhold_update_method,
                                  support_para_update_precent, thrpara_min, thrpara_max,
                                  support_smooth_width_begin, support_smooth_width_end,
-                                 hybrid_para_begin, hybrid_para_end, detwin_axis,
-                                 flip_condition, first_seed_flip, phase_unwrap_method,
-                                 display_image_num)
+                                 hybrid_para, detwin_axis, flip_condition,
+                                 first_seed_flip, phase_unwrap_method, display_image_num)
 
     # %% Analysis, plot and save the final results
     pr_file.plot_3D_intensity(array_group='Average_All', save_image=True, filename="Intensity_difference_Trial%d.png" % (trial_num))
@@ -214,21 +213,20 @@ def phase_retrieval_3D(scan_num, first_img_flip):
     section = 'Trial %02d' % trial_num
     para_name_list = [
         'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
-        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'flip_condition',
-        'first_seed_flip', 'total_calculation_time', 'support_type',
+        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'critical_error',
+        'flip_condition', 'first_seed_flip', 'total_calculation_time', 'support_type',
         'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
         'Initial_support_threshold', 'percent_selected',
         'modulus_smooth_width', 'path_import_initial_support', 'Free_LLK',
         'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
         'support_update_loops', 'support_threshold_min', 'support_threshold_max',
         'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-        'hybrid_para_begin', 'hybrid_para_end', 'detwin_axis',
-        'further_analysis_selected', 'further_analysis_method',
+        'hybrid_para', 'detwin_axis', 'further_analysis_selected', 'further_analysis_method',
         'phase_unwrap_method', 'error_for_further_analysis_selection']
     pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
     return
 
 
 if __name__ == '__main__':
-    phase_retrieval_3D(156, False)
+    phase_retrieval_3D(8)
     

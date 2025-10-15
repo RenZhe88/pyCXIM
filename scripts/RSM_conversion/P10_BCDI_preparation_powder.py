@@ -38,36 +38,36 @@ def BCDI_preparation():
     Functions_selected = ['Gif', 'Reciprocal_space_map', '2D_cuts']
 
     # Inputs: general information
-    year = "2024"
-    beamtimeID = "11018562"
-    p10_newfile = 'WTY04'
-    scan_num = 53
+    year = "2025"
+    beamtimeID = "11021061"
+    p10_newfile = 'WTY_P3_ALF'
+    scan_num = 141
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
 
     # Inputs: Detector parameters
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [180, 180]
+    wxy = [200, 200]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [839 - 100, 839 + 100, 375 - 100, 375 + 100]
+    roi = [1231, 1431, 1500, 1800]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'weight center'
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [80, 80, 50]
+    RSM_bs = [60, 60, 60]
     use_prefilter = False
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
+    path = r"F:\Raw Data\20250506_P10_In_situ_battery_test_01\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\Temp"
+    pathsavefolder = r"F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\LXD\WTY_P3_AlF"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
-    pathcalib = r'F:\Work place 4\sample\XRD\20240602_BFO_chiral_P10_Desy\Battery_cathode\calibration.txt'
+    pathcalib = r'F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\calibration.txt'
 
     # %% Read the information and detector images of the scan
     print("#################")

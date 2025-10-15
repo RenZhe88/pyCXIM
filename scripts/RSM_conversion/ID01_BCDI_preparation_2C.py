@@ -41,7 +41,7 @@ def BCDI_preparation():
 
     # Inputs: Detector parameters
     detector_distance = 1266
-    pixelsize = 0.075
+    pixelsize = 0.055
     # Direct beam position on the detector Y, X
     cch = [369, 130]
     # The half width of the detector roi in the order of [Y, X]

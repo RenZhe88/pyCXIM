@@ -27,7 +27,7 @@ def RSM_6C():
     year = "2023"
     beamtimeID = "1698819146"
     p10_file = r"sample_1"
-    scan_num = 14
+    scan_num = 13
     detector = '300K-A'
     geometry = 'out_of_plane'
 

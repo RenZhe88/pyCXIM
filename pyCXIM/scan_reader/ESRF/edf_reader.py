@@ -34,7 +34,7 @@ class ESRFEdfImporter(ESRFScanImporter, DetectorMixin):
     scan_num : int
         The scan number.
     detector : str, optional
-        The name of the detecter. Now only image '300K-A' is supported. The default is 'mixipix'.
+        The name of the detecter. Now only image 'mixipix' is supported. The default is 'mixipix'.
     prefix : str, optional
         The prefix of the edf detector images. The default is ''.
     pathsave : str, optional

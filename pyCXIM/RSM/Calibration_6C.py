@@ -17,6 +17,7 @@ from scipy.optimize import least_squares
 from ..Common.Information_file_generator import InformationFileIO
 from ..scan_reader.BSRF.pilatus_reader import BSRFPilatusImporter
 from ..scan_reader.Desy.eiger_reader import DesyEigerImporter
+from ..scan_reader.ESRF.h5_reader import ESRFH5Importer
 from .RC2RSM_6C import cal_q_pos
 
 
@@ -53,20 +54,26 @@ class Calibration(object):
         self.infor.infor_reader()
         return
 
-    def init_beamtime(self, beamline, path, detector, pathmask):
+    def init_beamtime(self, beamline, path, detector, **kwargs):
         """
         Define the basic information of the beamtime.
 
         Parameters
         ----------
         beamline : str
-            The name of the beamline. For now, pleas select between 'p10' and '1w1a'.
+            The name of the beamline. For now, please select between 'p10', 'p08', '1w1a' and 'id01'.
         path : str
             The path of the beamtime folder.
         detector : str
             The detector used.
+        **kwargs: Additional information provided as keyword arguments
+        Keyword Arguments:
         pathmask : str
-            The path of the detector mask.
+            The path of the detector mask. Required for DESY, BSRF beamlines.
+        beamtimeID : str, optional
+            The beamtime ID. Required for ESRF beamlines.
+        experimental_method : str, optional
+            The experimental method. Required for ESRF beamlines.
 
         Raises
         ------
@@ -79,21 +86,72 @@ class Calibration(object):
 
         """
         if beamline == 'p10':
-            motor_names = ['om', 'del', 'chi', 'phi', 'gam', 'mu', 'energy']
+            motor_names = ['om', 'del', 'chi', 'phi', 'gam', 'mu', 'fmbenergy']
         elif beamline == 'p08':
-            motor_names = ['om', 'tt', 'chi', 'phis', 'tth', 'omh', 'energy']
+            motor_names = ['om', 'tt', 'chi', 'phis', 'tth', 'omh', 'energyfmb']
         elif beamline == '1w1a':
             motor_names = ['eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy']
+        elif beamline == 'id01':
+            motor_names = ['eta', 'delta', 'chi', 'phi', 'nu', 'mu', 'nrj']
         else:
             raise KeyError('Now the code has only been implemented for the six circle diffractometer at P10 beamline, Desy and 1w1a beamline, BSRF! For other beamlines, please contact the author! renzhe@ihep.ac.cn')
 
         self.infor.add_para('beamline', self.section_ar[0], beamline)
         self.infor.add_para('path', self.section_ar[0], path)
         self.infor.add_para('detector', self.section_ar[0], detector)
-        self.infor.add_para('pathmask', self.section_ar[0], pathmask)
         self.infor.add_para('motor_names', self.section_ar[0], motor_names)
+        if beamline in ['p10', 'p08', '1w1a']:
+            if 'pathmask' in kwargs.keys():
+                self.infor.add_para('pathmask', self.section_ar[0], kwargs['pathmask'])
+            else:
+                raise ValueError('The path of the mask file is missing!')
+        elif beamline in ['id01']:
+            if 'beamtimeID' in kwargs.keys() and 'experimental_method' in kwargs.keys():
+                self.infor.add_para('beamtimeID', self.section_ar[0], kwargs['beamtimeID'])
+                self.infor.add_para('experimental_method', self.section_ar[0], kwargs['experimental_method'])
+            else:
+                raise ValueError('The path of the mask file is missing!')
         self.infor.infor_writer()
         return
+
+    def init_scanner(self, sample_name, scan_num):
+        """
+        Initiate scanner. Sample name and scan number will be needed, other parameters should be given in the initiate beamtime.
+        If new beamline is added, this part should be changed.
+
+        Parameters
+        ----------
+        sample_name : str
+            The name of the specimen.
+        scan_num : int
+            the scan number for the data treatment.
+
+        Returns
+        -------
+        scan : object
+            The scan method.
+
+        """
+        beamline, path, detector = self.load_parameters(['beamline', 'path', 'detector'], section=self.section_ar[0])
+        if beamline == 'p10':
+            pathmask = self.infor.get_para_value('pathmask', section=self.section_ar[0])
+            scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
+            energy = scan.get_motor_pos('fmbenergy')
+        elif beamline == 'p08':
+            pathmask = self.infor.get_para_value('pathmask', section=self.section_ar[0])
+            scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
+            energy = scan.get_motor_pos('energyfmb')
+        elif beamline == '1w1a':
+            pathmask = self.infor.get_para_value('pathmask', section=self.section_ar[0])
+            scan = BSRFPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
+            energy = scan.get_motor_pos('energy')
+        elif beamline == 'id01':
+            beamtimeID = self.infor.get_para_value('beamtimeID', section=self.section_ar[0])
+            experimental_method = self.infor.get_para_value('experimental_method', section=self.section_ar[0])
+            scan = ESRFH5Importer(beamline, path, beamtimeID, sample_name, experimental_method, scan_num, detector, creat_save_folder=False)
+            energy = scan.get_motor_pos('nrj')
+        self.infor.add_para('energy', self.section_ar[0], energy)
+        return scan
 
     def load_parameters(self, parameter_names, section=''):
         """
@@ -152,17 +210,8 @@ class Calibration(object):
         None.
 
         """
-        beamline, path, detector, pathmask = self.load_parameters(['beamline', 'path', 'detector', 'pathmask'], section=self.section_ar[0])
+        scan = self.init_scanner(sample_name, scan_num)
 
-        if beamline == 'p10':
-            scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            energy = scan.get_motor_pos('fmbenergy')
-        elif beamline == 'p08':
-            scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            energy = scan.get_motor_pos('energyfmb')
-        elif beamline == '1w1a':
-            scan = BSRFPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            energy = scan.get_motor_pos('energy')
         X_pos, Y_pos, int_ar = scan.image_peak_pos_per_frame()
         print(scan)
         motor = scan.get_scan_motor()
@@ -193,7 +242,6 @@ class Calibration(object):
         plt.legend()
         plt.show()
 
-        self.infor.add_para('energy', self.section_ar[0], energy)
         self.infor.del_para_section(self.section_ar[1])
         self.infor.add_para('sample_name', self.section_ar[1], sample_name)
         self.infor.add_para('scan_number', self.section_ar[1], scan_num)
@@ -355,12 +403,8 @@ class Calibration(object):
         beamline, path, detector, pathmask = self.load_parameters(['beamline', 'path', 'detector', 'pathmask'], section=self.section_ar[0])
         detector_para = self.load_parameters(['detector_distance', 'pixelsize', 'detector_rotation', 'direct_beam_position'], section=self.section_ar[1])
 
-        if beamline == 'p10' or beamline == 'p08':
-            scan = DesyEigerImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            pixel_position, motor_position = scan.load_6C_peak_infor()
-        elif beamline == '1w1a':
-            scan = BSRFPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
-            pixel_position, motor_position = scan.load_6C_peak_infor()
+        scan = self.init_scanner(sample_name, scan_num)
+        pixel_position, motor_position = scan.load_6C_peak_infor()
         print(scan)
 
         q_vector = cal_q_pos(pixel_position, motor_position, detector_para)

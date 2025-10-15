@@ -10,10 +10,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 def phase_retrieval_main():
     starting_time = time.time()
     # %%Inputs
-    pathsave = r'F:\Work place 4\Temp\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
+    pathsave = r'F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
     intensity_file = 'scan0043.npz'
     mask_file = 'scan0043_mask.npz'
-    trial_num = 1
+    trial_num = 3
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -39,6 +39,7 @@ def phase_retrieval_main():
     precision = '32'
     algorithm = '(HIO**40*Sup)**20*DETWIN*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40'
     # algorithm = "DIF**200*(RAAR**50*ER**10)**20"
+    critical_error = 0.0145
 
     # If you want to perform Free loglikelihood calculation, please set Free_LLK to be True
     Free_LLK = False
@@ -54,8 +55,7 @@ def phase_retrieval_main():
     thrpara_max = 0.11
     support_smooth_width_begin = 3.5
     support_smooth_width_end = 1.0
-    hybrid_para_begin = 0.0
-    hybrid_para_end = 0.0
+    hybrid_para = 0.0
 
     # Input: parameters for the detwin operation
     detwin_axis = 0
@@ -84,13 +84,12 @@ def phase_retrieval_main():
                                    path_import_initial_support)
 
     # %% Start the retrieval process
-    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision, Free_LLK,
-                                 FLLK_percentage, FLLK_radius, threhold_update_method,
+    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision, critical_error,
+                                 Free_LLK, FLLK_percentage, FLLK_radius, threhold_update_method,
                                  support_para_update_precent, thrpara_min, thrpara_max,
                                  support_smooth_width_begin, support_smooth_width_end,
-                                 hybrid_para_begin, hybrid_para_end, detwin_axis,
-                                 flip_condition, first_seed_flip, phase_unwrap_method,
-                                 display_image_num)
+                                 hybrid_para, detwin_axis, flip_condition,
+                                 first_seed_flip, phase_unwrap_method, display_image_num)
 
     # %% select results for SVD analysis or averaging
     pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)

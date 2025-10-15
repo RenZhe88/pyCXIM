@@ -98,9 +98,9 @@ class PhaseRetrievalWidget():
         pathmask = os.path.join(self.pathsave, mask_file)
         print('Loading the measured intensity')
         if intensity_file[-4:] == '.npz':
-            image = np.load(pathread)['data']
+            intensity = np.load(pathread)['data']
         elif intensity_file[-4:] == '.npy':
-            image = np.load(pathread)
+            intensity = np.load(pathread)
 
         if os.path.exists(pathmask):
             print('Loading the mask')
@@ -111,12 +111,12 @@ class PhaseRetrievalWidget():
             self.para_dict['use_mask'] = True
         else:
             print('No mask will be used')
-            MaskFFT = np.zeros_like(image, dtype=float)
+            MaskFFT = np.zeros_like(intensity, dtype=float)
             self.para_dict['use_mask'] = False
 
         self.para_dict['intensity_file'] = intensity_file
         self.para_dict['mask_file'] = mask_file
-        self.para_dict['data_shape'] = list(image.shape)
+        self.para_dict['data_shape'] = list(intensity.shape)
 
         # Determining how the data should be compressed
         data_shape = self.para_dict['data_shape']
@@ -125,8 +125,10 @@ class PhaseRetrievalWidget():
         elif len(data_shape) == 2:
             chunks_size = (data_shape[0], data_shape[1])
 
-        imgfile.create_dataset("Input/intensity", data=image, dtype='f', chunks=chunks_size, compression="gzip")
-        imgfile.create_dataset("Input/mask", data=MaskFFT, dtype='f', chunks=chunks_size, compression="gzip")
+        imgfile.create_dataset("Input/intensity", data=intensity, dtype='f',
+                               chunks=chunks_size, compression="gzip")
+        imgfile.create_dataset("Input/mask", data=MaskFFT, dtype='f',
+                               chunks=chunks_size, compression="gzip")
         imgfile.close()
         return
 
@@ -184,9 +186,9 @@ class PhaseRetrievalWidget():
         # Calculating the starting support
         if support_type == 'auto_correlation':
             print('Initial support calculated from the autocorrelation function.')
-            image = np.array(imgfile["Input/intensity"], dtype=float)
-            support = np.zeros_like(image, dtype=float)
-            Startautocorrelation = np.abs(np.fft.fftshift(np.fft.fftn(np.fft.fftshift(np.sqrt(image)))))
+            intensity = np.array(imgfile["Input/intensity"], dtype=float)
+            support = np.zeros_like(intensity, dtype=float)
+            Startautocorrelation = np.abs(np.fft.fftshift(np.fft.fftn(intensity)))
             threshold = auto_corr_thrpara * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
             support[Startautocorrelation >= threshold] = 1.0
             self.para_dict['auto_corr_thrpara'] = auto_corr_thrpara
@@ -255,13 +257,12 @@ class PhaseRetrievalWidget():
         imgfile.close()
         return
 
-    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, precision='32',
+    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, precision='32', critical_error=1.0e-7,
                              Free_LLK=False, FLLK_percentage=1, FLLK_radius=3,
                              threhold_update_method='exp_increase',
                              support_para_update_precent=0.8, thrpara_min=0.1,
                              thrpara_max=0.12, support_smooth_width_begin=3.5,
-                             support_smooth_width_end=1.0, hybrid_para_begin=0.0,
-                             hybrid_para_end=0.0, detwin_axis=0,
+                             support_smooth_width_end=1.0, hybrid_para=0.0, detwin_axis=0,
                              flip_condition='Support', first_seed_flip=False,
                              phase_unwrap_method=6, display_image_num=5):
         """
@@ -279,6 +280,8 @@ class PhaseRetrievalWidget():
             The btye lenght of the arrays, which determines the accuracy of the calculation.
             If precision equals 32, then dtype of float32 and complex64 will be used. The calculation speed would be faster.
             If precision equals 64, then dtype of float64 and complex128 will be used. The calculation will be more accurate.
+        critical_error ： float, optional
+            The critical error value to stop the calculation, when CRITcheck is applied.
         Free_LLK : bool, optional
             If true, the free log likelihood mask will be generated and used during the phase retrieval process. The default is False.
         FLLK_percentage : float, optional
@@ -301,13 +304,10 @@ class PhaseRetrievalWidget():
             The standard deviation of Gaussian kernal used at the begining of the shrink wrap process. The default is 3.5.
         support_smooth_width_end : float, optional
             The standard deviation of Gaussian kernal to be reached at the end of the shrink wrap process. The default is 1.0.
-        hybrid_para_begin : float, optional
-            The beginning hybrid parameter for the hybrid shrink-wrap method.
+        hybrid_para : float, optional
+            The hybrid parameter for the hybrid shrink-wrap method. The value should be between 0 and 1.
             If hybrid parameter is 0, tranditional shrink-wrap method is applied.
             Else, the integrated modulus during the phase retrieval process will be considered during the support update process.
-            The default is 0.0.
-        hybrid_para_end : float, optional
-            The end hybrid parameter for the hybrid shrink-wrap method.
             The default is 0.0.
         detwin_axis : int|tuple, optional
             Axis for detwin operation. The default is 0.
@@ -341,7 +341,7 @@ class PhaseRetrievalWidget():
         else:
             raise AttributeError('Precision could only be chosen between "32" and "64"!')
 
-        image = np.array(imgfile["Input/intensity"], dtype=dtype_list[0])
+        intensity = np.array(imgfile["Input/intensity"], dtype=dtype_list[0])
         MaskFFT = np.array(imgfile["Input/mask"], dtype=dtype_list[0])
         support = np.array(imgfile["Initial_support/support"], dtype=dtype_list[0])
 
@@ -375,31 +375,29 @@ class PhaseRetrievalWidget():
             LLKmask = None
             self.para_dict['Free_LLK'] = False
 
-        Modulus_sum = np.zeros_like(image, dtype=dtype_list[0])
-        Phase_sum = np.zeros_like(image, dtype=dtype_list[0])
-        Img_sum = np.zeros_like(image, dtype=dtype_list[1])
-        Support_sum = np.zeros_like(image, dtype=dtype_list[0])
-        intensity_sum = np.zeros_like(image, dtype=dtype_list[0])
-        err_ar = np.zeros((SeedNum, 6))
+        Modulus_sum = np.zeros_like(intensity, dtype=dtype_list[0])
+        Phase_sum = np.zeros_like(intensity, dtype=dtype_list[0])
+        Img_sum = np.zeros_like(intensity, dtype=dtype_list[1])
+        Support_sum = np.zeros_like(intensity, dtype=dtype_list[0])
+        intensity_sum = np.zeros_like(intensity, dtype=dtype_list[0])
+        err_ar = []
 
         # Making folders to store the images
         for Seed in range(SeedNum):
             if start_trial_num != 0:
                 starting_img = np.array(previous_result_file['Solutions/Seed%03d/image' % Seed], dtype=dtype_list[1])
-                PR_seed = pr(image, Seed, starting_img=starting_img, support=support, MaskFFT=MaskFFT, precision=precision)
+                PR_seed = pr(intensity, Seed, starting_img=starting_img, support=support, MaskFFT=MaskFFT, LLKmask=LLKmask, precision=precision)
             else:
-                PR_seed = pr(image, Seed, support=support, MaskFFT=MaskFFT, precision=precision)
+                PR_seed = pr(intensity, Seed, support=support, MaskFFT=MaskFFT, LLKmask=LLKmask, precision=precision)
 
             algor_extend = PR_seed.Algorithm_expander(algorithm)
 
             if int(algor_extend.count(('Sup', 1))) > 0:
                 Gaussiandelta = support_smooth_width_begin
                 thrpara = thrpara_min
-                hybrid_para = hybrid_para_begin
 
                 support_update_num = np.around(algor_extend.count(('Sup', 1)) * support_para_update_precent)
                 support_decay_rate = np.power(support_smooth_width_end / support_smooth_width_begin, 1.0 / support_update_num)
-                hybrid_para_increase_rate = (hybrid_para_end - hybrid_para_begin) / support_update_num
                 if threhold_update_method == 'exp_increase':
                     thr_increase_rate = np.power(thrpara_max / thrpara_min, 1.0 / support_update_num)
                 elif threhold_update_method == 'lin_increase':
@@ -424,7 +422,6 @@ class PhaseRetrievalWidget():
                     PR_seed.Sup(Gaussiandelta, thrpara, hybrid_para)
                     if Gaussiandelta > support_smooth_width_end:
                         Gaussiandelta = Gaussiandelta * support_decay_rate
-                        hybrid_para += hybrid_para_increase_rate
                         if threhold_update_method == 'random':
                             thrpara = thrpara_min + np.random.rand() * (thrpara_max - thrpara_min)
                         elif threhold_update_method == 'exp_increase':
@@ -435,32 +432,34 @@ class PhaseRetrievalWidget():
                     PR_seed.DETWIN(axis=detwin_axis)
                 elif method == 'ConvexSup':
                     PR_seed.ConvexSup()
-                elif method == 'End':
-                    PR_seed.End()
-                    Support_final = PR_seed.get_support()
-                    Modulus_final = PR_seed.get_img_Modulus()
-                    Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support(), 0, phase_unwrap_method)
-                    intensity_sum = intensity_sum + PR_seed.get_intensity()
+                elif method == 'CRITcheck':
+                    if PR_seed.get_Fourier_space_error() < critical_error:
+                        break
+            PR_seed.End()
+            Support_final = PR_seed.get_support()
+            Modulus_final = PR_seed.get_img_Modulus()
+            Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support(), 0, phase_unwrap_method)
+            intensity_sum = intensity_sum + PR_seed.get_intensity()
 
-                    # removing the symmetrical cases by fliping the images
-                    if flip_condition == 'Modulus':
-                        flip_con = (np.sum(Modulus_sum * Modulus_final) < np.sum(Modulus_sum * np.flip(Modulus_final)))
-                    elif flip_condition == 'Support':
-                        flip_con = (np.sum(Support_sum * Support_final) < np.sum(Support_sum * np.flip(Support_final)))
-                    elif flip_condition == 'Phase':
-                        flip_con = (np.sum(Phase_sum * Phase_final) < np.sum(Phase_sum * -1.0 * np.flip(Phase_final)))
+            # removing the symmetrical cases by fliping the images
+            if flip_condition == 'Modulus':
+                flip_con = (np.sum(Modulus_sum * Modulus_final) < np.sum(Modulus_sum * np.flip(Modulus_final)))
+            elif flip_condition == 'Support':
+                flip_con = (np.sum(Support_sum * Support_final) < np.sum(Support_sum * np.flip(Support_final)))
+            elif flip_condition == 'Phase':
+                flip_con = (np.sum(Phase_sum * Phase_final) < np.sum(Phase_sum * -1.0 * np.flip(Phase_final)))
 
-                    if Seed == 0 and first_seed_flip:
-                        flip_con = True
+            if Seed == 0 and first_seed_flip:
+                flip_con = True
 
-                    if flip_con:
-                        PR_seed.flip_img()
-                        Support_final = PR_seed.get_support()
-                        Modulus_final = PR_seed.get_img_Modulus()
-                        Phase_final = -1.0 * np.flip(Phase_final)
-                        err_ar[Seed, :] = np.array([Seed, np.sum(PR_seed.get_support()), PR_seed.get_Fourier_space_error(), PR_seed.get_Poisson_Likelihood(), PR_seed.get_Free_LogLikelihood(LLKmask), 1])
-                    else:
-                        err_ar[Seed, :] = np.array([Seed, np.sum(PR_seed.get_support()), PR_seed.get_Fourier_space_error(), PR_seed.get_Poisson_Likelihood(), PR_seed.get_Free_LogLikelihood(LLKmask), 0])
+            if flip_con:
+                PR_seed.flip_img()
+                Support_final = PR_seed.get_support()
+                Modulus_final = PR_seed.get_img_Modulus()
+                Phase_final = -1.0 * np.flip(Phase_final)
+                err_ar.append(np.append(PR_seed.get_error_array(), 1))
+            else:
+                err_ar.append(np.append(PR_seed.get_error_array(), 0))
             sys.stdout.write('\n')
             Seed_group = Solution_group.create_group("Seed%03d" % Seed)
             Seed_group.create_dataset("image", data=PR_seed.get_img(), dtype=dtype_list[1], chunks=chunks_size, compression="gzip")
@@ -486,11 +485,14 @@ class PhaseRetrievalWidget():
         intensity_sum = intensity_sum / SeedNum
         Support_sum = Support_sum / SeedNum
 
-        PRTF = pp.cal_PRTF(image, Img_sum, MaskFFT)
+        PRTF = pp.cal_PRTF(intensity, Img_sum, MaskFFT)
         self.para_dict['nb_run'] = SeedNum
         self.para_dict['algorithm'] = algorithm
         self.para_dict['start_trial_num'] = start_trial_num
         self.para_dict['precision'] = precision
+
+        if (int(algor_extend.count(('CRITcheck', 1))) != 0):
+            self.para_dict['critical_error'] = critical_error
 
         if (int(algor_extend.count(('Sup', 1))) != 0):
             self.para_dict['support_update'] = True
@@ -500,8 +502,7 @@ class PhaseRetrievalWidget():
             self.para_dict['support_threshold_max'] = thrpara_max
             self.para_dict['support_update_loops'] = support_update_num
             self.para_dict['support_decay_rate'] = support_decay_rate
-            self.para_dict['hybrid_para_begin'] = hybrid_para_begin
-            self.para_dict['hybrid_para_end'] = hybrid_para_end
+            self.para_dict['hybrid_para'] = hybrid_para
             self.para_dict['threhold_update_method'] = threhold_update_method
             if 'increase' in threhold_update_method:
                 self.para_dict['threhold_increase_rate'] = thr_increase_rate
@@ -515,8 +516,11 @@ class PhaseRetrievalWidget():
         self.para_dict['first_seed_flip'] = first_seed_flip
         self.para_dict['phase_unwrap_method'] = phase_unwrap_method
 
+        err_ar = np.vstack(err_ar)
+        err_names = PR_seed.get_error_names()
+        err_names.append('Flip')
         imgfile.create_dataset("Error/error", data=err_ar, dtype='float')
-        imgfile['Error'].attrs['column_names'] = ['Seed', 'support_size', 'Fourier space error', 'Poisson logLikelihood', 'Free logLikelihood', 'Flip']
+        imgfile['Error'].attrs['column_names'] = err_names
         imgfile.create_dataset("Average_All/Support_sum", data=Support_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
         imgfile.create_dataset("Average_All/Modulus_sum", data=Modulus_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
         imgfile.create_dataset("Average_All/Img_sum", data=Img_sum, dtype=dtype_list[1], chunks=chunks_size, compression="gzip")
@@ -549,7 +553,7 @@ class PhaseRetrievalWidget():
 
         """
         imgfile = h5py.File(self.pathsaveimg, "r+")
-        image = np.array(imgfile["Input/intensity"], dtype=float)
+        intensity = np.array(imgfile["Input/intensity"], dtype=float)
         MaskFFT = np.array(imgfile["Input/mask"], dtype=float)
 
         SeedNum = self.para_dict['nb_run']
@@ -560,12 +564,13 @@ class PhaseRetrievalWidget():
 
         # import the error matrix for the image selection.
         err_ar = np.array(imgfile["Error/error"], dtype=float)
-        if error_type == 'Fourier space error':
-            err_ar = err_ar[:, 2]
-        elif error_type == 'Poisson logLikelihood':
-            err_ar = err_ar[:, 3]
-        elif error_type == 'Free logLikelihood':
-            err_ar = err_ar[:, 4]
+        err_names = list(imgfile["Error"].attrs['column_names'])
+        try:
+            err_index = err_names.index(error_type)
+        except ValueError:
+            print('Could not find the wanted error type, use Fourier space error instead')
+            err_index = 2
+        err_ar = err_ar[:, err_index]
         Seed_selected = np.argsort(err_ar)[:int(selected_image_num)]
 
         # Determining how the data should be compressed.
@@ -629,7 +634,7 @@ class PhaseRetrievalWidget():
             Avr_Phase = Avr_Phase / selected_image_num
             Avr_Img = Avr_Img / selected_image_num
             Avr_intensity = Avr_intensity / selected_image_num
-            PRTF = pp.cal_PRTF(image, Avr_Img, MaskFFT)
+            PRTF = pp.cal_PRTF(intensity, Avr_Img, MaskFFT)
 
             self.para_dict['further_analysis_selected'] = selected_image_num
             self.para_dict['further_analysis_method'] = further_analysis_method
@@ -671,7 +676,7 @@ class PhaseRetrievalWidget():
             Avr_support = Avr_support / selected_image_num
             Avr_Img = Avr_Img / selected_image_num
             Avr_intensity = Avr_intensity / selected_image_num
-            PRTF = pp.cal_PRTF(image, Avr_Img, MaskFFT)
+            PRTF = pp.cal_PRTF(intensity, Avr_Img, MaskFFT)
 
             self.para_dict['further_analysis_selected'] = selected_image_num
             self.para_dict['further_analysis_method'] = further_analysis_method
@@ -1385,71 +1390,66 @@ class PhaseRetrievalWidget():
         """
         imgfile = h5py.File(self.pathsaveimg, "r+")
         err_ar = np.array(imgfile["Error/error"], dtype=float)
+        err_ar = err_ar[:, 1:-1]
+        err_names = list(imgfile["Error"].attrs['column_names'])
+        err_names = err_names[1:-1]
         PRTF = np.array(imgfile["Average_All/phase_retrieval_transfer_function"], dtype=float)
         unit = self.get_para('unit')
 
         if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
-            err_ar = self.get_dataset("Error/error")[()]
+            # err_ar = self.get_dataset("Error/error")[()]
             error_type = self.get_para('error_for_further_analysis_selection')
+            try:
+                err_index = err_names.index(error_type)
+            except ValueError:
+                print('Could not find the wanted error type, use Fourier space error instead')
+                err_index = 2
             further_analysis_selected = self.get_para('further_analysis_selected')
             PRTF_selected = self.get_dataset("Selected_average/phase_retrieval_transfer_function")[()]
-            if (error_type == 'Fourier space error') or (error_type is None):
-                Seed_selected = np.argsort(err_ar[:, 2])[:int(further_analysis_selected)]
-            elif error_type == 'Poisson logLikelihood':
-                Seed_selected = np.argsort(err_ar[:, 3])[:int(further_analysis_selected)]
-            elif error_type == 'Free logLikelihood':
-                Seed_selected = np.argsort(err_ar[:, 4])[:int(further_analysis_selected)]
+            Seed_selected = np.argsort(err_ar[:, err_index])[:int(further_analysis_selected)]
 
+        total_img_num = len(err_names)
+        row_num = int(np.sqrt(total_img_num))
+        col_num = int(np.ceil(total_img_num / row_num))
+        fig, axs = plt.subplots(row_num, col_num, figsize=(col_num * 8, row_num * 8))
         if self.para_dict['support_update']:
-            fig, axs = plt.subplots(2, 2, figsize=(16, 16))
-            axs[0, 0].plot(err_ar[:, 1], err_ar[:, 2], 'r.', label='All solutions')
-            axs[0, 0].set_title('Fourier space error', fontsize=24)
-            axs[0, 0].set_xlabel('total support pixel', fontsize=24)
-            axs[0, 0].set_ylabel('Fourier space error', fontsize=24)
-            axs[0, 1].plot(err_ar[:, 1], err_ar[:, 3], 'r.', label='All solutions')
-            axs[0, 1].set_title('Log likelihood', fontsize=24)
-            axs[0, 1].set_xlabel('total support pixel', fontsize=24)
-            axs[0, 1].set_ylabel('Log likelihood', fontsize=24)
-            axs[1, 0].plot(err_ar[:, 1], err_ar[:, 4], 'r.', label='All solutions')
-            axs[1, 0].set_title('Free Log likelihood', fontsize=24)
-            axs[1, 0].set_xlabel('total support pixel', fontsize=24)
-            axs[1, 0].set_ylabel('Free Log likelihood', fontsize=24)
-            axs[1, 1].plot(unit * np.arange(len(PRTF)), PRTF, 'r.', label='All solutions')
-            axs[1, 1].set_ylim(0, 1.05)
-            axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
-            axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
-            axs[1, 1].set_ylabel('PRTF', fontsize=24)
-            if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
-                axs[0, 0].plot(err_ar[Seed_selected, 1], err_ar[Seed_selected, 2], 'b.', label='Selected solutions')
-                axs[0, 0].legend()
-                axs[0, 1].plot(err_ar[Seed_selected, 1], err_ar[Seed_selected, 3], 'b.', label='Selected solutions')
-                axs[0, 1].legend()
-                axs[1, 0].plot(err_ar[Seed_selected, 1], err_ar[Seed_selected, 4], 'b.', label='Selected solutions')
-                axs[1, 0].legend()
-                axs[1, 1].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
-                axs[1, 1].legend()
+            for i in range(row_num):
+                for j in range(col_num):
+                    if (i * col_num + j + 1) < len(err_names):
+                        axs[i, j].plot(err_ar[:, 0], err_ar[:, i * col_num + j + 1], 'r.', label='All solutions')
+                        axs[i, j].set_title(err_names[i * col_num + j + 1], fontsize=24)
+                        axs[i, j].set_xlabel('total support pixel', fontsize=24)
+                        axs[i, j].set_ylabel(err_names[i * col_num + j + 1], fontsize=24)
+                        if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
+                            axs[i, j].plot(err_ar[Seed_selected, 0], err_ar[Seed_selected, i * col_num + j + 1], 'b.', label='Selected solutions')
+                            axs[i, j].legend()
+                    elif (i * col_num + j + 1) == len(err_names):
+                        axs[i, j].plot(unit * np.arange(len(PRTF)), PRTF, 'r.', label='All solutions')
+                        axs[i, j].set_ylim(0, 1.05)
+                        axs[i, j].set_title('Phase retrieval transfer function', fontsize=24)
+                        axs[i, j].set_xlabel(r'q ($1/\AA$)', fontsize=24)
+                        axs[i, j].set_ylabel('PRTF', fontsize=24)
+                        if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
+                            axs[i, j].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
+                            axs[i, j].legend()
             fig.tight_layout()
         else:
-            fig, axs = plt.subplots(2, 2, figsize=(20, 20))
-            axs[0, 0].hist(err_ar[:, 2], bins=20, histtype='step')
-            axs[0, 0].set_title('Fourier space error', fontsize=24)
-            axs[0, 0].set_xlabel('Fourier space error', fontsize=24)
-            axs[0, 0].set_ylabel('Num of solutions', fontsize=24)
-            axs[0, 1].hist(err_ar[:, 3], bins=20, histtype='step')
-            axs[0, 1].set_title('Log likelihood', fontsize=24)
-            axs[0, 1].set_xlabel('Log likelihood', fontsize=24)
-            axs[0, 1].set_ylabel('Num of solutions', fontsize=24)
-            axs[1, 0].hist(err_ar[:, 4], bins=5, histtype='step')
-            axs[1, 0].set_title('Free Log likelihood', fontsize=24)
-            axs[1, 0].set_xlabel('Free Log likelihood', fontsize=24)
-            axs[1, 0].set_ylabel('Num of solutions', fontsize=24)
-            axs[1, 1].plot(unit * np.arange(len(PRTF)), PRTF, 'r.')
-            axs[1, 1].set_title('Phase retrieval transfer function', fontsize=24)
-            axs[1, 1].set_xlabel(r'q ($1/\AA$)', fontsize=24)
-            axs[1, 1].set_ylabel('PRTF', fontsize=24)
-            if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
-                axs[1, 1].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
-                axs[1, 1].legend()
+            for i in range(row_num):
+                for j in range(col_num):
+                    if (i * col_num + j + 1) < len(err_names):
+                        axs[i, j].hist(err_ar[:, i * col_num + j + 1], bins=30, histtype='step')
+                        axs[i, j].set_title(err_names[i * col_num + j + 1], fontsize=24)
+                        axs[i, j].set_xlabel('total support pixel', fontsize=24)
+                        axs[i, j].set_ylabel(err_names[i * col_num + j + 1], fontsize=24)
+                    elif (i * col_num + j + 1) == len(err_names):
+                        axs[i, j].plot(unit * np.arange(len(PRTF)), PRTF, 'r.', label='All solutions')
+                        axs[i, j].set_ylim(0, 1.05)
+                        axs[i, j].set_title('Phase retrieval transfer function', fontsize=24)
+                        axs[i, j].set_xlabel(r'q ($1/\AA$)', fontsize=24)
+                        axs[i, j].set_ylabel('PRTF', fontsize=24)
+                        if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
+                            axs[i, j].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
+                            axs[i, j].legend()
             fig.tight_layout()
         imgfile.close()
         if filename == '':
@@ -1463,6 +1463,31 @@ class PhaseRetrievalWidget():
 
     def analysis_and_plot_3D(self, array_group, array_names, title, filename,
                              save_image=True, save_as_vti=True, display_range=None):
+        """
+        Analysis and plot the 3D retrived images.
+
+        Parameters
+        ----------
+        array_group : str
+            The group name, where the arrays are stored in the h5 file.
+        array_names : list
+            The array names to be plotted.
+        title : str
+            The title of the whole plot.
+        filename : str
+            The filename to save the images.
+        save_image : boolean, optional
+            If true, the image should be saved. The default is True.
+        save_as_vti : boolean, optional
+            If true, the 3D image will be saved in the vti format. The default is True.
+        display_range : list, optional
+            The range for the display in Z, Y, X order. The default is None.. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
         data_description = self.get_para('data_description')
         if data_description == 'reciprocal_space_map_CDI':
             zd, yd, xd = self.get_para('data_shape')
@@ -1515,6 +1540,31 @@ class PhaseRetrievalWidget():
 
     def analysis_and_plot_2D(self, array_group, array_names, title, filename,
                              save_image=True, subplot_config=None, display_range=None):
+        """
+        Analysis and plot the 2D retrived images.
+
+        Parameters
+        ----------
+        array_group : str
+            The group name, where the arrays are stored in the h5 file.
+        array_names : list
+            The array names to be plotted.
+        title : str
+            The title of the whole plot.
+        filename : str
+            The filename to save the images.
+        save_image : boolean, optional
+            If true, the image should be saved. The default is True.
+        subplot_config : tuple, optional
+            The row and column number of the subplots. The default is None.
+        display_range : list, optional
+            The range for the display in Y, X order. The default is None.. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
         data_description = self.get_para('data_description')
         if data_description in ['cutqx', 'cutqy', 'cutqz']:
             yd, xd = self.get_para('data_shape')

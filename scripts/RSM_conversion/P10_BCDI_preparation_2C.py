@@ -27,10 +27,10 @@ def BCDI_preparation():
     Functions_selected = ['Gif', 'Reciprocal_space_map', '2D_cuts']
 
     # Inputs: general information
-    year = "2023"
-    beamtimeID = "11017662"
-    p10_newfile = 'Pt001'
-    scan_num = 156
+    year = "2022"
+    beamtimeID = "11014693"
+    p10_newfile = 'BFO_LAO_4_7'
+    scan_num = 505
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -39,28 +39,28 @@ def BCDI_preparation():
     # qz_direction = 'diffraction vector direction'
 
     # Inputs: Detector parameters
-    detector_distance = 1829.0575596879414
+    detector_distance = 1834.4376742632076
     pixelsize = 0.075
     # Direct beam position on the detector Y, X
-    cch = [1048, 1340]
+    cch = [1044, 1339]
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [300, 300]
+    wxy = [200, 200]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [500, 1100, 1500, 2000]
+    roi = [1100, 1600, 1100, 1600]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'maximum integration'
     # Half size for the direct cut in pixels
     DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [80, 80, 80]
+    RSM_bs = [120, 100, 100]
     use_prefilter = False
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20230925_P10_BFO_Pt_LiNiMnO2_AlScN\raw"
+    path = r"F:\Raw Data\20221103_P10_BFO_PTO\raw"
     # the aimed saving folder
     pathsavefolder = r"F:\Work place 4\Temp"
     # the path for the mask file for the detector

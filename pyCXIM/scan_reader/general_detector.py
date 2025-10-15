@@ -5,6 +5,7 @@ Created on Fri Oct 25 15:38:10 2024
 @author: Lenovo
 """
 
+from abc import ABC, abstractmethod
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -13,7 +14,7 @@ from scipy.ndimage import center_of_mass
 from scipy.ndimage import median_filter
 
 
-class DetectorMixin(object):
+class DetectorMixin(ABC):
     """
     A Mixin class that adds detector methods to the scan classes.
 
@@ -25,6 +26,13 @@ class DetectorMixin(object):
         get_detector_pixelsize() : Get the pixel size of detector.
         load_mask(pathmask) : Load the mask files defining the bad pixels on the detector.
     """
+
+    @abstractmethod
+    def load_single_image(self, img_index, correction_mode='constant'):
+        """
+        Load a single image with optional correction
+        """
+        pass
 
     def get_detector_size(self):
         """

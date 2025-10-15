@@ -14,10 +14,10 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def plot_phase_retrieval_results():
     # %%Inputs
-    pathsave = r'F:\Work place 4\Temp\O32_1_00034\pynxpre'
-    trial_num = 1
-    path_scan_infor = r"F:\Work place 4\Temp\O32_1_00034\scan_0034_information.txt"
-    display_range = [1200, 1200, 1200]
+    pathsave = r'F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
+    trial_num = 3
+    path_scan_infor = r"F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\scan_0043_information.txt"
+    display_range = [500, 500, 500]
 
     # %%Load the information file
     print("Loading the information file...")
@@ -111,16 +111,15 @@ def plot_phase_retrieval_results():
 
     para_name_list = [
         'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
-        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'flip_condition',
-        'first_seed_flip', 'total_calculation_time', 'support_type',
+        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'critical_error',
+        'flip_condition', 'first_seed_flip', 'total_calculation_time', 'support_type',
         'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
         'Initial_support_threshold', 'percent_selected',
         'modulus_smooth_width', 'path_import_initial_support', 'Free_LLK',
         'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
         'support_update_loops', 'support_threshold_min', 'support_threshold_max',
         'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-        'hybrid_para_begin', 'hybrid_para_end', 'detwin_axis',
-        'further_analysis_selected', 'further_analysis_method',
+        'hybrid_para', 'detwin_axis', 'further_analysis_selected', 'further_analysis_method',
         'phase_unwrap_method', 'error_for_further_analysis_selection']
     pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
     return

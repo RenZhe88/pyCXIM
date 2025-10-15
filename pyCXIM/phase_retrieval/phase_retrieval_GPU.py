@@ -69,14 +69,22 @@ class PhaseRetrievalFuns():
         the result support
     """
 
-    def __init__(self, measured_intensity, Seed, starting_img=None, support=None, MaskFFT=None, precision='64'):
+    def __init__(self, measured_intensity, Seed, starting_img=None, support=None, MaskFFT=None, LLKmask=None, precision='64'):
         print('Seed %04d' % Seed)
+        self.Seed = Seed
+
+        # Set torch
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.determinsitic = True
+        torch.manual_seed(Seed)
+
         if precision == '64':
             self.dtype_list = [np.float64, np.complex128, torch.float64, torch.complex128]
         elif precision == '32':
             self.dtype_list = [np.float32, np.complex64, torch.float32, torch.complex64]
-        self.intensity = np.array(measured_intensity, dtype=self.dtype_list[0])
-        self.ModulusFFT = np.fft.fftshift(np.sqrt(np.array(measured_intensity, dtype=self.dtype_list[0])))
+        self.intensity = torch.tensor(measured_intensity, dtype=self.dtype_list[2], device=self.device)
+        self.ModulusFFT = torch.fft.fftshift(torch.sqrt(self.intensity))
         self.dim = self.intensity.ndim
 
         # loop index records number of loops performed for different algorithms
@@ -85,40 +93,43 @@ class PhaseRetrievalFuns():
         # generate or import the starting image for the phase retrieval process
         if starting_img is not None:
             print('Given starting image used.')
-            self.img = np.array(starting_img, dtype=self.dtype_list[1])
+            self.img = torch.tensor(starting_img, dtype=self.dtype_list[3], device=self.device)
         else:
             print('Random starting image used.')
-            np.random.seed(seed=Seed)
-            self.img = np.fft.ifftn(np.multiply(self.ModulusFFT, np.exp(1j * np.random.rand(*self.ModulusFFT.shape) * 2 * np.pi)))
-            self.img = self.img.astype(self.dtype_list[1])
+            self.img = torch.fft.ifftn(torch.multiply(self.ModulusFFT, torch.exp(1j * torch.rand_like(self.ModulusFFT, dtype=self.dtype_list[2]) * 2 * torch.pi)))
+            # self.img = self.img.type(self.dtype_list[3])
 
         # generate according to the autocorrelation or import the starting support
         if support is not None:
-            self.support = np.array(support, dtype=self.dtype_list[0])
+            self.support = torch.tensor(support, dtype=self.dtype_list[2], device=self.device)
         else:
-            self.support = np.zeros_like(self.ModulusFFT, dtype=self.dtype_list[0])
-            Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
+            self.support = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[2], device=self.device)
+            autocorr = torch.abs(torch.fft.fftshift(torch.fft.fftn(self.intensity)))
             # Gaussian filter to be added
-            threshold = 4.0 / 1000.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
-            self.support[Startautocorrelation >= threshold] = 1.0
+            threshold = 4.0 / 1000.0 * (autocorr.max() - autocorr.min()) + autocorr.min()
+            self.support[autocorr >= threshold] = 1.0
 
         # Indicate the bad pixels during the phase retrieval process
         if MaskFFT is not None:
-            self.MaskFFT = np.array(MaskFFT, dtype=self.dtype_list[0])
-            self.MaskFFT = np.fft.fftshift(self.MaskFFT)
+            self.MaskFFT = torch.tensor(MaskFFT, dtype=self.dtype_list[2], device=self.device)
+            self.MaskFFT = torch.fft.fftshift(self.MaskFFT)
         else:
-            self.MaskFFT = np.zeros_like(self.ModulusFFT, dtype=self.dtype_list[0])
+            self.MaskFFT = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[2], device=self.device)
 
-        # Transfer all the attributes to GPU
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        torch.manual_seed(Seed)
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.determinsitic = True
-        self.intensity = torch.from_numpy(self.intensity).to(self.device)
-        self.ModulusFFT = torch.from_numpy(self.ModulusFFT).to(self.device)
-        self.img = torch.from_numpy(self.img).to(self.device)
-        self.support = torch.from_numpy(self.support).to(self.device)
-        self.MaskFFT = torch.from_numpy(self.MaskFFT).to(self.device)
+        # Indicate the pixels masked for LLK calculation during the phase retrieval process
+        if LLKmask is not None:
+            self.LLKmask = torch.tensor(LLKmask, dtype=self.dtype_list[2], device=self.device)
+        else:
+            self.LLKmask = None
+
+        self.err_ar_dict = {'Seed': self.get_SeedNum,
+                            'Support size': self.get_support_size,
+                            'Fourier space error': self.get_Fourier_space_error,
+                            'Poisson logLikelihood error': self.get_Poisson_Likelihood_error,
+                            'Object domain error': self.get_object_domain_error,
+                            'Modulus STD': self.get_modulus_std,
+                            'Free logLikelihood': self.get_Free_LogLikelihood_error
+                            }
         return
 
     def End(self):
@@ -133,11 +144,12 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        self.img = self.img * self.support
+        err_ar = []
+        for err_name in self.err_ar_dict.keys():
+            err_ar.append(self.err_ar_dict[err_name]())
+        self.err_ar = np.array(err_ar)
 
-        self.intensity = self.intensity.cpu().numpy()
-        self.ModulusFFT = self.ModulusFFT.cpu().numpy()
-        self.img = self.img.cpu().numpy()
+        self.img = (self.img * self.support).cpu().numpy()
         self.support = self.support.cpu().numpy()
         self.MaskFFT = self.MaskFFT.cpu().numpy()
         torch.cuda.empty_cache()
@@ -178,18 +190,16 @@ class PhaseRetrievalFuns():
 
         """
         img = img.unsqueeze(0).unsqueeze(0)
-        kernel_size = int(round(14.0 * sigma))
-        if kernel_size % 2 == 0:
-            kernel_size += 1
-        x = torch.linspace(-(kernel_size // 2), (kernel_size // 2), kernel_size, dtype=self.dtype_list[2], device=self.device)
-        gaussian1d = torch.exp(-torch.square(x / sigma) / 2)
-        gaussian1d = gaussian1d / torch.sum(gaussian1d)
+        kernel_size = max(3, min(51, int(2 * round(7.0 * sigma) + 1)))
+
+        x = torch.linspace(-kernel_size // 2, kernel_size // 2, kernel_size,
+                           dtype=self.dtype_list[2], device=self.device)
+        kernel = torch.exp(-torch.square(x / sigma) / 2)
+        kernel = kernel / torch.sum(kernel)
         for i in range(self.dim):
-            aimed_shape_of_gaussian = [1] * (self.dim + 2)
-            aimed_shape_of_gaussian[i + 2] = -1
+            gaussian1d_conv = kernel.view([1, 1] + [1] * i + [-1] + [1] * (self.dim - i - 1))
             padding = [0] * self.dim
             padding[i] = kernel_size // 2
-            gaussian1d_conv = gaussian1d.view(*aimed_shape_of_gaussian)
             if self.dim == 2:
                 img = torch.nn.functional.conv2d(img, gaussian1d_conv, stride=1, padding=tuple(padding))
             elif self.dim == 3:
@@ -213,43 +223,6 @@ class PhaseRetrievalFuns():
             self.support = torch.roll(self.support, int(shift), dims=i)
             self.img = torch.roll(self.img, int(shift), dims=i)
         return
-
-    # def Sup(self, Gaussiandelta, thrpara):
-    #     """
-    #     Update the support according to the current images.
-
-    #     3D Schrinkwarp method performed according to the paper:
-    #         X-ray image reconstruction from a diffraction pattern alone
-    #         S. Marchesini, et al. PRB, 68, 140101 (2003)
-
-    #     Parameters
-    #     ----------
-    #     Gaussiandelta : float
-    #         Standard deviation for Gaussian kernel.
-    #     thrpara : float
-    #         The threhold parameter for updating the suppoart.
-    #         Value should be from 0 to 1.
-
-    #     Returns
-    #     -------
-    #     None.
-
-    #     """
-    #     if 'Sup' in self.loop_dict.keys():
-    #         self.loop_dict['Sup'] += 1
-    #     else:
-    #         self.loop_dict['Sup'] = 1
-    #     self.print_loop_num()
-
-    #     # Update the support function according to the shrink wrap method
-    #     Bluredimg = self.GaussianBlur(torch.abs(self.img), Gaussiandelta)
-    #     threshold = thrpara * (torch.amax(Bluredimg) - torch.amin(Bluredimg)) + torch.amin(Bluredimg)
-    #     self.support = torch.zeros_like(self.img, dtype=float)
-    #     self.support[Bluredimg >= threshold] = 1.0
-    #     # Center the support to the center of the image
-    #     if self.loop_dict['Sup'] % 10 == 0:
-    #         self.CenterSup()
-    #     return
 
     def Sup(self, Gaussiandelta, thrpara, hybrid_para=0):
         """
@@ -292,8 +265,11 @@ class PhaseRetrievalFuns():
             self.Modulus_sum = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[2]).to(self.device)
 
         # Update the support function according to the shrink wrap method
-        self.Modulus_sum += torch.abs(self.img)
-        Bluredimg = self.GaussianBlur(self.Modulus_sum / float(self.loop_dict['Sup']) * hybrid_para + (1.0 - hybrid_para) * torch.abs(self.img), Gaussiandelta)
+        # self.Modulus_sum += torch.abs(self.img)
+        # Bluredimg = self.GaussianBlur(self.Modulus_sum / float(self.loop_dict['Sup']) * hybrid_para + (1.0 - hybrid_para) * torch.abs(self.img), Gaussiandelta)
+        self.Modulus_sum = self.Modulus_sum * hybrid_para + torch.abs(self.img)
+        # corr = (1 - hybrid_para) / (1.0 - np.power(hybrid_para, float(self.loop_dict['Sup'])))
+        Bluredimg = self.GaussianBlur(self.Modulus_sum, Gaussiandelta)
         threshold = thrpara * (torch.amax(Bluredimg) - torch.amin(Bluredimg)) + torch.amin(Bluredimg)
         self.support = torch.zeros_like(self.img, dtype=self.dtype_list[2])
         self.support[Bluredimg >= threshold] = 1.0
@@ -425,6 +401,7 @@ class PhaseRetrievalFuns():
 
         para = 0.9  # Parameter for the HIO
 
+        self.img = self.support * self.img
         for i in range(num_HIO_loop):
             self.holderimg_HIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_HIO - self.img * para)
             self.img = self.ModulusProj(self.holderimg_HIO)
@@ -461,6 +438,7 @@ class PhaseRetrievalFuns():
 
         para = 0.9  # Parameter for the HIO
 
+        self.img = self.support * self.img
         for i in range(num_NHIO_loop):
             self.holderimg_NHIO = self.support * self.img + (1.0 - self.support) * (self.holderimg_NHIO - self.img * para)
             zero_select_con = torch.logical_and(self.support == 0, torch.abs(self.holderimg_NHIO) < 3.0 * self.std_noise)
@@ -498,6 +476,7 @@ class PhaseRetrievalFuns():
 
         para0 = 0.75  # Starting parameter for the RAAR
 
+        self.img = self.support * self.img
         for i in range(num_RAAR_loop):
             para = para0 + (1.0 - para0) * (1.0 - np.exp(-(i / 12.0)**3.0))
             self.holderimg_RAAR = self.support * self.img + (1 - self.support) * (para * self.holderimg_RAAR + (1 - 2.0 * para) * self.img)
@@ -569,30 +548,73 @@ class PhaseRetrievalFuns():
 
         para_dif = 0.9  # parameter for the difference map
         invpara = 1.0 / para_dif
+
+        self.img = self.support * self.img
         for i in range(num_DIF_loop):
             map1 = (1 + invpara) * self.ModulusProj(self.img) - invpara * self.img
             map2 = (1 - invpara) * self.SupProj(self.img) + invpara * self.img
             self.img = self.img + para_dif * (self.SupProj(map1) - self.ModulusProj(map2))
-        self.img = self.img * self.support
         return
 
-    # def ADMM(self, num_ADMM_loop):
-    #     if 'ADMM' in self.loop_dict.keys():
-    #         self.loop_dict['ADMM'] += num_ADMM_loop
-    #     else:
-    #         self.loop_dict['ADMM'] = num_ADMM_loop
-    #     self.print_loop_num()
+    def ADMM(self, num_ADMM_loop):
+        """
+        Use alternating direction method of multipliers (ADMM) to update the image.
 
-    #     if not hasattr(self, 'holderimg_ADMM1'):
-    #         # the array to hold the previous image during the HIO calculation
-    #         self.holderimg_ADMM = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[3]).to(self.device)
+        ADMM according to the lecture nots:
+            http://faculty.bicmr.pku.edu.cn/~wenzw/bigdata/lect-phase.pdf
 
-    #     para_admm = 0.5  # parameter for the difference map
-    #     for i in range(num_ADMM_loop):
-    #         self.holderimg_ADMM1 = self.ModulusProj(self.img + self.holderimg_ADMM)
-    #         self.holderimg_ADMM = self.holderimg_ADMM + para_admm * (self.img - self.holderimg_ADMM1)
-    #         self.img = self.SupProj(self.holderimg_ADMM1 - self.holderimg_ADMM)
-    #     return
+        Parameters
+        ----------
+        num_ADMM_loop : int
+            Number of loops to be performed.
+
+        Returns
+        -------
+        None.
+
+        """
+        if 'ADMM' in self.loop_dict.keys():
+            self.loop_dict['ADMM'] += num_ADMM_loop
+        else:
+            self.loop_dict['ADMM'] = num_ADMM_loop
+        self.print_loop_num()
+
+        if not hasattr(self, 'scaled_dual_variable'):
+            # the array to hold the previous image during the HIO calculation
+            self.x = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[3], device=self.device)
+            self.scaled_dual_variable = torch.zeros_like(self.ModulusFFT, dtype=self.dtype_list[3], device=self.device)
+
+        para_admm = 0.5
+        self.img = self.support * self.img
+        for i in range(num_ADMM_loop):
+            self.x = self.SupProj(self.img - self.scaled_dual_variable)
+            self.img = self.ModulusProj(self.x + self.scaled_dual_variable)
+            self.scaled_dual_variable = self.scaled_dual_variable + para_admm * (self.x - self.img)
+        return
+
+    def get_SeedNum(self):
+        """
+        Get the Seed number.
+
+        Returns
+        -------
+        int
+            Seed Number.
+
+        """
+        return self.Seed
+
+    def get_error_names(self):
+        """
+        Get the error names.
+
+        Returns
+        -------
+        list
+            List of error names.
+
+        """
+        return list(self.err_ar_dict.keys())
 
     def get_img(self):
         """
@@ -700,7 +722,10 @@ class PhaseRetrievalFuns():
             The reconstructed intensity (data with float type).
 
         """
-        return np.square(np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support)))).astype(self.dtype_list[0])
+        if torch.is_tensor(self.img):
+            return torch.square(torch.abs(torch.fft.fftshift(torch.fft.fftn(self.img * self.support)))).type(self.dtype_list[2])
+        else:
+            return np.square(np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support)))).astype(self.dtype_list[0])
 
     def get_support_size(self):
         """
@@ -713,36 +738,47 @@ class PhaseRetrievalFuns():
 
         """
         if torch.is_tensor(self.img):
-            return torch.sum(self.support).cpu()
+            return torch.sum(self.support).item()
         else:
             return np.sum(self.support)
+
+    def get_object_domain_error(self):
+        """
+        Calculate the object domain error of the result reconstruction.
+
+        Returns
+        -------
+        object_domain_error : float
+           Object domain error of the result reconstruction.
+
+        """
+        if torch.is_tensor(self.img):
+            object_domain_error = torch.sum(torch.square(torch.abs(self.img * (1.0 - self.support)))) / torch.sum(torch.square(torch.abs(self.img)))
+            return object_domain_error.item()
+        else:
+            object_domain_error = np.sum(np.square(np.abs(self.img * (1.0 - self.support)))) / np.sum(np.square(np.abs(self.img)))
+            return object_domain_error
 
     def get_Fourier_space_error(self):
         """
         Calculate the fourier space error of the result reconstruction.
 
-        Should be used only after the phase retrieval calculation is finished,
-        when the end function tranfers the result from GPU to memory.
-
         Returns
         -------
-        error : float
+        Fourier_space_error : float
             Fourier space error of the result reconstruction.
 
         """
         if torch.is_tensor(self.img):
-            error = torch.sum(torch.square(torch.abs(torch.fft.fftn(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / torch.sum(torch.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
-            return error
+            Fourier_space_error = torch.sum((torch.square(torch.abs(torch.fft.fftn(self.img * self.support)) - self.ModulusFFT) * (1.0 - self.MaskFFT))) / torch.sum(torch.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
+            return Fourier_space_error.item()
         else:
-            error = np.sum(np.square(np.abs(np.fft.fftn(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / np.sum(np.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
-            return error
+            Fourier_space_error = np.sum(np.square(np.abs(np.fft.fftn(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / np.sum(np.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
+            return Fourier_space_error
 
-    def get_Poisson_Likelihood(self):
+    def get_Poisson_Likelihood_error(self):
         """
         Calculate the loglikelihood of the result reconstruction considering poisson distribution.
-
-        Should be used only after the phase retrieval calculation is finished,
-        when the end function tranfers the result from GPU to memory.
 
         Returns
         -------
@@ -750,10 +786,32 @@ class PhaseRetrievalFuns():
             The loglikeihood error of the result reconstruction.
 
         """
-        loglikelihood = np.sum(np.fft.fftshift(1.0 - self.MaskFFT) * ((self.get_intensity() + np.finfo(self.dtype_list[0]).eps) + gammaln(self.intensity + np.finfo(self.dtype_list[0]).eps) - (self.intensity + np.finfo(self.dtype_list[0]).eps) * np.log(self.get_intensity() + np.finfo(self.dtype_list[0]).eps))) / np.sum(1.0 - self.MaskFFT)
-        return loglikelihood
+        cal_inten = self.get_intensity()
+        if torch.is_tensor(self.img):
+            loglikelihood_error = torch.sum(torch.fft.fftshift(1.0 - self.MaskFFT) * (cal_inten + torch.lgamma(self.intensity + torch.finfo(self.dtype_list[2]).eps) - self.intensity * torch.log(cal_inten))) / torch.sum(1.0 - self.MaskFFT)
+            return loglikelihood_error.item()
+        else:
+            loglikelihood_error = np.sum(np.fft.fftshift(1.0 - self.MaskFFT) * (cal_inten + gammaln(self.intensity + np.finfo(self.dtype_list[0]).eps) - self.intensity * np.log(cal_inten))) / np.sum(1.0 - self.MaskFFT)
+            return loglikelihood_error
 
-    def get_Free_LogLikelihood(self, LLKmask=None):
+    def get_modulus_std(self):
+        """
+        Calculate the standarded deviation of the Modulus.
+
+        Returns
+        -------
+        modulus_std : float
+            The modulus_std error of the result reconstruction.
+
+        """
+        if torch.is_tensor(self.img):
+            modulus_std = torch.std(torch.abs(self.img)[self.support == 1])
+            return modulus_std.item()
+        else:
+            modulus_std = np.std(np.abs(self.img)[self.support == 1])
+            return modulus_std
+
+    def get_Free_LogLikelihood_error(self):
         """
         Calculate the Free loglikelihood error using the previously generated mask.
 
@@ -768,11 +826,28 @@ class PhaseRetrievalFuns():
             Thre free loglikelihood error calculated.
 
         """
-        if LLKmask is not None:
-            loglikelihood = np.sum(np.fft.fftshift(LLKmask) * ((self.get_intensity() + np.finfo(self.dtype_list[0]).eps) + gammaln(self.intensity + np.finfo(self.dtype_list[0]).eps) - (self.intensity + np.finfo(self.dtype_list[0]).eps) * np.log(self.get_intensity() + np.finfo(self.dtype_list[0]).eps))) / np.sum(LLKmask)
+        if self.LLKmask is not None:
+            cal_inten = self.get_intensity()
+            if torch.is_tensor(self.img):
+                loglikelihood = torch.sum(self.LLKmask * (cal_inten + torch.lgamma(self.intensity + torch.finfo(self.dtype_list[2]).eps) - self.intensity * torch.log(cal_inten))) / torch.sum(self.LLKmask)
+                loglikelihood = loglikelihood.item()
+            else:
+                loglikelihood = np.sum(self.LLKmask * (cal_inten + gammaln(self.intensity + np.finfo(self.dtype_list[0]).eps) - self.intensity * np.log(cal_inten + np.finfo(self.dtype_list[0]).eps))) / np.sum(self.LLKmask)
         else:
             loglikelihood = 0
         return loglikelihood
+
+    def get_error_array(self):
+        """
+        Get the error array generated at the end of Phase retrieval process
+
+        Returns
+        -------
+        err_ar : ndarray
+            The error array.
+
+        """
+        return self.err_ar
 
     def print_loop_num(self):
         """
