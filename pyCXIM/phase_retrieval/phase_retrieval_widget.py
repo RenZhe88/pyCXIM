@@ -23,6 +23,8 @@ try:
 except ModuleNotFoundError:
     from .phase_retrieval_numpy import PhaseRetrievalFuns as pr
     from .phase_retrieval_numpy import Free_LLK_FFTmask
+# from .phase_retrieval_numpy import PhaseRetrievalFuns as pr
+# from .phase_retrieval_numpy import Free_LLK_FFTmask
 from . import phase_retrieval_post_processing as pp
 
 
@@ -257,12 +259,13 @@ class PhaseRetrievalWidget():
         imgfile.close()
         return
 
-    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, precision='32', critical_error=1.0e-7,
+    def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, precision='32',
                              Free_LLK=False, FLLK_percentage=1, FLLK_radius=3,
-                             threhold_update_method='exp_increase',
+                             psf_sigma=1.2, threshold_update_method='exp_increase',
                              support_para_update_precent=0.8, thrpara_min=0.1,
                              thrpara_max=0.12, support_smooth_width_begin=3.5,
                              support_smooth_width_end=1.0, hybrid_para=0.0, detwin_axis=0,
+                             critical_error_selected='Fourier space error', critical_error=1.0e-7,
                              flip_condition='Support', first_seed_flip=False,
                              phase_unwrap_method=6, display_image_num=5):
         """
@@ -271,57 +274,73 @@ class PhaseRetrievalWidget():
         Parameters
         ----------
         algorithm : str
-            The algorithms defining the phase retrieval process.
+            The algorithm chain used to perform phase retrieval.
         SeedNum : int
-            The total number of runs to be performed with different initial starting point.
+            Total number of independent runs, each starting from a different random initial guess.
         start_trial_num : int, optional
-            Start the phase retrieval based on the solutions generated from the previous trials. To start with the random guesses, use 0. The default is 0.
+            Trial number from which to continue using previously generated solutions.
+            If set to 0, all runs start from random initial guesses. Default is 0.
         precision : str, optional
-            The btye lenght of the arrays, which determines the accuracy of the calculation.
-            If precision equals 32, then dtype of float32 and complex64 will be used. The calculation speed would be faster.
-            If precision equals 64, then dtype of float64 and complex128 will be used. The calculation will be more accurate.
-        critical_error ： float, optional
-            The critical error value to stop the calculation, when CRITcheck is applied.
+            Numerical precision of arrays, which affects both accuracy and performance.
+            - 32: uses float32/complex64, faster but less accurate.
+            - 64: uses float64/complex128, more accurate but slower.
+            Default is 64.
         Free_LLK : bool, optional
-            If true, the free log likelihood mask will be generated and used during the phase retrieval process. The default is False.
+            If True, a free log-likelihood mask is generated and applied during retrieval.
+            Default is False.
         FLLK_percentage : float, optional
-            The percentage of pixels to be masked for the Free Log likelihood calculation. The default is 1.
+            Percentage of pixels to mask in the free log-likelihood calculation.
+            Default is 1.
         FLLK_radius : int, optional
             The radius of masked pixel clusters to be used in the free log likelihood mask. The default is 3.
+        psf_sigma : float, optional
+            Sigma of the Gaussian function used for PSF construction in partial coherence modeling.
+            Default is 1.2.
         threhold_update_method : str, optional
-            Deteriming how the threshold parameter should be updated during the shrinkwrap process.
-            'exp_increase': The threshold parameter will exponentially increase from the thrpara_min value to thrpara_max value.
-            'lin_increase': The threshold parameter will linearly increase from the thrpara_min value to thrpara_max value.
-            'random': The threshold parameter will be randomly adjusted between the thrpara_min value to thrpara_max value.
-            The default is 'exp_increase'.
+            Method for updating the threshold parameter during shrink-wrap.
+            Options: 'exp_increase', 'lin_increase', 'random'.
+            Default is 'exp_increase'.
         support_para_update_precent : float, optional
-            Determines the number of support updates to be performed before the support para reaches and stays at the aimed value. The default is 0.8.
+            Fraction of iterations after which the support parameter stops changing and remains fixed.
+            Default is 0.8.
         thrpara_min : float, optional
-            The minimun threshold value to be used in the shrink wrap process. The default is 0.1.
+            Minimum threshold value used in shrink-wrap.
+            Default is 0.1.
         thrpara_max : float, optional
-            The maximum threshold value to be used in the shrink wrap process. The default is 0.12.
+            Maximum threshold value used in shrink-wrap.
+            Default is 0.12.
         support_smooth_width_begin : float, optional
-            The standard deviation of Gaussian kernal used at the begining of the shrink wrap process. The default is 3.5.
+            Initial standard deviation of the Gaussian kernel for support smoothing.
+            Default is 3.5.
         support_smooth_width_end : float, optional
-            The standard deviation of Gaussian kernal to be reached at the end of the shrink wrap process. The default is 1.0.
+            Final standard deviation of the Gaussian kernel for support smoothing.
+            Default is 1.0.
         hybrid_para : float, optional
             The hybrid parameter for the hybrid shrink-wrap method. The value should be between 0 and 1.
             If hybrid parameter is 0, tranditional shrink-wrap method is applied.
             Else, the integrated modulus during the phase retrieval process will be considered during the support update process.
             The default is 0.0.
         detwin_axis : int|tuple, optional
-            Axis for detwin operation. The default is 0.
+            Axis or axes along which detwinning is applied.
+            Default is 0.
+        critical_error_selected : str, optional
+            Type of error monitored for CRITcheck. The default is 'Fourier space error'.
+        critical_error ： float, optional
+            Error threshold for early stopping, when CRITcheck is applied.
         flip_condition : str, optional
-            Determins which image is used to judge whether an image should be flip after the phase retrieval process.
-            Opitions are 'Support', 'Modulus', 'Phase'. The default is 'Support'.
+            Criterion used to determine whether to flip the reconstructed image.
+            Options: 'Support', 'Modulus', 'Phase'.
+            Default is 'Support'.
         first_seed_flip : bool, optional
-            If true, the first image generated will be flipped, which will also flip all the solutions afterwards. The default is False.
+            If True, the first reconstructed image is flipped, affecting all subsequent solutions.
+            The default is False.
         phase_unwrap_method : int, optional
-            phase_unwrap_method now can be chosen from 0, 4, 6, 8
-            If phase_unwrap_method = 0, the phase unwrap will be performed with phase unwrap method in the skimage.
-            If phase_unwrap_method = 4, 6 or 8, the phase unwrap will be performed FFT method.
+            Phase unwrapping algorithm:
+            - 0: uses skimage's unwrap method.
+            - 4, 6, 8: uses FFT-based methods.
         display_image_num : int, optional
-            The number of runs to be displayed during the run. The default is 5.
+            Number of intermediate runs to display during execution.
+            Default is 5.
 
         Returns
         -------
@@ -380,6 +399,7 @@ class PhaseRetrievalWidget():
         Img_sum = np.zeros_like(intensity, dtype=dtype_list[1])
         Support_sum = np.zeros_like(intensity, dtype=dtype_list[0])
         intensity_sum = np.zeros_like(intensity, dtype=dtype_list[0])
+        psf_sum = None
         err_ar = []
 
         # Making folders to store the images
@@ -398,9 +418,9 @@ class PhaseRetrievalWidget():
 
                 support_update_num = np.around(algor_extend.count(('Sup', 1)) * support_para_update_precent)
                 support_decay_rate = np.power(support_smooth_width_end / support_smooth_width_begin, 1.0 / support_update_num)
-                if threhold_update_method == 'exp_increase':
+                if threshold_update_method == 'exp_increase':
                     thr_increase_rate = np.power(thrpara_max / thrpara_min, 1.0 / support_update_num)
-                elif threhold_update_method == 'lin_increase':
+                elif threshold_update_method == 'lin_increase':
                     thr_increase_rate = (thrpara_max - thrpara_min) / support_update_num
 
             for method, loopnum in algor_extend:
@@ -422,20 +442,27 @@ class PhaseRetrievalWidget():
                     PR_seed.Sup(Gaussiandelta, thrpara, hybrid_para)
                     if Gaussiandelta > support_smooth_width_end:
                         Gaussiandelta = Gaussiandelta * support_decay_rate
-                        if threhold_update_method == 'random':
+                        if threshold_update_method == 'random':
                             thrpara = thrpara_min + np.random.rand() * (thrpara_max - thrpara_min)
-                        elif threhold_update_method == 'exp_increase':
+                        elif threshold_update_method == 'exp_increase':
                             thrpara = thrpara * thr_increase_rate
-                        elif threhold_update_method == 'lin_increase':
+                        elif threshold_update_method == 'lin_increase':
                             thrpara = thrpara + thr_increase_rate
                 elif method == 'DETWIN':
                     PR_seed.DETWIN(axis=detwin_axis)
                 elif method == 'ConvexSup':
                     PR_seed.ConvexSup()
+                elif method == 'PSFon':
+                    PR_seed.PSFon(psf_sigma)
+                elif method == 'PSFoff':
+                    PR_seed.PSFoff()
+                elif method == 'PSFupdate':
+                    PR_seed.PSFupdate(loopnum, 5)
                 elif method == 'CRITcheck':
-                    if PR_seed.get_Fourier_space_error() < critical_error:
+                    if PR_seed.get_error(critical_error_selected) < critical_error:
                         break
             PR_seed.End()
+
             Support_final = PR_seed.get_support()
             Modulus_final = PR_seed.get_img_Modulus()
             Phase_final = pp.phase_corrector(PR_seed.get_img_Phase(), PR_seed.get_support(), 0, phase_unwrap_method)
@@ -464,6 +491,12 @@ class PhaseRetrievalWidget():
             Seed_group = Solution_group.create_group("Seed%03d" % Seed)
             Seed_group.create_dataset("image", data=PR_seed.get_img(), dtype=dtype_list[1], chunks=chunks_size, compression="gzip")
             Seed_group.create_dataset("support", data=PR_seed.get_support(), dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
+            if 'PSFon' in algorithm:
+                if psf_sum is None:
+                    psf_sum = PR_seed.get_psf()
+                else:
+                    psf_sum = psf_sum + PR_seed.get_psf()
+                Seed_group.create_dataset("psf", data=PR_seed.get_psf(), dtype=dtype_list[0], compression="gzip")
 
             Support_sum = Support_sum + Support_final
             Modulus_sum = Modulus_sum + Modulus_final
@@ -484,6 +517,8 @@ class PhaseRetrievalWidget():
         Img_sum = Img_sum / SeedNum
         intensity_sum = intensity_sum / SeedNum
         Support_sum = Support_sum / SeedNum
+        if 'PSFon' in algorithm:
+            psf_sum = psf_sum / SeedNum
 
         PRTF = pp.cal_PRTF(intensity, Img_sum, MaskFFT)
         self.para_dict['nb_run'] = SeedNum
@@ -491,10 +526,11 @@ class PhaseRetrievalWidget():
         self.para_dict['start_trial_num'] = start_trial_num
         self.para_dict['precision'] = precision
 
-        if (int(algor_extend.count(('CRITcheck', 1))) != 0):
+        if 'CRITcheck' in algorithm:
+            self.para_dict['critical_error_selected'] = critical_error_selected
             self.para_dict['critical_error'] = critical_error
 
-        if (int(algor_extend.count(('Sup', 1))) != 0):
+        if 'Sup' in algorithm:
             self.para_dict['support_update'] = True
             self.para_dict['support_smooth_width_begin'] = support_smooth_width_begin
             self.para_dict['support_smooth_width_end'] = support_smooth_width_end
@@ -503,14 +539,17 @@ class PhaseRetrievalWidget():
             self.para_dict['support_update_loops'] = support_update_num
             self.para_dict['support_decay_rate'] = support_decay_rate
             self.para_dict['hybrid_para'] = hybrid_para
-            self.para_dict['threhold_update_method'] = threhold_update_method
-            if 'increase' in threhold_update_method:
+            self.para_dict['threshold_update_method'] = threshold_update_method
+            if 'increase' in threshold_update_method:
                 self.para_dict['threhold_increase_rate'] = thr_increase_rate
         else:
             self.para_dict['support_update'] = False
 
-        if int(algor_extend.count(('DETWIN', 1))) != 0:
+        if 'DETWIN' in algorithm:
             self.para_dict['detwin_axis'] = detwin_axis
+
+        if 'PSFon' in algorithm:
+            self.para_dict['psf_sigma'] = psf_sigma
 
         self.para_dict['flip_condition'] = flip_condition
         self.para_dict['first_seed_flip'] = first_seed_flip
@@ -527,6 +566,8 @@ class PhaseRetrievalWidget():
         imgfile.create_dataset("Average_All/Phase_sum", data=Phase_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
         imgfile.create_dataset("Average_All/intensity_sum", data=intensity_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
         imgfile.create_dataset("Average_All/phase_retrieval_transfer_function", data=PRTF, dtype=dtype_list[0])
+        if 'PSFon' in algorithm:
+            imgfile.create_dataset("Average_All/psf_sum", data=intensity_sum, dtype=dtype_list[0], compression="gzip")
         imgfile.close()
         return
 

@@ -86,8 +86,8 @@ def Cut_central(dataset, bs, cut_mode='maximum integration', peak_pos=None):
         print('cut according to the weight center')
         i = 0
         torlerence = 0.5
-        while not np.allclose(measurements.center_of_mass(intcut), np.array(bs, dtype=float) - 0.5, atol=torlerence):
-            peak_pos = np.array(peak_pos + np.around(measurements.center_of_mass(intcut) - np.array(bs, dtype=float) + 0.5), dtype=int)
+        while not np.allclose(measurements.center_of_mass(intcut), np.array(bs, dtype=float), atol=torlerence):
+            peak_pos = np.array(peak_pos + np.around(measurements.center_of_mass(intcut) - np.array(bs, dtype=float)), dtype=int)
             bs = check_cut_box_size(bs, peak_pos, dataset.shape)
             intcut = np.array(dataset[(peak_pos[0] - bs[0]):(peak_pos[0] + bs[0]), (peak_pos[1] - bs[1]):(peak_pos[1] + bs[1]), (peak_pos[2] - bs[2]):(peak_pos[2] + bs[2])])
             i += 1

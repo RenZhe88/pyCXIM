@@ -13,7 +13,7 @@ def phase_retrieval_main():
     pathsave = r'F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
     intensity_file = 'scan0043.npz'
     mask_file = 'scan0043_mask.npz'
-    trial_num = 3
+    trial_num = 4
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -26,7 +26,7 @@ def phase_retrieval_main():
     # If support_type is 'auto_correlation'
     auto_corr_thrpara = 0.004
     # If support_type is 'average', 'support_selected', or'modulus_selected'
-    Initial_support_threshold = 0.8
+    Initial_support_threshold = 0.5
     # If support_type is 'support_selected' or 'modulus_selected'
     percent_selected = 10
     # If support_type is 'modulus_selected'
@@ -37,9 +37,15 @@ def phase_retrieval_main():
     start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    algorithm = '(HIO**40*Sup)**20*DETWIN*(DIF**50)**2*(RAAR**60*ER**10*Sup)**40'
-    # algorithm = "DIF**200*(RAAR**50*ER**10)**20"
-    critical_error = 0.0145
+    algorithm = '(HIO**40*Sup)**20*DIF**200*(RAAR**80*ER**10*Sup)**30*(ADMM**80*ER**10*Sup)**10'
+    # algorithm = "DIF**200*PSFon*(ADMM**80*ER**10*PSFupdate**25)**4*(RAAR**80*ER**10*PSFupdate**25)**8"
+
+    # Input: parameters for CRITcheck
+    critical_error_selected = 'Fourier space error'
+    critical_error = 0.0043
+
+    # Input: parameters for partial coherent calculation
+    psf_sigma = 1.5
 
     # If you want to perform Free loglikelihood calculation, please set Free_LLK to be True
     Free_LLK = False
@@ -61,8 +67,8 @@ def phase_retrieval_main():
     detwin_axis = 0
 
     # Input: parameters for flipping the images to remove the trival solutions.
-    flip_condition = 'Support'
-    # flip_condition ='Phase'
+    # flip_condition = 'Support'
+    flip_condition = 'Phase'
     # flip_condition ='Modulus'
     first_seed_flip = False
     phase_unwrap_method = 6
@@ -84,12 +90,15 @@ def phase_retrieval_main():
                                    path_import_initial_support)
 
     # %% Start the retrieval process
-    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision, critical_error,
-                                 Free_LLK, FLLK_percentage, FLLK_radius, threhold_update_method,
-                                 support_para_update_precent, thrpara_min, thrpara_max,
-                                 support_smooth_width_begin, support_smooth_width_end,
-                                 hybrid_para, detwin_axis, flip_condition,
-                                 first_seed_flip, phase_unwrap_method, display_image_num)
+    pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision,
+                                 Free_LLK, FLLK_percentage, FLLK_radius,
+                                 psf_sigma, threhold_update_method,
+                                 support_para_update_precent, thrpara_min,
+                                 thrpara_max, support_smooth_width_begin,
+                                 support_smooth_width_end, hybrid_para, detwin_axis,
+                                 critical_error_selected, critical_error,
+                                 flip_condition, first_seed_flip,
+                                 phase_unwrap_method, display_image_num)
 
     # %% select results for SVD analysis or averaging
     pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)

@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['scripts\\phase_retrieval\\phase_retrieval_3D.py', 'scripts\\phase_retrieval\\phase_retrieval_2D.py', 'scripts\\Alignment\\P10_correct_center_of_rotation', 'scripts\\Alignment\\P10_calibration.py', 'scripts\\RSM_conversion\\P10_BCDI_preparation_powder.py', 'scripts\\scan_reader\\p10_theta_2theta_analysis.py', '..\\test\\compare_results.py', 'pyCXIM\\scan_reader\\Desy\\fio_reader.py', 'pyCXIM\\scan_reader\\general_scan.py']
+recent_files = ['pyCXIM\\phase_retrieval\\phase_retrieval_widget.py', 'pyCXIM\\phase_retrieval\\phase_retrieval_GPU.py', 'pyCXIM\\phase_retrieval\\phase_retrieval_numpy.py', 'scripts\\phase_retrieval\\phase_retrieval_3D.py', 'scripts\\phase_retrieval\\phase_retrieval_2D.py']
 
 [main]
 version = 0.2.0

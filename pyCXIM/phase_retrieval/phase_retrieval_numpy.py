@@ -16,6 +16,7 @@ import re
 import sys
 from scipy.ndimage import gaussian_filter
 from scipy.ndimage import measurements
+from scipy.signal import fftconvolve
 from scipy.special import gammaln
 from skimage.morphology import convex_hull_image
 
@@ -70,14 +71,15 @@ class PhaseRetrievalFuns():
 
     def __init__(self, measured_intensity, Seed, starting_img=None, support=None, MaskFFT=None, LLKmask=None, precision='64'):
         print('Seed %04d' % Seed)
+        self.Seed = Seed
 
         if precision == '64':
             self.dtype_list = [np.float64, np.complex128]
         elif precision == '32':
             self.dtype_list = [np.float32, np.complex64]
-        self.intensity = np.array(measured_intensity, dtype=self.dtype_list[0])
-        self.ModulusFFT = np.fft.fftshift(np.sqrt(self.intensity))
-        self.dim = self.intensity.ndim
+        intensity = np.array(measured_intensity, dtype=self.dtype_list[0])
+        self.ModulusFFT = np.fft.fftshift(np.sqrt(intensity))
+        self.dim = intensity.ndim
 
         # loop index records number of loops performed for different algorithms
         self.loop_dict = {}
@@ -96,7 +98,7 @@ class PhaseRetrievalFuns():
             self.support = np.array(support, dtype=self.dtype_list[0])
         else:
             self.support = np.zeros_like(self.ModulusFFT, dtype=self.dtype_list[0])
-            Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(self.intensity)))
+            Startautocorrelation = np.absolute(np.fft.fftshift(np.fft.fftn(intensity)))
             threshold = 4.0 / 1000.0 * (np.amax(Startautocorrelation) - np.amin(Startautocorrelation)) + np.amin(Startautocorrelation)
             self.support[Startautocorrelation >= threshold] = 1.0
 
@@ -112,12 +114,15 @@ class PhaseRetrievalFuns():
         else:
             self.LLKmask = None
 
+        self.PC_cal = False
+
         self.err_ar_dict = {'Seed': self.get_SeedNum,
                             'Support size': self.get_support_size,
                             'Fourier space error': self.get_Fourier_space_error,
                             'Poisson logLikelihood error': self.get_Poisson_Likelihood_error,
                             'Object domain error': self.get_object_domain_error,
                             'Modulus STD': self.get_modulus_std,
+                            'Difference map error': self.get_difference_map_error,
                             'Free logLikelihood': self.get_Free_LogLikelihood_error
                             }
         return
@@ -135,7 +140,7 @@ class PhaseRetrievalFuns():
         for err_name in self.err_ar_dict.keys():
             err_ar.append(self.err_ar_dict[err_name]())
         self.err_ar = np.array(err_ar)
-        
+
         self.img = self.img * self.support
         return
 
@@ -156,6 +161,45 @@ class PhaseRetrievalFuns():
         self.support = np.flip(self.support)
         return
 
+    def GaussianKernel(self, sigma):
+        """
+        Generate gaussian kernel.
+
+        Parameters
+        ----------
+        sigma : float
+            The sigma value of the gaussian function.
+
+        Returns
+        -------
+        gaussian : Tensor
+            Gaussian kernel generated.
+
+        """
+        if isinstance(sigma, (int, float)):
+            sizes = [max(3, min(51, int(2 * round(7.0 * sigma) + 1))) for _ in range(self.dim)]
+            sigma_values = [sigma] * self.dim
+        else:
+            sizes = [max(3, min(51, int(2 * round(7.0 * s) + 1))) for s in sigma[:self.dim]]
+            sigma_values = list(sigma) + [sigma[-1]] * (self.dim - len(sigma))
+            sigma_values = sigma_values[:self.dim]
+
+        squared_dist = np.zeros(sizes, dtype=self.dtype_list[0])
+
+        for i, size in enumerate(sizes):
+            coord_sq = np.square(np.linspace(-size // 2, size // 2, size, dtype=self.dtype_list[0]))
+
+            view_shape = [1] * self.dim
+            view_shape[i] = -1
+            view_shape = tuple(view_shape)
+            coord_sq = coord_sq.reshape(view_shape)
+
+            squared_dist += coord_sq / (2.0 * sigma_values[i] ** 2)
+
+        gaussian = np.exp(-squared_dist)
+        gaussian = gaussian / np.sum(gaussian)
+        return gaussian
+
     def CenterSup(self):
         """
         Center the 2D retrieved image according to the support.
@@ -165,7 +209,7 @@ class PhaseRetrievalFuns():
         None.
 
         """
-        support_shift = np.around(np.array(self.support.shape, dtype=float) / 2.0 - 0.5 - measurements.center_of_mass(self.support))
+        support_shift = np.around(np.array(self.support.shape, dtype=float) / 2.0 - measurements.center_of_mass(self.support))
         for i, shift in enumerate(support_shift):
             self.support = np.roll(self.support, int(shift), axis=i)
             self.img = np.roll(self.img, int(shift), axis=i)
@@ -360,7 +404,7 @@ class PhaseRetrievalFuns():
         if not hasattr(self, 'std_noise'):
             # The standarded deviation of noise used for NHIO method
             self.holderimg_NHIO = np.zeros_like(self.ModulusFFT, dtype=self.dtype_list[1])
-            self.std_noise = np.sqrt(np.sum(self.intensity * (1.0 - self.MaskFFT)) / np.sum(1.0 - self.MaskFFT))
+            self.std_noise = np.sqrt(np.sum(self.get_measured_intensity() * (1.0 - self.MaskFFT)) / np.sum(1.0 - self.MaskFFT))
 
         para = 0.9  # parameter for the HIO
 
@@ -425,9 +469,105 @@ class PhaseRetrievalFuns():
 
         """
         AmpFFT = np.fft.fftn(point)
-        AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + 0.98 * self.MaskFFT * AmpFFT
+        if self.PC_cal:
+            Amppc = np.square(np.abs(np.fft.fftshift(AmpFFT))).astype(self.dtype_list[0])
+            Amppc = np.sqrt(np.fft.fftshift(np.clip(fftconvolve(Amppc, self.psf, mode='same'), a_min=0.1, a_max=None)))
+            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT / Amppc, AmpFFT) + 0.98 * self.MaskFFT * AmpFFT
+        else:
+            AmpFFT = (1.0 - self.MaskFFT) * np.multiply(self.ModulusFFT, np.exp(1j * np.angle(AmpFFT))) + 0.98 * self.MaskFFT * AmpFFT
         point = np.fft.ifftn(AmpFFT)
         return point
+
+    def PSFon(self, sigma=1.2):
+        """
+        Initiate partial coherence according to the paper:
+            High-resolution three-dimensional partially coherent diffraction imaging
+            J.N. Clark. et al Nature Communications, 3, 993, (2012)
+
+        Parameters
+        ----------
+        sigma : float, optional
+            The gaussian detla value of initial PSF. The default is 1.2.
+
+        Returns
+        -------
+        None.
+
+        """
+        if not ('PSFon' in self.loop_dict.keys()):
+            self.loop_dict['PSFon'] = None
+        self.print_loop_num()
+
+        if not hasattr(self, 'psf'):
+            self.psf = self.GaussianKernel(sigma)
+        self.PC_cal = True
+        return
+
+    def PSFoff(self):
+        """
+        Close the partical coherence mode.
+
+        Parameters
+        ----------
+        sigma : float, optional
+            The gaussian detla value of initial PSF. The default is 1.2.
+
+        Returns
+        -------
+        None.
+
+        """
+        if 'PSFon' in self.loop_dict.keys():
+            del self.loop_dict['PSFon']
+            self.loop_dict['PSFoff'] = None
+        self.print_loop_num()
+
+        self.PC_cal = False
+        return
+
+    def PSFupdate(self, num_PSF_loop, num_ER_loop=5):
+        """
+        Update the psf function for partial coherence calculation.
+
+        Calculation according to the paper:
+            High-resolution three-dimensional partially coherent diffraction imaging
+            J.N. Clark. et al Nature Communications, 3, 993, (2012)
+
+        Parameters
+        ----------
+        num_PSF_loop : int
+            Number of luck-richardson algorithms to be performed for the psf retrieval.
+        num_ER_loop : int, optional
+            Number of ER loops to be performed to update intensity. The default is 5.
+
+        Returns
+        -------
+        None.
+
+        """
+        if 'PSFupdate' in self.loop_dict.keys():
+            self.loop_dict['PSFupdate'] += num_PSF_loop
+        else:
+            self.loop_dict['PSFupdate'] = num_PSF_loop
+        self.print_loop_num()
+
+        deltaIntensity = self.get_intensity()
+        self.ER(num_ER_loop)
+        deltaIntensity = 2.0 * self.get_intensity() - deltaIntensity
+        img_size = np.array(deltaIntensity.shape)
+        kernel_size = np.array(self.psf.shape)
+        cut_start = (img_size // 2 - kernel_size // 2).astype(int)
+        cut_end = (img_size // 2 + kernel_size // 2 + (kernel_size % 2)).astype(int)
+        slices = tuple(slice(start, end) for start, end in zip(cut_start, cut_end))
+
+        for i in range(num_PSF_loop):
+            Amppc = self.get_measured_intensity() / np.clip(fftconvolve(deltaIntensity, self.psf, mode='same'), a_min=0.1, a_max=None)
+            Amppc = self.fftconvolve(np.flip(deltaIntensity), Amppc)
+            Amppc = Amppc[slices]
+            self.psf = self.psf * Amppc
+            self.psf = np.clip(self.psf, a_min=0, a_max=None)
+            self.psf = self.psf / np.sum(self.psf)
+        return
 
     def SupProj(self, point):
         """
@@ -529,18 +669,6 @@ class PhaseRetrievalFuns():
         """
         return self.Seed
 
-    def get_error_names(self):
-        """
-        Get the error names.
-
-        Returns
-        -------
-        list
-            List of error names.
-
-        """
-        return list(self.err_ar_dict.keys())
-
     def get_img(self):
         """
         Get the result image (real space).
@@ -570,6 +698,21 @@ class PhaseRetrievalFuns():
 
         """
         return self.support
+
+    def get_psf(self):
+        """
+        Get the psf function calculated during partial coherence.
+
+        Returns
+        -------
+        ndarray
+            Result of the psf used for partial coherence calculation.
+
+        """
+        if hasattr(self, 'psf'):
+            return self.psf
+        else:
+            return None
 
     def get_img_Modulus(self):
         """
@@ -647,6 +790,18 @@ class PhaseRetrievalFuns():
         """
         return np.square(np.abs(np.fft.fftshift(np.fft.fftn(self.img * self.support)))).astype(self.dtype_list[0])
 
+    def get_measured_intensity(self):
+        """
+        Get the measured intensity (reciprocal space).
+
+        Returns
+        -------
+        ndarray
+            The reconstructed intensity (data with float type).
+
+        """
+        return np.fft.fftshift(np.square(self.ModulusFFT)).astype(self.dtype_list[0])
+
     def get_support_size(self):
         """
         Get the total size of the support.
@@ -658,6 +813,10 @@ class PhaseRetrievalFuns():
 
         """
         return np.sum(self.support)
+
+    def get_difference_map_error(self):
+        difference_map_error = np.linalg.norm(self.ModulusProj(self.SupProj(self.img)) - self.SupProj(self.img))
+        return difference_map_error
 
     def get_object_domain_error(self):
         """
@@ -688,7 +847,7 @@ class PhaseRetrievalFuns():
         Fourier_space_error = np.sum(np.square(np.abs(np.fft.fftn(self.img * self.support)) * (1.0 - self.MaskFFT) - self.ModulusFFT * (1.0 - self.MaskFFT))) / np.sum(np.square(self.ModulusFFT * (1.0 - self.MaskFFT)))
         return Fourier_space_error
 
-    def get_Poisson_Likelihood(self):
+    def get_Poisson_Likelihood_error(self):
         """
         Calculate the loglikelihood of the result reconstruction considering poisson distribution.
 
@@ -702,7 +861,8 @@ class PhaseRetrievalFuns():
 
         """
         cal_inten = self.get_intensity()
-        loglikelihood_error = np.sum(np.fft.fftshift(1.0 - self.MaskFFT) * (cal_inten + gammaln(self.intensity + np.finfo(self.dtype_list[0]).eps) - self.intensity * np.log(cal_inten))) / np.sum(1.0 - self.MaskFFT)
+        measured_inten = self.get_measured_intensity()
+        loglikelihood_error = np.sum(np.fft.fftshift(1.0 - self.MaskFFT) * (cal_inten + gammaln(measured_inten + np.finfo(self.dtype_list[0]).eps) - measured_inten * np.log(cal_inten))) / np.sum(1.0 - self.MaskFFT)
         return loglikelihood_error
 
     def get_modulus_std(self):
@@ -721,7 +881,7 @@ class PhaseRetrievalFuns():
         modulus_std = np.std(np.abs(self.img)[self.support == 1])
         return modulus_std
 
-    def get_Free_LogLikelihood(self, LLKmask=None):
+    def get_Free_LogLikelihood_error(self, LLKmask=None):
         """
         Calculate the Free loglikelihood error using the previously generated mask.
 
@@ -737,11 +897,43 @@ class PhaseRetrievalFuns():
 
         """
         cal_inten = self.get_intensity()
+        measured_inten = self.get_measured_intensity()
         if LLKmask is not None:
-            loglikelihood = np.sum(self.LLKmask * (cal_inten + gammaln(self.intensity + np.finfo(self.dtype_list[0]).eps) - self.intensity * np.log(cal_inten + np.finfo(self.dtype_list[0]).eps))) / np.sum(self.LLKmask)
+            loglikelihood = np.sum(self.LLKmask * (cal_inten + gammaln(measured_inten + np.finfo(self.dtype_list[0]).eps) - measured_inten * np.log(cal_inten + np.finfo(self.dtype_list[0]).eps))) / np.sum(self.LLKmask)
         else:
             loglikelihood = 0
         return loglikelihood
+
+    def get_error_names(self):
+        """
+        Get the error names.
+
+        Returns
+        -------
+        list
+            List of error names.
+
+        """
+        return list(self.err_ar_dict.keys())
+
+    def get_error(self, err_name):
+        """
+        Get the error according to their names.
+
+        Parameters
+        ----------
+        err_name : str
+            The error name to be calculated.
+
+        Returns
+        -------
+        float
+            The error value.
+
+        """
+        if not (err_name in self.get_error_names()):
+            raise AttributeError('error could only be selected from %s"!' % str(self.get_error_names()))
+        return self.err_ar_dict[err_name]()
 
     def get_error_array(self):
         """
@@ -769,7 +961,10 @@ class PhaseRetrievalFuns():
         """
         display_str = '\r'
         for key in self.loop_dict.keys():
-            display_str += '%s: %d ' % (key, self.loop_dict[key])
+            if self.loop_dict[key] is not None:
+                display_str += '%s: %d ' % (key, self.loop_dict[key])
+            else:
+                display_str += '%s ' % key
         sys.stdout.write(display_str)
         return
 
@@ -793,6 +988,9 @@ class PhaseRetrievalFuns():
             List of the tuples defining the steps to be operated.
 
         """
+
+        self.Algorithm_check(algorithm0)
+
         steps = []
         # Pattern 0 matches all three types of pattern like RAAR**50, (HIO**20*ER**20)**20, Sup
         pattern0 = r'(\w+\*\*\d+)|(\(.+?\)\*\*\d+)|(\w+)'
@@ -818,6 +1016,13 @@ class PhaseRetrievalFuns():
                             steps.append((re.findall(pattern2, level1.group())[0], 1))
         steps.append(('End', 1))
         return steps
+
+    def Algorithm_check(self, algorithm0):
+        psfon_index = algorithm0.find("PSFon")
+        critcheck_index = algorithm0.find("CRITcheck")
+        if psfon_index < critcheck_index:
+            raise ValueError('The first time partial coherence calculation is turned on should always be before the CRITcheck')
+        return
 
 
 def Free_LLK_FFTmask(MaskFFT, percentage=0.04, r=3):

@@ -109,9 +109,10 @@ def plot_phase_retrieval_results():
     pr_infor.add_para('total_trial_num', section, total_trial_num)
     pr_infor.infor_writer()
 
+    section = 'Trial %02d' % trial_num
     para_name_list = [
         'pathresult', 'data_shape', 'use_mask', 'start_trial_num', 'nb_run',
-        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'critical_error',
+        'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'psf_sigma',
         'flip_condition', 'first_seed_flip', 'total_calculation_time', 'support_type',
         'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
         'Initial_support_threshold', 'percent_selected',
@@ -119,7 +120,8 @@ def plot_phase_retrieval_results():
         'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
         'support_update_loops', 'support_threshold_min', 'support_threshold_max',
         'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
-        'hybrid_para', 'detwin_axis', 'further_analysis_selected', 'further_analysis_method',
+        'hybrid_para', 'critical_error_selected', 'critical_error',
+        'detwin_axis', 'further_analysis_selected', 'further_analysis_method',
         'phase_unwrap_method', 'error_for_further_analysis_selection']
     pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
     return

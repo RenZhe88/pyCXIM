@@ -24,13 +24,13 @@ def BCDI_preparation():
     start_time = time.time()
     # %% Inputs: select the functions of the code from the following mode
     # ['Gif', 'Direct_cut', 'Reciprocal_space_map', '2D_cuts']
-    Functions_selected = ['Gif', 'Reciprocal_space_map', '2D_cuts']
+    Functions_selected = ['Gif', 'Reciprocal_space_map']
 
     # Inputs: general information
-    year = "2022"
-    beamtimeID = "11014693"
-    p10_newfile = 'BFO_LAO_4_7'
-    scan_num = 505
+    year = "2021"
+    beamtimeID = "11013318"
+    p10_newfile = 'B12SYNS1P1'
+    scan_num = 43
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -39,28 +39,28 @@ def BCDI_preparation():
     # qz_direction = 'diffraction vector direction'
 
     # Inputs: Detector parameters
-    detector_distance = 1834.4376742632076
+    detector_distance = 1827.3602090248223
     pixelsize = 0.075
     # Direct beam position on the detector Y, X
-    cch = [1044, 1339]
+    cch = [1109, 1345]
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [200, 200]
+    wxy = [300, 300]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [1100, 1600, 1100, 1600]
+    roi = [400, 1200, 1000, 1700]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
-    cut_central_pos = 'maximum integration'
+    cut_central_pos = 'weight center'
     # Half size for the direct cut in pixels
     DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [120, 100, 100]
+    RSM_bs = [128, 128, 128]
     use_prefilter = False
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20221103_P10_BFO_PTO\raw"
+    path = r"F:\Raw Data\20211004_P10_BFO_Pt\raw"
     # the aimed saving folder
     pathsavefolder = r"F:\Work place 4\Temp"
     # the path for the mask file for the detector
@@ -257,6 +257,7 @@ def BCDI_preparation():
 
         # determining the rebin parameter
         rebinfactor = RSM_converter.cal_rebinfactor()
+        rebinfactor = 1
 
         # calculate the qx, qy, qz ranges of the scan
         q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], rebinfactor=rebinfactor)
