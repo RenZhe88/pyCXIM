@@ -156,6 +156,7 @@ class PhaseRetrievalFuns():
         self.loop_dict['flip'] = 1
         self.print_loop_num()
 
+        self.CenterSup()
         self.img = np.flip(self.img)
         self.img = np.conjugate(self.img)
         self.support = np.flip(self.support)
@@ -551,22 +552,23 @@ class PhaseRetrievalFuns():
             self.loop_dict['PSFupdate'] = num_PSF_loop
         self.print_loop_num()
 
-        deltaIntensity = self.get_intensity()
-        self.ER(num_ER_loop)
-        deltaIntensity = 2.0 * self.get_intensity() - deltaIntensity
-        img_size = np.array(deltaIntensity.shape)
-        kernel_size = np.array(self.psf.shape)
-        cut_start = (img_size // 2 - kernel_size // 2).astype(int)
-        cut_end = (img_size // 2 + kernel_size // 2 + (kernel_size % 2)).astype(int)
-        slices = tuple(slice(start, end) for start, end in zip(cut_start, cut_end))
-
-        for i in range(num_PSF_loop):
-            Amppc = self.get_measured_intensity() / np.clip(fftconvolve(deltaIntensity, self.psf, mode='same'), a_min=0.1, a_max=None)
-            Amppc = self.fftconvolve(np.flip(deltaIntensity), Amppc)
-            Amppc = Amppc[slices]
-            self.psf = self.psf * Amppc
-            self.psf = np.clip(self.psf, a_min=0, a_max=None)
-            self.psf = self.psf / np.sum(self.psf)
+        if self.PC_cal:
+            deltaIntensity = self.get_intensity()
+            self.ER(num_ER_loop)
+            deltaIntensity = 2.0 * self.get_intensity() - deltaIntensity
+            img_size = np.array(deltaIntensity.shape)
+            kernel_size = np.array(self.psf.shape)
+            cut_start = (img_size // 2 - kernel_size // 2).astype(int)
+            cut_end = (img_size // 2 + kernel_size // 2 + (kernel_size % 2)).astype(int)
+            slices = tuple(slice(start, end) for start, end in zip(cut_start, cut_end))
+    
+            for i in range(num_PSF_loop):
+                Amppc = self.get_measured_intensity() / np.clip(fftconvolve(deltaIntensity, self.psf, mode='same'), a_min=0.1, a_max=None)
+                Amppc = self.fftconvolve(np.flip(deltaIntensity), Amppc)
+                Amppc = Amppc[slices]
+                self.psf = self.psf * Amppc
+                self.psf = np.clip(self.psf, a_min=0, a_max=None)
+                self.psf = self.psf / np.sum(self.psf)
         return
 
     def SupProj(self, point):

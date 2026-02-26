@@ -8,12 +8,12 @@ import time
 from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def phase_retrieval_main():
-    starting_time = time.time()
+    start_time = time.time()
     # %%Inputs
-    pathsave = r'F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
+    pathsave = r'F:\Work place 4\Temp\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
     intensity_file = 'scan0043.npz'
     mask_file = 'scan0043_mask.npz'
-    trial_num = 4
+    trial_num = 1
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -26,9 +26,11 @@ def phase_retrieval_main():
     # If support_type is 'auto_correlation'
     auto_corr_thrpara = 0.004
     # If support_type is 'average', 'support_selected', or'modulus_selected'
-    Initial_support_threshold = 0.5
+    initial_support_threshold = 0.5
     # If support_type is 'support_selected' or 'modulus_selected'
-    percent_selected = 10
+    support_selection_error = 'Difference map error'
+    # If support_type is 'support_selected' or 'modulus_selected'
+    n_best_for_support = 10
     # If support_type is 'modulus_selected'
     modulus_smooth_width = 0.3
     # If support_type is 'import'
@@ -37,7 +39,7 @@ def phase_retrieval_main():
     start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    algorithm = '(HIO**40*Sup)**20*DIF**200*(RAAR**80*ER**10*Sup)**30*(ADMM**80*ER**10*Sup)**10'
+    algorithm = '(HIO**40*Sup)**20*DIF**200*(RAAR**80*ER**10*Sup)**30*PSFon*(ADMM**80*ER**10*Sup*PSFupdate**25)**10'
     # algorithm = "DIF**200*PSFon*(ADMM**80*ER**10*PSFupdate**25)**4*(RAAR**80*ER**10*PSFupdate**25)**8"
 
     # Input: parameters for CRITcheck
@@ -45,7 +47,7 @@ def phase_retrieval_main():
     critical_error = 0.0043
 
     # Input: parameters for partial coherent calculation
-    psf_sigma = 1.5
+    psf_sigma = 1.3
 
     # If you want to perform Free loglikelihood calculation, please set Free_LLK to be True
     Free_LLK = False
@@ -53,9 +55,9 @@ def phase_retrieval_main():
     FLLK_radius = 3
 
     # Inputs: parameters for the shrink wrap loop
-    # threhold_update_method = 'random'
-    threhold_update_method = 'exp_increase'
-    # threhold_update_method = 'lin_increase'
+    # threshold_update_method = 'random'
+    threshold_update_method = 'exp_increase'
+    # threshold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
     thrpara_min = 0.08
     thrpara_max = 0.11
@@ -74,8 +76,8 @@ def phase_retrieval_main():
     phase_unwrap_method = 6
 
     # Input: The number of images selected for further analysis like SVD and average
-    further_analysis_selected = 10
-    error_type_for_selection = 'Fourier space error'
+    n_best_for_analysis = 10
+    analysis_selection_error = 'Difference map error'
 
     # Input: Parameters determining the display of the images
     display_image_num = 10
@@ -86,13 +88,14 @@ def phase_retrieval_main():
 
     # %% create the initial support for the phase retrieval process
     pr_file.create_initial_support(support_type, auto_corr_thrpara, support_from_trial,
-                                   Initial_support_threshold, percent_selected, modulus_smooth_width,
+                                   initial_support_threshold, support_selection_error,
+                                   n_best_for_support, modulus_smooth_width,
                                    path_import_initial_support)
 
     # %% Start the retrieval process
     pr_file.phase_retrieval_main(algorithm, SeedNum, start_trial_num, precision,
                                  Free_LLK, FLLK_percentage, FLLK_radius,
-                                 psf_sigma, threhold_update_method,
+                                 psf_sigma, threshold_update_method,
                                  support_para_update_precent, thrpara_min,
                                  thrpara_max, support_smooth_width_begin,
                                  support_smooth_width_end, hybrid_para, detwin_axis,
@@ -101,9 +104,9 @@ def phase_retrieval_main():
                                  phase_unwrap_method, display_image_num)
 
     # %% select results for SVD analysis or averaging
-    pr_file.further_analysis(further_analysis_selected, error_type=error_type_for_selection)
-    ending_time = time.time()
-    pr_file.add_para('total_calculation_time', ending_time - starting_time)
+    pr_file.further_analysis(n_best_for_analysis, error_type=analysis_selection_error)
+    end_time = time.time()
+    pr_file.add_para('total_calculation_time', end_time - start_time)
     pr_file.save_para_list()
     return
 

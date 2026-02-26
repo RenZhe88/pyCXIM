@@ -322,6 +322,8 @@ class GeneralScanStructure(object):
                     list_of_lines.append('%s = r"%s"\n' % (pos_name, pos_value))
                 else:
                     list_of_lines.append('%s = "%s"\n' % (pos_name, pos_value))
+            elif isinstance(pos_value, np.ndarray):
+                list_of_lines.append("%s = %s\n" % (pos_name, np.array2string(pos_value, separator=', ')))
             else:
                 list_of_lines.append("%s = %s\n" % (pos_name, pos_value))
         return list_of_lines

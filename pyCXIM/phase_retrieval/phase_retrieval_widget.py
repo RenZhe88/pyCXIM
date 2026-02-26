@@ -135,9 +135,9 @@ class PhaseRetrievalWidget():
         return
 
     def create_initial_support(self, support_type, auto_corr_thrpara=0.004,
-                               support_from_trial=0, Initial_support_threshold=0.4,
-                               percent_selected=10, modulus_smooth_width=0.3,
-                               path_import_initial_support=''):
+                               support_from_trial=0, initial_support_threshold=0.4,
+                               error_type='Fourier space error', n_best_for_support=10, 
+                               modulus_smooth_width=0.3, path_import_initial_support=''):
         """
         Create the initial support for the phase retrieval processes.
 
@@ -156,10 +156,14 @@ class PhaseRetrievalWidget():
             The threshold value for the autocorrelation function. The default is 0.004.
         support_from_trial : int, optional
             The number of the previous trials, from which the initial support should be calculated. Needed for 'average', 'support_selected', 'modulus_selected' methods. The default is 0.
-        Initial_support_threshold : float, optional
+        initial_support_threshold : float, optional
             The threshold value for the average support. Needed for 'average', 'support_selected', 'modulus_selected' methods. The default is 0.4.
-        percent_selected : float, optional
-            The percentage of the previous trial solution to be used for the support calculation. Needed for 'support_selected', 'modulus_selected' methods. The default is 10.
+        error_type : str, optional
+            The type of error to be used for the selection of solutions to generate the initial support.
+            The error options can be found in the h5 data file and phase_retrieval_GPU code.
+            The default is 'Fourier space error'.
+        n_best_for_support : int, optional
+            The number of the previous solutions to be used for the support calculation. Needed for 'support_selected', 'modulus_selected' methods. The default is 10.
         modulus_smooth_width : float, optional
             The Standard deviation for Gaussian kernel, which is used to blur the average modulus. The default is 0.3.
         path_import_initial_support : str, optional
@@ -199,53 +203,49 @@ class PhaseRetrievalWidget():
             previous_result_file = h5py.File(path_previous_result, 'r')
             support_sum = np.array(previous_result_file['Average_All/Support_sum'], dtype=float)
             support = np.zeros(data_shape)
-            support[support_sum >= Initial_support_threshold] = 1.0
+            support[support_sum >= initial_support_threshold] = 1.0
             previous_result_file.close()
             self.para_dict['support_from_trial'] = support_from_trial
-            self.para_dict['Initial_support_threshold'] = Initial_support_threshold
+            self.para_dict['initial_support_threshold'] = initial_support_threshold
         elif support_type == 'support_selected':
             print('Initial support calculated from Trial%02d' % support_from_trial)
-            previous_result_file = h5py.File(path_previous_result, 'r')
             support_sum = np.zeros(data_shape)
-            err_ar = np.array(previous_result_file['Error/error'])
-            previous_SeedNum = int(previous_result_file.attrs['nb_run'])
-            selected_img_num = int(percent_selected / 100.0 * previous_SeedNum)
-            print('%d images selected to calcultate the support' % selected_img_num)
-            Previous_Seed_selected = np.argsort(err_ar[:, 2])[:selected_img_num]
+            n_best_for_support, Previous_Seed_selected = self.error_selection(path_previous_result, error_type, n_best_for_support)
+            print('%d images selected to calcultate the support' % n_best_for_support)
+            previous_result_file = h5py.File(path_previous_result, 'r')
             for Previous_Seed in Previous_Seed_selected:
                 support_sum += np.array(previous_result_file['Solutions/Seed%03d/support' % Previous_Seed], dtype=float)
-            support_sum = support_sum / selected_img_num
+            support_sum = support_sum / n_best_for_support
             support = np.zeros_like(support_sum)
-            support[support_sum >= Initial_support_threshold] = 1.0
+            support[support_sum >= initial_support_threshold] = 1.0
             previous_result_file.close()
             self.para_dict['support_from_trial'] = support_from_trial
-            self.para_dict['Initial_support_threshold'] = Initial_support_threshold
-            self.para_dict['support_select_percent'] = percent_selected
+            self.para_dict['error_type_for_support_selection'] = error_type
+            self.para_dict['initial_support_threshold'] = initial_support_threshold
+            self.para_dict['n_best_for_support_initiation'] = n_best_for_support
         elif support_type == 'modulus_selected':
             print('Initial support calculated from Trial%02d' % support_from_trial)
-            previous_result_file = h5py.File(path_previous_result, 'r')
             modulus_sum = np.zeros(data_shape)
-            err_ar = np.array(previous_result_file['Error/error'], dtype=float)
-            previous_SeedNum = previous_result_file.attrs['nb_run']
-            selected_img_num = int(percent_selected / 100.0 * previous_SeedNum)
-            print('%d images selected to calcultate the support' % selected_img_num)
-            Previous_Seed_selected = np.argsort(err_ar[:, 2])[:selected_img_num]
+            n_best_for_support, Previous_Seed_selected = self.error_selection(path_previous_result, error_type, n_best_for_support)
+            print('%d images selected to calcultate the support' % n_best_for_support)
+            previous_result_file = h5py.File(path_previous_result, 'r')
             for Previous_Seed in Previous_Seed_selected:
                 modulus_sum += np.abs(np.array(previous_result_file['Solutions/Seed%03d/image' % Previous_Seed]))
             Bluredimg = gaussian_filter(modulus_sum, sigma=modulus_smooth_width)
-            threshold = Initial_support_threshold * (np.amax(Bluredimg) - np.amin(Bluredimg)) + np.amin(Bluredimg)
+            threshold = initial_support_threshold * (np.amax(Bluredimg) - np.amin(Bluredimg)) + np.amin(Bluredimg)
             support = np.zeros(data_shape)
             support[Bluredimg >= threshold] = 1.0
             previous_result_file.close()
             self.para_dict['support_from_trial'] = support_from_trial
-            self.para_dict['modulus_select_percent'] = percent_selected
-            self.para_dict['Initial_support_threshold'] = Initial_support_threshold
+            self.para_dict['error_type_for_support_selection'] = error_type
+            self.para_dict['n_best_for_support_initiation'] = n_best_for_support
+            self.para_dict['initial_support_threshold'] = initial_support_threshold
             self.para_dict['modulus_smooth_width'] = modulus_smooth_width
         elif support_type == 'import':
             support = np.load(path_import_initial_support)['data']
-            support[support > Initial_support_threshold] = 1
-            support[support <= Initial_support_threshold] = 0
-            self.para_dict['Initial_support_threshold'] = Initial_support_threshold
+            support[support > initial_support_threshold] = 1
+            support[support <= initial_support_threshold] = 0
+            self.para_dict['initial_support_threshold'] = initial_support_threshold
             self.para_dict['path_import_initial_support'] = path_import_initial_support
 
         # Determining how the data should be compressed
@@ -257,6 +257,7 @@ class PhaseRetrievalWidget():
             plt_result_2D_simple((support,), ('Initial support',))
         imgfile.create_dataset("Initial_support/support", data=support, dtype='f', chunks=chunks_size, compression="gzip")
         imgfile.close()
+        self.save_para_list()
         return
 
     def phase_retrieval_main(self, algorithm, SeedNum, start_trial_num=0, precision='32',
@@ -475,6 +476,9 @@ class PhaseRetrievalWidget():
                 flip_con = (np.sum(Support_sum * Support_final) < np.sum(Support_sum * np.flip(Support_final)))
             elif flip_condition == 'Phase':
                 flip_con = (np.sum(Phase_sum * Phase_final) < np.sum(Phase_sum * -1.0 * np.flip(Phase_final)))
+            else:
+                flip_condition = 'Phase'
+                flip_con = (np.sum(Phase_sum * Phase_final) < np.sum(Phase_sum * -1.0 * np.flip(Phase_final)))
 
             if Seed == 0 and first_seed_flip:
                 flip_con = True
@@ -569,9 +573,10 @@ class PhaseRetrievalWidget():
         if 'PSFon' in algorithm:
             imgfile.create_dataset("Average_All/psf_sum", data=intensity_sum, dtype=dtype_list[0], compression="gzip")
         imgfile.close()
+        self.save_para_list()
         return
 
-    def further_analysis(self, further_analysis_selected, error_type='Fourier space error'):
+    def further_analysis(self, n_best_for_further_analysis, error_type='Fourier space error'):
         """
         Select the results with minimun error to perform further analysises.
 
@@ -581,7 +586,7 @@ class PhaseRetrievalWidget():
 
         Parameters
         ----------
-        further_analysis_selected : float
+        n_best_for_further_analysis : float
             The number of the images selected for the further analysis.
         error_type : str, optional
             The type of error to be used for the selection of images.
@@ -593,26 +598,11 @@ class PhaseRetrievalWidget():
         None.
 
         """
+        n_best_for_further_analysis, Seed_selected = self.error_selection(self.pathsaveimg, error_type, n_best_for_further_analysis)
+
         imgfile = h5py.File(self.pathsaveimg, "r+")
         intensity = np.array(imgfile["Input/intensity"], dtype=float)
         MaskFFT = np.array(imgfile["Input/mask"], dtype=float)
-
-        SeedNum = self.para_dict['nb_run']
-        if further_analysis_selected <= SeedNum:
-            selected_image_num = int(further_analysis_selected)
-        else:
-            selected_image_num = int(SeedNum)
-
-        # import the error matrix for the image selection.
-        err_ar = np.array(imgfile["Error/error"], dtype=float)
-        err_names = list(imgfile["Error"].attrs['column_names'])
-        try:
-            err_index = err_names.index(error_type)
-        except ValueError:
-            print('Could not find the wanted error type, use Fourier space error instead')
-            err_index = 2
-        err_ar = err_ar[:, err_index]
-        Seed_selected = np.argsort(err_ar)[:int(selected_image_num)]
 
         # Determining how the data should be compressed.
         data_shape = self.para_dict['data_shape']
@@ -623,14 +613,14 @@ class PhaseRetrievalWidget():
 
         phase_unwrap_method = self.para_dict['phase_unwrap_method']
 
-        if (not self.para_dict['support_update']) and selected_image_num >= 3:
+        if (not self.para_dict['support_update']) and n_best_for_further_analysis >= 3:
             further_analysis_method = 'SVD'
             support = np.array(imgfile["Initial_support/support"], dtype=float)
             if self.para_dict['first_seed_flip']:
                 support = np.flip(support)
 
-            print("%d images selected for SVD analysis" % selected_image_num)
-            result_matrix = np.zeros((int(np.sum(support)), selected_image_num), dtype=complex)
+            print("%d images selected for SVD analysis" % n_best_for_further_analysis)
+            result_matrix = np.zeros((int(np.sum(support)), n_best_for_further_analysis), dtype=complex)
             Mode1 = np.zeros(data_shape, dtype=complex)
             Mode2 = np.zeros(data_shape, dtype=complex)
             Mode3 = np.zeros(data_shape, dtype=complex)
@@ -671,15 +661,15 @@ class PhaseRetrievalWidget():
             Mode3_Phase = pp.phase_corrector(np.angle(Mode3), support, 0, phase_unwrap_method)
             evalue = np.square(evalue)
             evalue = evalue / np.sum(evalue)
-            Avr_Modulus = Avr_Modulus / selected_image_num
-            Avr_Phase = Avr_Phase / selected_image_num
-            Avr_Img = Avr_Img / selected_image_num
-            Avr_intensity = Avr_intensity / selected_image_num
+            Avr_Modulus = Avr_Modulus / n_best_for_further_analysis
+            Avr_Phase = Avr_Phase / n_best_for_further_analysis
+            Avr_Img = Avr_Img / n_best_for_further_analysis
+            Avr_intensity = Avr_intensity / n_best_for_further_analysis
             PRTF = pp.cal_PRTF(intensity, Avr_Img, MaskFFT)
 
-            self.para_dict['further_analysis_selected'] = selected_image_num
+            self.para_dict['n_best_for_further_analysis'] = n_best_for_further_analysis
             self.para_dict['further_analysis_method'] = further_analysis_method
-            self.para_dict['error_for_further_analysis_selection'] = error_type
+            self.para_dict['error_type_for_further_analysis'] = error_type
             imgfile.create_dataset("Selected_average/Img_sum", data=Avr_Img, dtype='complex128', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
@@ -712,16 +702,16 @@ class PhaseRetrievalWidget():
                 Avr_Img = Avr_Img + np.multiply(Modulus, np.exp(1j * Phase))
                 Avr_intensity = Avr_intensity + np.square(np.abs(np.fft.fftshift(np.fft.fftn(Img * support))))
 
-            Avr_Modulus = Avr_Modulus / selected_image_num
-            Avr_Phase = Avr_Phase / selected_image_num
-            Avr_support = Avr_support / selected_image_num
-            Avr_Img = Avr_Img / selected_image_num
-            Avr_intensity = Avr_intensity / selected_image_num
+            Avr_Modulus = Avr_Modulus / n_best_for_further_analysis
+            Avr_Phase = Avr_Phase / n_best_for_further_analysis
+            Avr_support = Avr_support / n_best_for_further_analysis
+            Avr_Img = Avr_Img / n_best_for_further_analysis
+            Avr_intensity = Avr_intensity / n_best_for_further_analysis
             PRTF = pp.cal_PRTF(intensity, Avr_Img, MaskFFT)
 
-            self.para_dict['further_analysis_selected'] = selected_image_num
+            self.para_dict['n_best_for_further_analysis'] = n_best_for_further_analysis
             self.para_dict['further_analysis_method'] = further_analysis_method
-            self.para_dict['error_for_further_analysis_selection'] = error_type
+            self.para_dict['error_type_for_further_analysis'] = error_type
             imgfile.create_dataset("Selected_average/Img_sum", data=Avr_Img, dtype='complex128', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/Modulus_sum", data=Avr_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/Phase_sum", data=Avr_Phase, dtype='float', chunks=chunks_size, compression="gzip")
@@ -729,7 +719,48 @@ class PhaseRetrievalWidget():
             imgfile.create_dataset("Selected_average/intensity_sum", data=Avr_intensity, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/phase_retrieval_transfer_function", data=PRTF, dtype='float')
         imgfile.close()
+        self.save_para_list()
         return
+
+    def error_selection(self, path_result, error_type, selected_num):
+        """
+        Select the reconstructions according to the given error type.
+
+        Parameters
+        ----------
+        path_result : str
+            The path of the aimed result h5 file.
+        error_type : str
+            Error type used for selection.
+            The allowed error type can be checked in the h5 file or phase retrieval GPU code.
+        selected_num : int
+            The number of solutions to be selected.
+
+        Returns
+        -------
+        selected_num : int
+            Number of solutions selected.
+        Seed_selected : ndarray
+            The seed number of the solutions selected with minimum error.
+
+        """
+        with h5py.File(path_result, 'r') as imgfile:
+            SeedNum = imgfile.attrs['nb_run']
+            if selected_num <= SeedNum:
+                selected_num = int(selected_num)
+            else:
+                selected_num = int(SeedNum)
+
+            err_ar = np.array(imgfile["Error/error"], dtype=float)
+            err_names = list(imgfile["Error"].attrs['column_names'])
+            try:
+                err_index = err_names.index(error_type)
+            except ValueError:
+                print('Could not find the wanted error type, use Fourier space error instead')
+                err_index = 2
+            err_ar = err_ar[:, err_index]
+            Seed_selected = np.argsort(err_ar)[:selected_num]
+        return selected_num, Seed_selected
 
     def BCDI_data_interpretation(self, array_group, array_name, q_vector, voxel_size):
         """
@@ -1031,13 +1062,13 @@ class PhaseRetrievalWidget():
         None.
 
         """
-        imgfile = h5py.File(self.pathsaveimg, "r+")
-        if para_name_list is None:
-            for para_name in self.para_dict:
-                imgfile.attrs[para_name] = self.para_dict[para_name]
-        else:
-            for para_name in para_name_list:
-                imgfile.attrs[para_name] = self.para_dict[para_name]
+        with h5py.File(self.pathsaveimg, "r+") as imgfile:
+            if para_name_list is None:
+                for para_name in self.para_dict:
+                    imgfile.attrs[para_name] = self.para_dict[para_name]
+            else:
+                for para_name in para_name_list:
+                    imgfile.attrs[para_name] = self.para_dict[para_name]
         return
 
     def load_para_from_pynx_results(self, pathcxi, para_name_list):
@@ -1437,17 +1468,14 @@ class PhaseRetrievalWidget():
         PRTF = np.array(imgfile["Average_All/phase_retrieval_transfer_function"], dtype=float)
         unit = self.get_para('unit')
 
-        if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
-            # err_ar = self.get_dataset("Error/error")[()]
-            error_type = self.get_para('error_for_further_analysis_selection')
-            try:
-                err_index = err_names.index(error_type)
-            except ValueError:
-                print('Could not find the wanted error type, use Fourier space error instead')
-                err_index = 2
-            further_analysis_selected = self.get_para('further_analysis_selected')
-            PRTF_selected = self.get_dataset("Selected_average/phase_retrieval_transfer_function")[()]
-            Seed_selected = np.argsort(err_ar[:, err_index])[:int(further_analysis_selected)]
+        # if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
+        #     # err_ar = self.get_dataset("Error/error")[()]
+        error_type = self.get_para('error_type_for_further_analysis')
+        n_best_for_further_analysis = self.get_para('n_best_for_further_analysis')
+        PRTF_selected = self.get_dataset("Selected_average/phase_retrieval_transfer_function")[()]
+        # Seed_selected = np.argsort(err_ar[:, err_index])[:int(n_best_for_further_analysis)]
+        imgfile.close()
+        n_best_for_further_analysis, Seed_selected = self.error_selection(self.pathsaveimg, error_type, n_best_for_further_analysis)
 
         total_img_num = len(err_names)
         row_num = int(np.sqrt(total_img_num))
@@ -1461,18 +1489,16 @@ class PhaseRetrievalWidget():
                         axs[i, j].set_title(err_names[i * col_num + j + 1], fontsize=24)
                         axs[i, j].set_xlabel('total support pixel', fontsize=24)
                         axs[i, j].set_ylabel(err_names[i * col_num + j + 1], fontsize=24)
-                        if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
-                            axs[i, j].plot(err_ar[Seed_selected, 0], err_ar[Seed_selected, i * col_num + j + 1], 'b.', label='Selected solutions')
-                            axs[i, j].legend()
+                        axs[i, j].plot(err_ar[Seed_selected, 0], err_ar[Seed_selected, i * col_num + j + 1], 'b.', label='Selected solutions')
+                        axs[i, j].legend()
                     elif (i * col_num + j + 1) == len(err_names):
                         axs[i, j].plot(unit * np.arange(len(PRTF)), PRTF, 'r.', label='All solutions')
                         axs[i, j].set_ylim(0, 1.05)
                         axs[i, j].set_title('Phase retrieval transfer function', fontsize=24)
                         axs[i, j].set_xlabel(r'q ($1/\AA$)', fontsize=24)
                         axs[i, j].set_ylabel('PRTF', fontsize=24)
-                        if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
-                            axs[i, j].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
-                            axs[i, j].legend()
+                        axs[i, j].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
+                        axs[i, j].legend()
             fig.tight_layout()
         else:
             for i in range(row_num):
@@ -1488,11 +1514,9 @@ class PhaseRetrievalWidget():
                         axs[i, j].set_title('Phase retrieval transfer function', fontsize=24)
                         axs[i, j].set_xlabel(r'q ($1/\AA$)', fontsize=24)
                         axs[i, j].set_ylabel('PRTF', fontsize=24)
-                        if ("Selected_average/phase_retrieval_transfer_function" in imgfile):
-                            axs[i, j].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
-                            axs[i, j].legend()
+                        axs[i, j].plot(unit * np.arange(len(PRTF_selected)), PRTF_selected, 'b.', label='Selected solutions')
+                        axs[i, j].legend()
             fig.tight_layout()
-        imgfile.close()
         if filename == '':
             filename = "Error_Trial%d.png" % (self.para_dict['trial_num'])
         if save_image:

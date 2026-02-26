@@ -49,9 +49,9 @@ path = r"F:\Raw Data\20211004_P10_BFO_Pt\raw"
 pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
 # The scan numbers for the alignment
-scan_num_ar = [21, 22, 23]
+scan_num_ar = [139, 140, 141]
 # The center of the diffraction peak on the detector in X, Y
-pch = [1374, 852]
+pch = [1377, 861]
 # The half width of the roi on the detector
 wxy = [200, 200]
 # Please select the geometry for the diffraction

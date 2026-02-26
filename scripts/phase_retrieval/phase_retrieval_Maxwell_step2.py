@@ -14,9 +14,9 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def plot_phase_retrieval_results():
     # %%Inputs
-    pathsave = r'F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
-    trial_num = 3
-    path_scan_infor = r"F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00043\scan_0043_information.txt"
+    pathsave = r'F:\Work place 4\Temp\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
+    trial_num = 1
+    path_scan_infor = r"F:\Work place 4\Temp\B12SYNS1P1_00043\scan_0043_information.txt"
     display_range = [500, 500, 500]
 
     # %%Load the information file
@@ -71,7 +71,7 @@ def plot_phase_retrieval_results():
 
     array_names = ('Modulus_sum', 'Phase_sum', 'Support_sum')
     pr_file.analysis_and_plot_3D('Selected_average', array_names,
-                                 title='Average results of %d runs with minimum error' % pr_file.get_para('further_analysis_selected'),
+                                 title='Average results of %d runs with minimum error' % pr_file.get_para('n_best_for_further_analysis'),
                                  filename="Trial%02d_selected_average" % trial_num, save_image=True,
                                  save_as_vti=True, display_range=display_range)
 
@@ -115,14 +115,15 @@ def plot_phase_retrieval_results():
         'voxel_size', 'Ortho_voxel_size', 'algorithm', 'precision', 'psf_sigma',
         'flip_condition', 'first_seed_flip', 'total_calculation_time', 'support_type',
         'support_from_trial', 'start_trial_num', 'auto_corr_thrpara',
-        'Initial_support_threshold', 'percent_selected',
-        'modulus_smooth_width', 'path_import_initial_support', 'Free_LLK',
-        'FLLK_percentage', 'FLLK_radius', 'support_update', 'threhold_update_method',
+        'initial_support_threshold', 'error_type_for_support_selection',
+        'n_best_for_support_initiation', 'modulus_smooth_width', 
+        'path_import_initial_support', 'Free_LLK', 'FLLK_percentage', 
+        'FLLK_radius', 'support_update', 'threshold_update_method',
         'support_update_loops', 'support_threshold_min', 'support_threshold_max',
         'support_smooth_width_begin', 'support_smooth_width_end', 'threhold_increase_rate',
         'hybrid_para', 'critical_error_selected', 'critical_error',
-        'detwin_axis', 'further_analysis_selected', 'further_analysis_method',
-        'phase_unwrap_method', 'error_for_further_analysis_selection']
+        'detwin_axis', 'n_best_for_further_analysis', 'further_analysis_method',
+        'phase_unwrap_method', 'error_type_for_further_analysis']
     pr_file.save_para_to_infor_file(path_retrieval_infor, section, para_name_list)
     return
 

@@ -28,31 +28,21 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [84]
-p10_file = ["WTY_P3_ALF"]
+scan_num_ar = [43]
+p10_file = ["B12SYNS1P1"]
 
 # path information
-path = r"F:\Raw Data\20250506_P10_In_situ_battery_test_01\raw"
+path = r"F:\Raw Data\20211004_P10_BFO_Pt\raw"
 path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e500_mask.npy'
-pathsavefolder = r"F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\LXD\WTY_P3_AlF"
+pathsavefolder = r"F:\publish\HEPS02 pyCXIM"
 
 # The rois for the Eiger 4M detector
-e4m_roi1 = [100, 2000, 1100, 1600]
+e4m_roi1 = [1050, 1750, 450, 1250]
 e4m_roi2 = [100, 2000, 500, 750]
 e4m_roi3 = [100, 2000, 100, 400]
-e4m_roi4 = [1340 - 300, 1340 + 300, 1320 + 100, 1320 + 300]
-e4m_roi5 = [1330 + 150, 1330 + 450, 1300 - 200, 1300 + 200]
-e4m_roi6 = [1330 + 450, 1330 + 750, 1300 - 200, 1300 + 200]
 
-e4m_roi7 = [1330 - 750, 1330 + 750, 340 - 200, 340 + 200]
-e4m_roi8 = [1330 - 750, 1330 - 450, 340 - 200, 340 + 200]
-e4m_roi9 = [1330 - 450, 1330 - 150, 340 - 200, 340 + 200]
-e4m_roi10 = [1330 - 150, 1330 + 150, 340 - 200, 340 + 200]
-e4m_roi11 = [1330 + 150, 1330 + 450, 340 - 200, 340 + 200]
-e4m_roi12 = [1330 + 450, 1330 + 750, 340 - 200, 340 + 200]
-
-cal_e4m_roi = [e4m_roi1, e4m_roi2, e4m_roi3]
+cal_e4m_roi = []
 
 # The rois for the Eiger500 detector
 e500_roi1 = [300, 800, 100, 600]
@@ -60,10 +50,10 @@ e500_roi2 = [100, 300, 100, 600]
 cal_e500_roi = []
 
 # Plot selection
-counter_select = ['e4m_roi1', 'e4m_roi2', 'e4m_roi3']
-scale = 'Linear'
+counter_select = ['e4m_roi1']
+# scale = 'Linear'
 # scale = 'Normalized'
-# scale = 'Log'
+scale = 'Log'
 
 # %% Sorting the scan types
 if len(scan_num_ar) != len(p10_file):
@@ -89,16 +79,15 @@ for i, scan_num in enumerate(scan_num_ar):
     if len(cal_e4m_roi) != 0:
         scan = DesyEigerImporter('p10', path, p10_newfile[i], scan_num, 'e4m', pathsavefolder, path_e4m_mask)
         scan.image_roi_sum(cal_e4m_roi, roi_order='XY', save_img_sum=True)
-        scan.write_fio()
-
+        
     if len(cal_e500_roi) != 0:
         scan = DesyEigerImporter('p10', path, p10_newfile[i], scan_num, 'e500', pathsavefolder, path_e500_mask)
         scan.image_roi_sum(cal_e500_roi, roi_order='XY', save_img_sum=True)
-        scan.write_fio()
 
     if (len(cal_e4m_roi) == 0) and (len(cal_e500_roi) == 0):
         scan = DesyScanImporter('p10', path, p10_newfile[i], scan_num, pathsavefolder)
-
+    
+    scan.write_scan()
     print(scan)
     print('Following counters are available, please select at least one of them to plot:')
     print(scan.get_counter_names())

@@ -76,7 +76,7 @@ class PhaseRetrievalFuns():
         # Set torch
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.determinsitic = True
+        torch.backends.cudnn.deterministic = True
         torch.manual_seed(Seed)
 
         if precision == '64':
@@ -152,6 +152,7 @@ class PhaseRetrievalFuns():
             err_ar.append(self.err_ar_dict[err_name]())
         self.err_ar = np.array(err_ar)
 
+        self.CenterSup()
         self.img = (self.img * self.support).cpu().numpy()
         self.support = self.support.cpu().numpy()
         self.MaskFFT = self.MaskFFT.cpu().numpy()
@@ -633,31 +634,32 @@ class PhaseRetrievalFuns():
         else:
             self.loop_dict['PSFupdate'] = num_PSF_loop
         self.print_loop_num()
-
-        deltaIntensity = self.get_intensity()
-        self.ER(num_ER_loop)
-        deltaIntensity = 2.0 * self.get_intensity() - deltaIntensity
-
-        img_size = np.array(deltaIntensity.shape)
-        kernel_size = np.array(self.psf.shape)
-        padded_size = tuple(img_size * 2 - 1)
-
-        cut_start = (img_size - kernel_size // 2 - 1).astype(int)
-        cut_end = (cut_start + kernel_size).astype(int)
-        slices = tuple(slice(start, end) for start, end in zip(cut_start, cut_end))
-
-        deltaIntenFFT = torch.fft.rfftn(torch.flip(deltaIntensity, tuple(range(self.dim))), s=padded_size)
-        Intensity = self.get_measured_intensity()
-
-        for i in range(num_PSF_loop):
-            Amppc = Intensity / torch.clamp(self.fftconvolve(deltaIntensity, self.psf), min=0.1)
-            Amppc = torch.fft.rfftn(Amppc, s=padded_size)
-            Amppc = torch.fft.irfftn(deltaIntenFFT * Amppc)
-            Amppc = Amppc[slices]
-
-            self.psf = self.psf * Amppc
-            self.psf = torch.clamp(self.psf, min=0)
-            self.psf = self.psf / torch.sum(self.psf)
+        
+        if self.PC_cal:
+            deltaIntensity = self.get_intensity()
+            self.ER(num_ER_loop)
+            deltaIntensity = 2.0 * self.get_intensity() - deltaIntensity
+    
+            img_size = np.array(deltaIntensity.shape)
+            kernel_size = np.array(self.psf.shape)
+            padded_size = tuple(img_size * 2 - 1)
+    
+            cut_start = (img_size - kernel_size // 2 - 1).astype(int)
+            cut_end = (cut_start + kernel_size).astype(int)
+            slices = tuple(slice(start, end) for start, end in zip(cut_start, cut_end))
+    
+            deltaIntenFFT = torch.fft.rfftn(torch.flip(deltaIntensity, tuple(range(self.dim))), s=padded_size)
+            Intensity = self.get_measured_intensity()
+    
+            for i in range(num_PSF_loop):
+                Amppc = Intensity / torch.clamp(self.fftconvolve(deltaIntensity, self.psf), min=0.1)
+                Amppc = torch.fft.rfftn(Amppc, s=padded_size)
+                Amppc = torch.fft.irfftn(deltaIntenFFT * Amppc)
+                Amppc = Amppc[slices]
+    
+                self.psf = self.psf * Amppc
+                self.psf = torch.clamp(self.psf, min=0)
+                self.psf = self.psf / torch.sum(self.psf)
         return
 
     def SupProj(self, point):

@@ -266,7 +266,7 @@ class DetectorMixin(ABC):
 
         Returns
         -------
-        roi : list
+        roi : ndarray
             The new region of interest which fits on the detector.
 
         """
@@ -372,7 +372,7 @@ class DetectorMixin(ABC):
 
         roi_int = np.sum(dataset, axis=(1, 2))
         self.add_scan_data('%s_roi1' % self.detector, roi_int)
-        self.add_motor_pos('%s_roi1' % self.detector, list(roi))
+        self.add_motor_pos('%s_roi1' % self.detector, roi)
 
         pch = np.array([np.argmax(np.sum(dataset, axis=(1, 2))), np.argmax(np.sum(dataset, axis=(0, 2))), np.argmax(np.sum(dataset, axis=(0, 1)))], dtype=int) + np.array([0, roi[0], roi[2]])
         print("maximum intensity of the scan find at %s" % str(pch))
@@ -519,7 +519,7 @@ class DetectorMixin(ABC):
         print('')
         self.add_scan_data('%s_full' % self.detector, rois_int[:, 0])
         for j in range(num_of_rois):
-            self.add_motor_pos('%s_roi%d' % (self.detector, (j + 1)), list(rois[j, :]))
+            self.add_motor_pos('%s_roi%d' % (self.detector, (j + 1)), rois[j, :])
             self.add_scan_data('%s_roi%d' % (self.detector, (j + 1)), rois_int[:, j + 1])
 
         if self.pathsave != '' and save_img_sum:

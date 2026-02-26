@@ -63,7 +63,7 @@ def BCDI_preparation():
     pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan_num)
 
     # Load the detector images
-    dataset, mask3D, pch, wxy = scan.eiger_load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)))
+    dataset, mask3D, pch, wxy = scan.load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)))
     scan.write_fio()
 
     # load the scan motors

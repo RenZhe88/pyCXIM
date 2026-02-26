@@ -62,6 +62,7 @@ class DesyScanImporter(GeneralScanStructure):
 
         # Try to locate the fio file, first look at the folder to save the results, then try to look at the folder in the raw data.
         if beamline == 'p10':
+            print((os.path.join(path, r"%s_%05d" % (sample_name, scan), "%s_%05d.fio" % (sample_name, scan))))
             if os.path.exists(os.path.join(self.pathsave, r"%s_%05d.fio" % (sample_name, scan))):
                 self.path = os.path.join(path, r"%s_%05d" % (sample_name, scan))
                 self.pathfio = os.path.join(self.pathsave, r"%s_%05d.fio" % (sample_name, scan))
@@ -71,6 +72,8 @@ class DesyScanImporter(GeneralScanStructure):
             elif os.path.exists(os.path.join(path, sample_name, "%s_%05d.fio" % (sample_name, scan))):
                 self.path = os.path.join(path, r'%s' % sample_name)
                 self.pathfio = os.path.join(self.path, r"%s_%05d.fio" % (sample_name, scan))
+            elif os.path.exists(self.save_infor_path):
+                pass
             else:
                 raise IOError('Could not find the fio files please check the beamline, p10_newfile name, and the scan number again!')
         elif beamline == 'p08':
@@ -80,6 +83,8 @@ class DesyScanImporter(GeneralScanStructure):
             elif os.path.exists(os.path.join(path, r"%s_%05d.fio" % (sample_name, scan))):
                 self.path = os.path.join(path, r'%s_%05d' % (sample_name, scan))
                 self.pathfio = os.path.join(path, r"%s_%05d.fio" % (sample_name, scan))
+            elif os.path.exists(self.save_infor_path):
+                pass
             else:
                 raise IOError('Could not find the fio files please check the beamline, p08_newfile name, and the scan number again!')
         else:
@@ -117,13 +122,14 @@ class DesyScanImporter(GeneralScanStructure):
                 else:
                     self.command = 'time_series'
             elif section_name == 'Parameter':
-                pattern2 = r'(\w+) = (.+)\n'
-                self.motor_position = dict(re.findall(pattern2, section_infor))
-                for parameter_name in self.motor_position:
-                    try:
-                        self.motor_position[parameter_name] = ast.literal_eval(self.motor_position[parameter_name])
-                    except (ValueError, SyntaxError):
-                        self.motor_position[parameter_name] = self.motor_position[parameter_name]
+                self.motor_position = self.position_dict_from_text(section_infor)
+                # pattern2 = r'(\w+) = (.+)\n'
+                # self.motor_position = dict(re.findall(pattern2, section_infor))
+                # for parameter_name in self.motor_position:
+                #     try:
+                #         self.motor_position[parameter_name] = ast.literal_eval(self.motor_position[parameter_name])
+                #     except (ValueError, SyntaxError):
+                #         self.motor_position[parameter_name] = self.motor_position[parameter_name]
             elif section_name == 'Data':
                 pattern3 = r' Col \d+ (\S+) \w+\n'
                 counters = re.findall(pattern3, section_infor)
@@ -163,8 +169,7 @@ class DesyScanImporter(GeneralScanStructure):
                     list_of_lines.append('user %suser Acquisition started at %s\n' % (self.beamline, self.start_time.strftime('%a %b %d %H:%M:%S %Y')))
             elif section_name == 'Parameter':
                 list_of_lines.append("%p\n")
-                for para_name in self.motor_position:
-                    list_of_lines.append('%s = %s\n' % (para_name, str(self.motor_position[para_name])))
+                list_of_lines += self.position_dict_to_text(self.motor_position)
             elif section_name == 'Data':
                 list_of_lines.append("%d\n")
                 for i, data_name in enumerate(self.scan_infor):

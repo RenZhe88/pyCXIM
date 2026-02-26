@@ -64,7 +64,7 @@ def calibration():
     Calibinfor = Calibration(pathsave)
 
     if not Calibinfor.section_exists('General Information'):
-        Calibinfor.init_beamtime('1w1a', path, detector, pathmask)
+        Calibinfor.init_beamtime('1w1a', path, detector, pathmask=pathmask)
 
     if Calibration_type == 'detector':
         Calibinfor.detector_calib(file_1w1a, scan_num)

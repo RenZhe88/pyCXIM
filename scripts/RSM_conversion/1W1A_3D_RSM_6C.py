@@ -27,7 +27,7 @@ def RSM_6C():
     year = "2023"
     beamtimeID = "1698819146"
     p10_file = r"sample_1"
-    scan_num = 13
+    scan_num = 14
     detector = '300K-A'
     geometry = 'out_of_plane'
 
@@ -42,7 +42,7 @@ def RSM_6C():
     path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
     pathsave = r"F:\Work place 4\Temp"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\1w1a_pilatus_mask.npy'
-    pathcalib = r'F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\result\calibration.txt'
+    pathcalib = r'F:\Work place 4\Temp\calibration_test_result_at_1w1a.txt'
 
     # %% Generate the RSM
     print("#################")

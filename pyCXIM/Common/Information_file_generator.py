@@ -85,6 +85,8 @@ class InformationFileIO():
             f.close()
             index = pd.MultiIndex.from_tuples(index, names=['section', 'paraname'])
             self.para_list = pd.DataFrame({'value': para_value}, index=index)
+        else:
+            print('Could not find the information file!')
         return
 
     def get_para_value(self, para_name, section=''):
