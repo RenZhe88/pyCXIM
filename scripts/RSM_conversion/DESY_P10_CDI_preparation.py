@@ -50,7 +50,7 @@ def CDI_4C():
     # The path for the scan folder
     path = r"F:\Raw Data\20220323_test_data\raw"
     # The path to save the results
-    pathsave = r"F:\Work place 4\Temp"
+    pathsave = r"F:\Work place 4\pyCXIM_test_examples"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 
     # Loading scan information

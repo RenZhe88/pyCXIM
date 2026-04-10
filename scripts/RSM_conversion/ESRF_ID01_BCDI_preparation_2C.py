@@ -16,7 +16,7 @@ import time
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.scan_reader.ESRF.edf_reader import ESRFEdfImporter
-from pyCXIM.RSM.RC2RSM_2C import RC2RSM_2C
+from pyCXIM.RSM.RSM_2C import RSM_2C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 
 
@@ -88,30 +88,30 @@ def BCDI_preparation():
     # load the scan motors
     if geometry == 'out_of_plane':
         # read the omega values for each step in the rocking curve
-        scan_motor_ar = scan.get_scan_data('eta')
+        theta = scan.get_scan_data('eta')
         # read the delta value
         two_theta = scan.get_motor_pos('del')
         if qz_direction == 'surface direction':
-            scan_motor_offset = 0
+            theta_offset = 0
         elif qz_direction == 'diffraction vector direction':
-            scan_motor_offset = two_theta / 2.0 - scan_motor_ar[int(pch[0])]
+            theta_offset = two_theta / 2.0 - theta[int(pch[0])]
     elif geometry == 'in_plane':
         # read the phi values
-        scan_motor_ar = -scan.get_scan_data('phi')
+        theta = -scan.get_scan_data('phi')
         # read the delta value, which is gamma in the horizontal direction
         two_theta = scan.get_motor_pos('nu')
         if qz_direction == 'surface direction':
-            scan_motor_offset = 0
+            theta_offset = 0
         elif qz_direction == 'diffraction vector direction':
-            scan_motor_offset = two_theta / 2.0 - scan_motor_ar[int(pch[0])]
+            theta_offset = two_theta / 2.0 - theta[int(pch[0])]
 
-    scan_motor_ar = scan_motor_ar + scan_motor_offset
+    theta = theta + theta_offset
     # Finding the maximum peak position
-    omega = scan_motor_ar[pch[0]]
-    om_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
+    omega = theta[pch[0]]
+    om_step = (theta[-1] - theta[0]) / (len(theta) - 1)
     print("peak at omega = %f, delta = %f" % (omega, two_theta))
 
-    RSM_converter = RC2RSM_2C(scan_motor_ar, two_theta, energy, detector_distance, pixelsize, cch)
+    RSM_converter = RSM_2C('RC', theta, two_theta, energy, detector_distance, pixelsize, cch)
 
     # writing the scan information to the aimed file
     section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map', 'Routine2: direct cutting']
@@ -132,7 +132,7 @@ def BCDI_preparation():
     infor.add_para('omega', section_ar[2], omega)
     infor.add_para('delta', section_ar[2], two_theta)
     infor.add_para('omegastep', section_ar[2], om_step)
-    infor.add_para('omega_error', section_ar[2], scan_motor_offset)
+    infor.add_para('omega_error', section_ar[2], theta_offset)
     infor.add_para('direct_beam_position', section_ar[2], cch)
     infor.add_para('detector_distance', section_ar[2], detector_distance)
     infor.add_para('energy', section_ar[2], scan.get_motor_pos('energy'))
@@ -164,7 +164,7 @@ def BCDI_preparation():
         fig = plt.figure(figsize=(6, 6))
         plt.axis("off")
         img_frames = []
-        for i in range(len(scan_motor_ar)):
+        for i in range(len(theta)):
             if i % 5 == 0:
                 img = np.array(dataset[i, :, :], dtype=float)
                 plt_im = plt.imshow(np.log10(img + 1.0), cmap="hot")

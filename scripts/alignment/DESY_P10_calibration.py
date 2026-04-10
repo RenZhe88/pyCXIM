@@ -26,7 +26,7 @@ def calibration():
 
     # Inputs: paths
     path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
-    pathsave = r"F:\Work place 4\Temp"
+    pathsave = r"F:\Work place 4\pyCXIM_test_examples"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
     detector = 'e4m'
 
@@ -47,7 +47,7 @@ def calibration():
         peak = np.array([1, 0, 3], dtype=float)
         # om, del, chi, phi, gamma, energy
         error_source = ['om', 'del', 'phi']
-        known_error_values = np.array([0, 0, 0.36774792649788696, 0, 0, 0, 0], dtype=float)
+        known_error_values = np.array([0, 0, 0.367747926440273, 0, 0, 0, 0], dtype=float)
 
     # Inputs:Determine the U matrix based on measured Bragg peaks and their mill indexes
     elif Calibration_type == 'multiple Bragg 6C':

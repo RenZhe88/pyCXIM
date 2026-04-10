@@ -326,6 +326,29 @@ class PhaseRetrievalFuns():
         return
 
     def ND(self, num_ND_loop, vl, vu):
+        """
+        Normalized density algorithm designed for making the modulus more homogeneous.
+
+        Homogeneous the modululs according to the paper:
+                Phase retrieval of diffraction from highly strained crystals
+                Marcus C. Newton, et al. PRB, 82, 165436 (2010)
+
+        Parameters
+        ----------
+        num_ND_loop : int
+            number of loop to homogeneous the modulus.
+        vl : float
+            low threshold to nonrmalize to zero.
+        vu : float
+            high threshold to normalize to maximum density.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        
         if 'ND' in self.loop_dict.keys():
             self.loop_dict['ND'] += num_ND_loop
         else:
@@ -348,7 +371,7 @@ class PhaseRetrievalFuns():
         Use error reduction method to update the image.
 
         Error reduction performed according to the paper:
-            Phase retrieval by iterated projections
+            A practical algorithm for the determination of phase from image and diffraction plane pictures
             RW. Gerchberg, WO. Saxton, Optik, 35, 237 (1972)
 
         Parameters

@@ -14,14 +14,15 @@ import os
 import numpy as np
 import sys
 import time
+
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.scan_reader.BSRF.pilatus_reader import BSRFPilatusImporter
-from pyCXIM.RSM.RC2RSM_6C import RC2RSM_6C
+from pyCXIM.RSM.RSM_6C import RSM_6C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 
 
-def RSM_6C():
+def BSRF_1w1a_RC2RSM_6C():
     start_time = time.time()
     # %%Inputs: general information
     year = "2023"
@@ -40,9 +41,9 @@ def RSM_6C():
 
     # Inputs: paths
     path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
-    pathsave = r"F:\Work place 4\Temp"
+    pathsave = r"F:\Work place 4\pyCXIM_test_examples"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\1w1a_pilatus_mask.npy'
-    pathcalib = r'F:\Work place 4\Temp\calibration_test_result_at_1w1a.txt'
+    pathcalib = r'F:\Work place 4\pyCXIM_test_examples\Example results\alignment\calibration_test_result_at_1w1a.txt'
 
     # %% Generate the RSM
     print("#################")
@@ -53,14 +54,15 @@ def RSM_6C():
     scan = BSRFPilatusImporter('1w1a', path, p10_file, scan_num, detector, pathsave, pathmask)
     print(scan)
     if geometry == 'out_of_plane':
-        scan_motor_ar = scan.get_scan_data('eta')
+        eta = scan.get_scan_data('eta')
+        phi = scan.get_motor_pos('phi')
+        scan_step = (eta[-1] - eta[0]) / (len(eta) - 1)
     elif geometry == 'in_plane':
-        scan_motor_ar = scan.get_scan_data('phi')
-    scan_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
-    eta = scan.get_motor_pos('eta')
+        eta = scan.get_motor_pos('eta')
+        phi = scan.get_scan_data('phi')
+        scan_step = (phi[-1] - phi[0]) / (len(phi) - 1)
     delta = scan.get_motor_pos('del')
     chi = scan.get_motor_pos('chi')
-    phi = scan.get_motor_pos('phi')
     nu = scan.get_motor_pos('nu')
     mu = scan.get_motor_pos('mu')
     energy = scan.get_motor_pos('energy')
@@ -82,16 +84,18 @@ def RSM_6C():
 
     dataset, mask3D, pch, roi = scan.load_rois(roi=roi, show_cen_image=(not os.path.exists(pathinfor)), normalize_signal='Monitor', correction_mode='constant')
 
-    RSM_converter = RC2RSM_6C(scan_motor_ar, geometry,
-                              eta, delta, chi, phi, nu, mu, energy,
-                              distance, pixelsize, det_rot, cch,
-                              additional_rotation_matrix)
+    RSM_converter = RSM_6C('RC', eta, delta, chi, phi, nu, mu, energy,
+                           distance, pixelsize, det_rot, cch,
+                           additional_rotation_matrix)
 
     # determining the rebin parameter
     rebinfactor = RSM_converter.cal_rebinfactor()
 
     # Finding the maximum peak position
-    print("peak at eta = %.2f, delta = %.2f, chi = %.2f, phi = %.2f, nu = %.2f" % (eta, delta, chi, phi, nu))
+    if geometry == 'out_of_plane':
+        print("peak at eta = %.2f, delta = %.2f, chi = %.2f, phi = %.2f, nu = %.2f, mu = %.2f" % (eta[pch[0]], delta, chi, phi, nu, mu))
+    elif geometry == 'in_plane':
+        print("peak at eta = %.2f, delta = %.2f, chi = %.2f, phi = %.2f, nu = %.2f, mu = %.2f" % (eta, delta, chi, phi[pch[0]], nu, mu))
 
     # writing the scan information to the aimed file
     section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map']
@@ -115,10 +119,14 @@ def RSM_6C():
     infor.add_para('roi', section_ar[2], roi)
     infor.add_para('peak_position', section_ar[2], pch)
     infor.add_para('scan_step', section_ar[2], scan_step)
-    infor.add_para('eta', section_ar[2], eta)
+    if geometry == 'out_of_plane':
+        infor.add_para('eta', section_ar[2], eta[pch[0]])
+        infor.add_para('phi', section_ar[2], phi)
+    elif geometry == 'in_plane':
+        infor.add_para('eta', section_ar[2], eta)
+        infor.add_para('phi', section_ar[2], phi[pch[0]])
     infor.add_para('delta', section_ar[2], delta)
     infor.add_para('chi', section_ar[2], chi)
-    infor.add_para('phi', section_ar[2], phi)
     infor.add_para('nu', section_ar[2], nu)
     infor.add_para('mu', section_ar[2], mu)
 
@@ -185,4 +193,4 @@ def RSM_6C():
     return
 
 if __name__ == '__main__':
-    RSM_6C()
+    BSRF_1w1a_RC2RSM_6C()

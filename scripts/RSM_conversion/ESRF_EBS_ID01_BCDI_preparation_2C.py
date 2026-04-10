@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Prepare the BCDI data for the phase retrieval processes.
-Special cases designed for powder diffraction.
 Created on Wed Jan 24 15:32:26 2024
 
 @author: Ren Zhe
@@ -13,121 +12,102 @@ import numpy as np
 import os
 import sys
 import time
-from scipy.spatial.transform import Rotation as R
-from scipy.optimize import least_squares
 
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
-from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
-from pyCXIM.RSM.RC2RSM_6C import RC2RSM_6C
-from pyCXIM.RSM.RC2RSM_6C import cal_q_pos
+from pyCXIM.scan_reader.ESRF.h5_reader import ESRFH5Importer
+from pyCXIM.RSM.RSM_2C import RSM_2C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 
-
-def q_error_symmetric_peak(two_angles, q_vector):
-    euler_angles = [two_angles[0], 0, two_angles[1]]
-    rotation_matrix = R.from_euler('yxz', euler_angles, degrees=True)
-    additional_rotation_matrix = rotation_matrix.as_matrix()
-    error = np.dot(additional_rotation_matrix, q_vector)
-    return error[1:]
 
 def BCDI_preparation():
     start_time = time.time()
     # %% Inputs: select the functions of the code from the following mode
-    # ['Gif', 'Reciprocal_space_map', '2D_cuts']
+    # ['Gif', 'Direct_cut', 'Reciprocal_space_map', '2D_cuts']
     Functions_selected = ['Gif', 'Reciprocal_space_map', '2D_cuts']
 
     # Inputs: general information
-    year = "2025"
-    beamtimeID = "11021061"
-    p10_newfile = 'WTY_P3_D46'
-    scan_num = 16
-    detector = 'e4m'
+    year = "2024"
+    beamtimeID = "ma6248"
+    sample_name = 'BFOA'
+    experimental_method = 'ALIGNMENT_0002'
+    scan_num = 2
+    detector = 'mpx1x4'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
 
+    qz_direction = 'surface direction'
+    # qz_direction = 'diffraction vector direction'
+
     # Inputs: Detector parameters
+    detector_distance = 639.5
+    pixelsize = 0.055
+    # Direct beam position on the detector Y, X
+    cch = [183, 196.6]
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [200, 200]
+    wxy = [150, 150]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [1344, 1544, 196, 396]
+    roi = [100, 300, 200, 500]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'weight center'
+    # Half size for the direct cut in pixels
+    DC_bs = [95, 100, 100]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [90, 90, 80]
+    RSM_bs = [140, 140, 140]
     use_prefilter = False
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20250506_P10_In_situ_battery_test_01\raw"
+    path = r"F:\Raw Data\20241108_ID01_BiHan"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\LXD\WTY_P3_D46"
-    # the path for the mask file for the detector
-    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
-    pathcalib = r'F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\calibration.txt'
+    pathsavefolder = r"F:\Work place 4\Temp"
 
     # %% Read the information and detector images of the scan
     print("#################")
     print("Basic information")
     print("#################")
-
     # reading the fio file
-    scan = DesyEigerImporter('p10', path, p10_newfile, scan_num, detector, pathsavefolder, pathmask)
-    print(scan)
-
-    # Generate the paths for saving the data
-    pathsave = scan.get_pathsave()
-    pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan_num)
-    dataset, mask3D, pch, wxy = scan.load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)), normalize_signal='curpetra', correction_mode='constant')
-
-    if geometry == 'out_of_plane':
-        scan_motor_ar = scan.get_scan_data('om')
-        omega = scan_motor_ar[pch[0]]
-        phi = scan.get_motor_pos('phi')
-        print("peak at omega = %f" % (omega))
-    elif geometry == 'in_plane':
-        scan_motor_ar = scan.get_scan_data('phi')
-        phi = scan_motor_ar[pch[0]]
-        omega = scan.get_motor_pos('om')
-        print("peak at phi = %f" % (phi))
-    scan_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
-    delta = scan.get_motor_pos('del')
-    chi = scan.get_motor_pos('chi')
-    gamma = scan.get_motor_pos('gam')
-    mu = scan.get_motor_pos('mu')
-    energy = scan.get_motor_pos('fmbenergy')
-
-    calibinfor = InformationFileIO(pathcalib)
-    calibinfor.infor_reader()
-    cch = calibinfor.get_para_value('direct_beam_position', section='Detector calibration')
-    distance = calibinfor.get_para_value('detector_distance', section='Detector calibration')
-    pixelsize = calibinfor.get_para_value('pixelsize', section='Detector calibration')
-    det_rot = calibinfor.get_para_value('detector_rotation', section='Detector calibration')
+    scan = ESRFH5Importer('id01', path, beamtimeID, sample_name, experimental_method, scan_num, detector, pathsavefolder)
+    energy = scan.get_motor_pos('nrj') * 1.0e3
 
     # Generate the paths for saving the data
     pathsave = scan.get_pathsave()
     pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan_num)
 
     # Load the detector images
-    scan.write_fio()
+    dataset, mask3D, pch, wxy = scan.load_rois(roi, show_cen_image=(not os.path.exists(pathinfor)), correction_mode='constant')
+    scan.write_scan()
 
-    q_vector = cal_q_pos(pch[1:], [omega, delta, chi, phi, gamma, mu, energy], [distance, pixelsize, det_rot, cch])
-    print(q_vector)
+    # load the scan motors
+    if geometry == 'out_of_plane':
+        # read the omega values for each step in the rocking curve
+        theta = scan.get_scan_data('eta')
+        # read the delta value
+        two_theta = scan.get_motor_pos('delta')
+        if qz_direction == 'surface direction':
+            theta_offset = 0
+        elif qz_direction == 'diffraction vector direction':
+            theta_offset = two_theta / 2.0 - theta[int(pch[0])]
+    elif geometry == 'in_plane':
+        # read the phi values
+        theta = -scan.get_scan_data('phi')
+        # read the delta value, which is gamma in the horizontal direction
+        two_theta = scan.get_motor_pos('nu')
+        if qz_direction == 'surface direction':
+            theta_offset = 0
+        elif qz_direction == 'diffraction vector direction':
+            theta_offset = two_theta / 2.0 - theta[int(pch[0])]
 
-    leastsq_solution = least_squares(q_error_symmetric_peak, np.array([10.0, 10.0]), args=(q_vector, ))
-    print('Find UB matrix?')
-    print(leastsq_solution.success)
+    theta = theta + theta_offset
+    # Finding the maximum peak position
+    omega = theta[pch[0]]
+    om_step = (theta[-1] - theta[0]) / (len(theta) - 1)
+    print("peak at omega = %f, delta = %f" % (omega, two_theta))
 
-    rotation_matrix = R.from_euler('yxz', [leastsq_solution.x[0], 0, leastsq_solution.x[1]], degrees=True)
-    additional_rotation_matrix = rotation_matrix.as_matrix()
-
-    RSM_converter = RC2RSM_6C(scan_motor_ar, geometry,
-                              omega, delta, chi, phi, gamma, mu, energy,
-                              distance, pixelsize, det_rot, cch,
-                              additional_rotation_matrix)
+    RSM_converter = RSM_2C('RC', theta, two_theta, energy, detector_distance, pixelsize, cch)
 
     # writing the scan information to the aimed file
     section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map', 'Routine2: direct cutting']
@@ -135,33 +115,40 @@ def BCDI_preparation():
     infor.add_para('command', section_ar[0], scan.get_command())
     infor.add_para('year', section_ar[0], year)
     infor.add_para('beamtimeID', section_ar[0], beamtimeID)
-    infor.add_para('p10_newfile', section_ar[0], p10_newfile)
+    infor.add_para('sample_name', section_ar[0], sample_name)
+    infor.add_para('experimental_method', section_ar[0], experimental_method)
     infor.add_para('scan_number', section_ar[0], scan_num)
 
     infor.add_para('path', section_ar[1], path)
     infor.add_para('pathsave', section_ar[1], pathsave)
     infor.add_para('pathinfor', section_ar[1], pathinfor)
-    infor.add_para('pathmask', section_ar[1], pathmask)
 
-    infor.add_para('geometry', section_ar[2], geometry)
     infor.add_para('roi', section_ar[2], roi)
     infor.add_para('peak_position', section_ar[2], pch)
-    infor.add_para('scan_step', section_ar[2], scan_step)
     infor.add_para('omega', section_ar[2], omega)
-    infor.add_para('delta', section_ar[2], delta)
-    infor.add_para('chi', section_ar[2], chi)
-    infor.add_para('phi', section_ar[2], phi)
-    infor.add_para('gamma', section_ar[2], gamma)
-    infor.add_para('mu', section_ar[2], mu)
-    infor.add_para('energy', section_ar[2], scan.get_motor_pos('fmbenergy'))
-
+    infor.add_para('delta', section_ar[2], two_theta)
+    infor.add_para('omegastep', section_ar[2], om_step)
+    infor.add_para('omega_error', section_ar[2], theta_offset)
     infor.add_para('direct_beam_position', section_ar[2], cch)
-    infor.add_para('detector_distance', section_ar[2], distance)
+    infor.add_para('detector_distance', section_ar[2], detector_distance)
+    infor.add_para('energy', section_ar[2], scan.get_motor_pos('nrj') * 1.0e3)
     infor.add_para('pixelsize', section_ar[2], pixelsize)
-    infor.add_para('det_rot', section_ar[2], det_rot)
+    infor.add_para('geometry', section_ar[2], geometry)
     infor.add_para('detector', section_ar[2], detector)
 
     infor.infor_writer()
+
+    # %% Convert the geometry
+    if geometry == 'in_plane':
+        wxy = np.array(wxy, dtype=int)
+        DC_bs = np.array(DC_bs, dtype=int)
+        cch = np.array(cch, dtype=int)
+        dataset = np.swapaxes(dataset, 1, 2)
+        mask3D = np.swapaxes(mask3D, 1, 2)
+        pch[[1, 2]] = pch[[2, 1]]
+        cch[[0, 1]] = cch[[1, 0]]
+        DC_bs[[1, 2]] = DC_bs[[2, 1]]
+        wxy[[0, 1]] = wxy[[1, 0]]
 
     # %% Perform the corresponding operations
     if 'Gif' in Functions_selected:
@@ -173,7 +160,7 @@ def BCDI_preparation():
         fig = plt.figure(figsize=(6, 6))
         plt.axis("off")
         img_frames = []
-        for i in range(len(scan_motor_ar)):
+        for i in range(len(theta)):
             if i % 5 == 0:
                 img = np.array(dataset[i, :, :], dtype=float)
                 plt_im = plt.imshow(np.log10(img + 1.0), cmap="hot")
@@ -183,6 +170,74 @@ def BCDI_preparation():
         gif_img.save(pathsavegif, writer='pillow', fps=10)
         print('GIF image saved')
         plt.close()
+
+    if 'Direct_cut' in Functions_selected:
+        print("")
+        print("##########################################")
+        print("Generating the stack of the detector image")
+        print("##########################################")
+
+        # Save the data
+        pathtmp = os.path.join(pathsave, "pynxpre")
+        if not os.path.exists(pathtmp):
+            os.mkdir(pathtmp)
+        pathtmp = os.path.join(pathtmp, "stacked_detector_images")
+        if not os.path.exists(pathtmp):
+            os.mkdir(pathtmp)
+
+        # cutting the stacked detector images
+        Direct_cut, npch, DC_bs = RSM_post_processing.Cut_central(dataset, DC_bs, cut_mode=cut_central_pos)
+        Direct_mask, npch, DC_bs = RSM_post_processing.Cut_central(mask3D, DC_bs, cut_mode='given', peak_pos=npch)
+
+        print("saving the data...")
+        path_stacked = os.path.join(pathtmp, "scan%04d.npz" % scan_num)
+        np.savez_compressed(path_stacked, data=Direct_cut)
+        print('saving mask')
+        path_stacked_mask = os.path.join(pathtmp, "scan%04d_mask.npz" % scan_num)
+        np.savez_compressed(path_stacked_mask, data=Direct_mask)
+
+        npch = npch + np.array([0, pch[1] - wxy[0], pch[2] - wxy[1]])
+        print('Cutting at position' + str(npch))
+
+        q_cen_dir = RSM_converter.cal_rel_q_pos(npch) * RSM_converter.get_RSM_unit()
+
+        # ploting the ycut of the stacking images to estimate the quality of the image
+        ycut = Direct_cut[:, :, DC_bs[2]]
+        maskycut = Direct_mask[:, :, DC_bs[2]]
+        plt.imshow(np.log10(ycut.T + 1.0), cmap="Blues")
+        plt.imshow(np.ma.masked_where(maskycut == 0, maskycut).T, cmap="Reds", alpha=0.8, vmin=0.1, vmax=0.5)
+        plt.xlabel('img_num')
+        plt.ylabel('detector_Y')
+        plt.savefig(os.path.join(pathtmp, 'ycut.png'))
+        plt.show()
+        plt.close()
+
+        infor.add_para('path_stacked_detector_images', section_ar[1], path_stacked)
+        infor.add_para('path_stacked_mask', section_ar[1], path_stacked_mask)
+        infor.add_para('direct_cut_center_mode', section_ar[4], cut_central_pos)
+        infor.add_para('direct_cut_box_size', section_ar[4], DC_bs)
+        infor.add_para('direct_cut_centeral_pixel', section_ar[4], npch)
+        infor.add_para('DC_unit', section_ar[4], RSM_converter.get_RSM_unit())
+        infor.add_para('direct_cut_q_center', section_ar[4], q_cen_dir)
+        infor.infor_writer()
+
+    if ("2D_cuts" in Functions_selected) and ('Direct_cut' in Functions_selected):
+        print("")
+        print("##################")
+        print("Generating the 2D cuts of the direct cut")
+        print("##################")
+        pathtmp = os.path.join(pathsave, "cuty")
+        if not os.path.exists(pathtmp):
+            os.mkdir(pathtmp)
+        pathtmp2 = os.path.join(pathtmp, "cuty.npy")
+        np.save(pathtmp2, ycut)
+        infor.add_para('path_cuty', '2D cuts', pathtmp)
+        pathtmp2 = os.path.join(pathtmp, "cuty_mask.npy")
+        np.save(pathtmp2, maskycut)
+
+    if 'Direct_cut' in Functions_selected:
+        del Direct_cut
+        del Direct_mask
 
     if 'Reciprocal_space_map' in Functions_selected:
         print("")
@@ -202,7 +257,7 @@ def BCDI_preparation():
         rebinfactor = RSM_converter.cal_rebinfactor()
 
         # calculate the qx, qy, qz ranges of the scan
-        q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range([(pch[1] - wxy[0]), (pch[1] + wxy[0]), (pch[2] - wxy[1]), (pch[2] + wxy[1])], rebinfactor=rebinfactor)
+        q_origin, new_shape, RSM_unit = RSM_converter.cal_q_range(roi, rebinfactor=rebinfactor)
 
         # generate the 3D reciprocal space map
         print('Calculating intensity...')
@@ -211,7 +266,7 @@ def BCDI_preparation():
 
         if save_full_3D_RSM:
             print('saving the full 3D RSM')
-            filename = "%s_%05d_RSM.npz" % (p10_newfile, scan_num)
+            filename = "%s_%05d_RSM.npz" % (sample_name, scan_num)
             pathsaveRSM = os.path.join(pathsave, filename)
             np.savez_compressed(pathsaveRSM, data=RSM_int)
             infor.add_para('pathRSM', section_ar[1], pathsaveRSM)
@@ -255,10 +310,10 @@ def BCDI_preparation():
         # save the information
         infor.add_para('path3DRSM', section_ar[1], path3dRSM)
         infor.add_para('path3Dmask', section_ar[1], path3dmask)
-        infor.add_para('use_prefilter', section_ar[1], use_prefilter)
+        infor.add_para('use_prefilter', section_ar[3], use_prefilter)
         infor.add_para('roi_width', section_ar[3], wxy)
         infor.add_para('RSM_unit', section_ar[3], RSM_unit)
-        infor.add_para('RSM_shape', section_ar[3], (new_shape))
+        infor.add_para('RSM_shape', section_ar[3], new_shape)
         infor.add_para('rebinfactor', section_ar[3], rebinfactor)
         infor.add_para('q_origin', section_ar[3], q_origin)
         infor.add_para('RSM_cut_central_mode', section_ar[3], cut_central_pos)

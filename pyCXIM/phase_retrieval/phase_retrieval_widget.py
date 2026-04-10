@@ -14,7 +14,10 @@ import matplotlib.pyplot as plt
 import os
 from scipy.ndimage import gaussian_filter
 from scipy.linalg import svd
+from sklearn.cluster import HDBSCAN
+from sklearn.metrics import calinski_harabasz_score
 import sys
+import time
 
 from ..Common.Information_file_generator import InformationFileIO
 try:
@@ -177,7 +180,7 @@ class PhaseRetrievalWidget():
         # Load information file and support
         imgfile = h5py.File(self.pathsaveimg, "r+")
 
-        if support_type in ['average', 'support_selected', 'modulus_selected']:
+        if support_type in ['average', 'support_selected', 'modulus_selected', 'clustering_selection']:
             path_previous_result = os.path.join(self.pathsave, 'Trial%02d.h5' % support_from_trial)
             assert os.path.exists(path_previous_result), 'The previous results file for the support calculation does not exist! Please check the parameters again!'
         elif support_type == 'auto_correlation':
@@ -241,6 +244,21 @@ class PhaseRetrievalWidget():
             self.para_dict['n_best_for_support_initiation'] = n_best_for_support
             self.para_dict['initial_support_threshold'] = initial_support_threshold
             self.para_dict['modulus_smooth_width'] = modulus_smooth_width
+        elif support_type == 'clustering_selection':
+            print('Initial support calculated from Trial%02d' % support_from_trial)
+            support_sum = np.zeros(data_shape)
+            n_best_for_support, Previous_Seed_selected = self.clustering_selection(path_previous_result, error_type)
+            print('%d images selected to calcultate the support' % n_best_for_support)
+            previous_result_file = h5py.File(path_previous_result, 'r')
+            for Previous_Seed in Previous_Seed_selected:
+                support_sum += np.abs(np.array(previous_result_file['Solutions/Seed%03d/support' % Previous_Seed]))
+            support_sum = support_sum / n_best_for_support
+            support = np.zeros_like(support_sum)
+            support[support_sum >= initial_support_threshold] = 1.0
+            previous_result_file.close()
+            self.para_dict['support_from_trial'] = support_from_trial
+            self.para_dict['error_type_for_support_selection'] = error_type
+            self.para_dict['initial_support_threshold'] = initial_support_threshold
         elif support_type == 'import':
             support = np.load(path_import_initial_support)['data']
             support[support > initial_support_threshold] = 1
@@ -613,7 +631,7 @@ class PhaseRetrievalWidget():
 
         phase_unwrap_method = self.para_dict['phase_unwrap_method']
 
-        if (not self.para_dict['support_update']) and n_best_for_further_analysis >= 3:
+        if not self.para_dict['support_update']:
             further_analysis_method = 'SVD'
             support = np.array(imgfile["Initial_support/support"], dtype=float)
             if self.para_dict['first_seed_flip']:
@@ -621,9 +639,7 @@ class PhaseRetrievalWidget():
 
             print("%d images selected for SVD analysis" % n_best_for_further_analysis)
             result_matrix = np.zeros((int(np.sum(support)), n_best_for_further_analysis), dtype=complex)
-            Mode1 = np.zeros(data_shape, dtype=complex)
-            Mode2 = np.zeros(data_shape, dtype=complex)
-            Mode3 = np.zeros(data_shape, dtype=complex)
+
             Avr_Modulus = np.zeros(data_shape, dtype=float)
             Avr_Phase = np.zeros(data_shape, dtype=float)
             Avr_Img = np.zeros(data_shape, dtype=np.complex128)
@@ -639,28 +655,6 @@ class PhaseRetrievalWidget():
                 Avr_Img = Avr_Img + np.multiply(Modulus, np.exp(1j * Phase))
                 Avr_intensity = Avr_intensity + np.square(np.abs(np.fft.fftshift(np.fft.fftn(Img * support))))
 
-            try:
-                import torch
-                device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-                result_matrix = torch.from_numpy(result_matrix).to(device)
-
-                u_vector, evalue, v_vector = torch.linalg.svd(result_matrix, full_matrices=False)
-                u_vector = u_vector.cpu().numpy()
-                evalue = evalue.cpu().numpy()
-            except ImportError:
-                u_vector, evalue, v_vector = svd(result_matrix, full_matrices=False)
-
-            Mode1[support == 1] = u_vector[:, 0]
-            Mode2[support == 1] = u_vector[:, 1]
-            Mode3[support == 1] = u_vector[:, 2]
-            Mode1_Modulus = np.abs(Mode1)
-            Mode1_Phase = pp.phase_corrector(np.angle(Mode1), support, 0, phase_unwrap_method)
-            Mode2_Modulus = np.abs(Mode2)
-            Mode2_Phase = pp.phase_corrector(np.angle(Mode2), support, 0, phase_unwrap_method)
-            Mode3_Modulus = np.abs(Mode3)
-            Mode3_Phase = pp.phase_corrector(np.angle(Mode3), support, 0, phase_unwrap_method)
-            evalue = np.square(evalue)
-            evalue = evalue / np.sum(evalue)
             Avr_Modulus = Avr_Modulus / n_best_for_further_analysis
             Avr_Phase = Avr_Phase / n_best_for_further_analysis
             Avr_Img = Avr_Img / n_best_for_further_analysis
@@ -676,15 +670,46 @@ class PhaseRetrievalWidget():
             imgfile.create_dataset("Selected_average/Support_sum", data=support, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/intensity_sum", data=Avr_intensity, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/phase_retrieval_transfer_function", data=PRTF, dtype='float')
-            imgfile.create_dataset("SVD_analysis/Mode1_Modulus", data=Mode1_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("SVD_analysis/Mode1_Phase", data=Mode1_Phase, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("SVD_analysis/Mode2_Modulus", data=Mode2_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("SVD_analysis/Mode2_Phase", data=Mode2_Phase, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("SVD_analysis/Mode3_Modulus", data=Mode3_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("SVD_analysis/Mode3_Phase", data=Mode3_Phase, dtype='float', chunks=chunks_size, compression="gzip")
-            imgfile.create_dataset("SVD_analysis/evalue", data=evalue, dtype='float', compression="gzip")
+
+            if n_best_for_further_analysis >= 3:
+                Mode1 = np.zeros(data_shape, dtype=complex)
+                Mode2 = np.zeros(data_shape, dtype=complex)
+                Mode3 = np.zeros(data_shape, dtype=complex)
+                try:
+                    import torch
+                    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                    result_matrix = torch.from_numpy(result_matrix).to(device)
+    
+                    u_vector, evalue, v_vector = torch.linalg.svd(result_matrix, full_matrices=False)
+                    u_vector = u_vector.cpu().numpy()
+                    evalue = evalue.cpu().numpy()
+                except ImportError:
+                    u_vector, evalue, v_vector = svd(result_matrix, full_matrices=False)
+    
+                Mode1[support == 1] = u_vector[:, 0]
+                Mode2[support == 1] = u_vector[:, 1]
+                Mode3[support == 1] = u_vector[:, 2]
+                Mode1_Modulus = np.abs(Mode1)
+                Mode1_Phase = pp.phase_corrector(np.angle(Mode1), support, 0, phase_unwrap_method)
+                Mode2_Modulus = np.abs(Mode2)
+                Mode2_Phase = pp.phase_corrector(np.angle(Mode2), support, 0, phase_unwrap_method)
+                Mode3_Modulus = np.abs(Mode3)
+                Mode3_Phase = pp.phase_corrector(np.angle(Mode3), support, 0, phase_unwrap_method)
+                evalue = np.square(evalue)
+                evalue = evalue / np.sum(evalue)
+                PRTF = pp.cal_PRTF(intensity, Mode1, MaskFFT)
+    
+                imgfile.create_dataset("SVD_analysis/Mode1_Modulus", data=Mode1_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
+                imgfile.create_dataset("SVD_analysis/Mode1_Phase", data=Mode1_Phase, dtype='float', chunks=chunks_size, compression="gzip")
+                imgfile.create_dataset("SVD_analysis/Mode2_Modulus", data=Mode2_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
+                imgfile.create_dataset("SVD_analysis/Mode2_Phase", data=Mode2_Phase, dtype='float', chunks=chunks_size, compression="gzip")
+                imgfile.create_dataset("SVD_analysis/Mode3_Modulus", data=Mode3_Modulus, dtype='float', chunks=chunks_size, compression="gzip")
+                imgfile.create_dataset("SVD_analysis/Mode3_Phase", data=Mode3_Phase, dtype='float', chunks=chunks_size, compression="gzip")
+                imgfile.create_dataset("SVD_analysis/evalue", data=evalue, dtype='float', compression="gzip")
+                imgfile.create_dataset("SVD_analysis/phase_retrieval_transfer_function", data=PRTF, dtype='float')
         else:
             further_analysis_method = 'Average'
+
             Avr_Modulus = np.zeros(data_shape, dtype=float)
             Avr_Phase = np.zeros(data_shape, dtype=float)
             Avr_support = np.zeros(data_shape, dtype=float)
@@ -708,7 +733,7 @@ class PhaseRetrievalWidget():
             Avr_Img = Avr_Img / n_best_for_further_analysis
             Avr_intensity = Avr_intensity / n_best_for_further_analysis
             PRTF = pp.cal_PRTF(intensity, Avr_Img, MaskFFT)
-
+            
             self.para_dict['n_best_for_further_analysis'] = n_best_for_further_analysis
             self.para_dict['further_analysis_method'] = further_analysis_method
             self.para_dict['error_type_for_further_analysis'] = error_type
@@ -761,6 +786,99 @@ class PhaseRetrievalWidget():
             err_ar = err_ar[:, err_index]
             Seed_selected = np.argsort(err_ar)[:selected_num]
         return selected_num, Seed_selected
+
+    def clustering_selection(self, path_result, error_type):
+        """
+        Automatic select the reconstructions by clustering according to the support size and given error type.
+
+        Parameters
+        ----------
+        path_result : str
+            The path of the aimed result h5 file.
+        error_type : str
+            Error type used for selection.
+            The allowed error type can be checked in the h5 file or phase retrieval GPU code.
+
+        Returns
+        -------
+        selected_num : int
+            Number of solutions selected.
+        Seed_selected : ndarray
+            The seed number of the solutions selected with minimum error.
+
+        """
+        with h5py.File(path_result, 'r') as imgfile:
+            err_ar = np.array(imgfile["Error/error"], dtype=float)
+            err_names = list(imgfile["Error"].attrs['column_names'])
+            try:
+                err_index = err_names.index(error_type)
+            except ValueError:
+                print('Could not find the wanted error type, use Fourier space error instead')
+                err_index = 2
+
+            Error = np.zeros((err_ar.shape[0], 2))
+            Error[:, 0] = err_ar[:, 1]
+            Error[:, 1] = err_ar[:, err_index]
+
+        # --------------- parameter for cluster selection ---------------
+        alpha_candidates = [0.5, 0.65, 0.8, 1.0, 1.25]
+        min_cluster_size = 4
+        # --------------------------------------------------------
+    
+        best_score = -np.inf
+        best_cluster = None
+    
+        for alpha in alpha_candidates:
+            cluster = HDBSCAN(
+                min_cluster_size=min_cluster_size,
+                alpha=alpha,
+            )
+            labels = cluster.fit_predict(Error)
+    
+            # filter the noise
+            valid = (labels != -1)
+            if valid.sum() < min_cluster_size:
+                continue
+    
+            # score the clustering
+            try:
+                score = calinski_harabasz_score(Error[valid], labels[valid])
+            except:
+                continue
+    
+            # select the best clustering
+            if score > best_score:
+                best_score = score
+                best_cluster = self.get_best_cluster(Error, labels)
+    
+        # backup plan for the extreme cases
+        if best_cluster is None:
+            labels = HDBSCAN(min_cluster_size=4, alpha=0.8).fit_predict(Error)
+            best_cluster = self.get_best_cluster(Error, labels)
+    
+        plt.figure(figsize=(8, 8))
+        plt.plot(Error[:, 0], Error[:, 1], 'b.')
+        plt.plot(Error[:, 0][best_cluster], Error[:, 1][best_cluster], 'r.', label='selected')
+        plt.xlabel('support size')
+        plt.ylabel('error')
+        plt.show()
+
+        Seed_selected = np.arange(err_ar.shape[0])[best_cluster]
+        selected_num = len(Seed_selected)
+        return selected_num, Seed_selected
+    
+    def get_best_cluster(self, Error, labels):
+        min_mean = np.inf
+        best_cluster = None
+        unique_clusters = np.unique(labels[labels != -1])
+        for c in unique_clusters:
+            cluster_points = Error[:, 1][labels == c]
+            mean_val = np.mean(cluster_points)
+            if mean_val < min_mean:
+                min_mean = mean_val
+                best_cluster = (labels == c)
+        return best_cluster
+
 
     def BCDI_data_interpretation(self, array_group, array_name, q_vector, voxel_size):
         """

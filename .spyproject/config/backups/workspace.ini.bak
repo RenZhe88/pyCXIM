@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['scripts\\phase_retrieval\\phase_retrieval_3D.py', '..\\test\\ptycho_ePIE.py']
+recent_files = ['pyCXIM\\RSM\\RSM_2C.py', 'pyCXIM\\RSM\\RSM_6C.py', 'scripts\\RSM_conversion\\P10_BCDI_preparation_2C.py']
 
 [main]
 version = 0.2.0

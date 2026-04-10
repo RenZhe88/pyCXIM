@@ -35,24 +35,24 @@ from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 
-def phase_retrieval_3D(scan_num):
+def phase_retrieval_3D(scan_num, hybrid_para):
     # %%Input
     start_time = time.time()
-    pathsave = r'F:\Work place 4\Temp\WTY_P3_ALF_%05d\pynxpre\reciprocal_space_map' % scan_num
+    pathsave = r'F:\publish\HEPS06 shrinkwrap methods\B3_syn_S4_%05d\pynxpre\reciprocal_space_map' % scan_num
     intensity_file = 'scan%04d.npz' % scan_num
     mask_file = 'scan%04d_mask.npz' % scan_num
-    path_scan_infor = r"F:\Work place 4\Temp\WTY_P3_ALF_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
+    path_scan_infor = r"F:\publish\HEPS06 shrinkwrap methods\B3_syn_S4_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
 
     # Input: parameters for creating the initial suppport.
-    # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-    support_type = 'support_selected'
-    support_from_trial = 1
+    # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', 'modulus_selected', or 'clustering_selection'
+    support_type = 'auto_correlation'
+    support_from_trial = 0
 
     # If support_type is 'auto_correlation'
-    auto_corr_thrpara = 0.01
+    auto_corr_thrpara = 0.004
     # If support_type is 'average', 'support_selected', or'modulus_selected'
     initial_support_threshold = 0.8
     # If support_type is 'support_selected' or 'modulus_selected'
@@ -65,18 +65,18 @@ def phase_retrieval_3D(scan_num):
     path_import_initial_support = r'E:\Work place 3\sample\XRD\20221103 BFO islands\BFO_LAO_4_7_00087\cutqz\Trial02.npz'
 
     # Input: starting image inherented from trial
-    start_trial_num = 1
+    start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    # algorithm = "DIF**100*(HIO**80*ER**10*Sup)**20*(RAAR**80*ER**10*Sup)**30*PSFon*(ADMM**80*ER**10*Sup*PSFupdate**25)**10"
-    algorithm = "DIF**200*(RAAR**80*ER**10)**20*PSFon*(ADMM**80*ER**10*PSFupdate**25)**10"
+    algorithm = "(HIO**40*Sup)**20*(DIF**50)**2*(ND**10*RAAR**60*ER**10*Sup)**30*PSFon*(ND**10*RAAR**60*ER**10*Sup*PSFupdate**25)**10"
+    # algorithm = "DIF**200*(HIO**60*ER**10)**10*PSFon*(ADMM**80*ER**10*PSFupdate**25)**12"
 
     # Input: parameters for CRITcheck
     critical_error_selected = 'Fourier space error'
     critical_error = 0.0043
 
     # Input: parameters for partial coherent calculation
-    psf_sigma = 1.2
+    psf_sigma = 1.3
 
     # Input: parameters for the free Log likelihood
     Free_LLK = False
@@ -85,15 +85,14 @@ def phase_retrieval_3D(scan_num):
 
     # Input: parameters for the shrink wrap loop
     # threshold_update_method = 'random'
-    # threshold_update_method = 'exp_increase'
-    threshold_update_method = 'lin_increase'
-    support_para_update_precent = 0.6
-    thrpara_min = 0.08
-    thrpara_max = 0.10
+    threshold_update_method = 'exp_increase'
+    # threshold_update_method = 'lin_increase'
+    support_para_update_precent = 0.8
+    thrpara_min = 0.06
+    thrpara_max = 0.08
     support_smooth_width_begin = 3.5
-    support_smooth_width_end = 1.0
-    hybrid_para = 0.2
-
+    support_smooth_width_end = 0.95
+    # hybrid_para = 0.2
     # Input: parameters for the detwin operation
     detwin_axis = (0, 1, 2)
 
@@ -241,5 +240,6 @@ def phase_retrieval_3D(scan_num):
 
 
 if __name__ == '__main__':
-    phase_retrieval_3D(123)
+    for i in np.arange(0.2, 1.1, 0.2):
+        phase_retrieval_3D(111, i)
     

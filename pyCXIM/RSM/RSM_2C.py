@@ -12,9 +12,13 @@ from scipy.ndimage import affine_transform
 import sys
 
 
-class RC2RSM_2C(object):
+class RSM_2C(object):
     """
-    Calculate the reciprocal space map from rocking curve.
+    Convert the detector images to the three dimensional reciprocal space map for rocking curve or theta-2theta scans.
+    
+    Basic assumption:
+        1. scan angle is small,e.g. 1-2 degrees
+        2. sample detector distance is much large than the detecor size.
 
     Only theta and 2theta angle are considered.
     z direction is surface direction of the sample space.
@@ -23,9 +27,11 @@ class RC2RSM_2C(object):
 
     Parameters
     ----------
-    scan_motor_ar : list
+    scan_type : str
+        The geometry can be either 'RC' (Rocking curve) or 'TT' (theta-2theta scan).
+    theta : list or float
         The motor values in the rocking curve, which should linearly change during the scan.
-    two_theta : float
+    two_theta : float or list
         The two theta angle for the rocking curve.
     energy : float, optional
         The energy value in eV. The default is 8000.
@@ -42,19 +48,51 @@ class RC2RSM_2C(object):
 
     """
 
-    def __init__(self, scan_motor_ar, two_theta, energy=8000, distance=1830, pixelsize=0.075, cch=[0, 0]):
-        self.scan_motor_ar = np.deg2rad(scan_motor_ar)
-        self.scan_step = np.deg2rad((scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1))
+    def __init__(self, scan_type, theta, two_theta, energy=8000, distance=1830, pixelsize=0.075, cch=[0, 0]):
+        self.scan_type = scan_type
+        self.theta = np.deg2rad(theta)
+        self.scan_step = np.deg2rad((theta[-1] - theta[0]) / (len(theta) - 1))
+        self.npoint = len(self.theta)
         self.two_theta = np.deg2rad(two_theta)
         self.distance = distance
         self.pixelsize = pixelsize
         self.energy = energy
         self.cch = cch
 
+        if (self.scan_type == 'RC') and isinstance(self.theta, np.ndarray) and isinstance(self.two_theta, float):
+            pass
+        elif (self.scan_type == 'TT') and isinstance(self.theta, np.ndarray) and isinstance(self.two_theta, np.ndarray):
+            pass
+        else:
+            raise TypeError("Scan type and data does not match!")
+
         hc = 1.23984 * 10000.0
         wavelength = hc / self.energy
         self.units = 2 * np.pi * self.pixelsize / wavelength / self.distance
         return
+
+    def get_motor_pos(self, img_index):
+        """
+        Get the motor positions for a certain point in the scan.
+
+        Parameters
+        ----------
+        img_index : int
+            The index of the scan point.
+
+        Returns
+        -------
+        motor_position : list
+            List of motor position values in omega, delta, chi, phi, gamma, mu, energy order.
+
+        """
+        motor_position = []
+        for motor in [self.theta, self.two_theta, self.energy]:
+            if isinstance(motor, np.ndarray):
+                motor_position.append(motor[img_index])
+            else:
+                motor_position.append(motor)
+        return np.array(motor_position)
 
     def get_RSM_unit(self, rebinfactor=1):
         """
@@ -93,16 +131,16 @@ class RC2RSM_2C(object):
             The calculated q_vector as [qz, qy, qx] in inverse angstrom
 
         """
-        self.omega = self.scan_motor_ar[int(pch[0])]
+        omega, delta, energy = self.get_motor_pos(int(pch[0]))
         q_vector = np.array([(self.cch[0] - pch[1]), (self.cch[1] - pch[2]), self.distance / self.pixelsize])
-        delta_transform = np.array([[np.cos(self.two_theta), 0, np.sin(self.two_theta)],
+        delta_transform = np.array([[np.cos(delta), 0, np.sin(delta)],
                                     [0, 1, 0],
-                                    [-np.sin(self.two_theta), 0, np.cos(self.two_theta)]])
+                                    [-np.sin(delta), 0, np.cos(delta)]])
         q_vector = np.dot(delta_transform, q_vector)
         q_vector = q_vector - np.array([0, 0, self.distance / self.pixelsize])
-        omega_transform = np.array([[np.cos(self.omega), 0, -np.sin(self.omega)],
+        omega_transform = np.array([[np.cos(omega), 0, -np.sin(omega)],
                                     [0, 1, 0],
-                                    [np.sin(self.omega), 0, np.cos(self.omega)]])
+                                    [np.sin(omega), 0, np.cos(omega)]])
         q_vector = np.dot(omega_transform, q_vector)
         return q_vector
 
@@ -116,7 +154,12 @@ class RC2RSM_2C(object):
             The rebin factor recommended for the reciprocal space map.
 
         """
-        rebinfactor = np.abs(2.0 * np.sin(self.two_theta / 2.0) * self.distance / self.pixelsize * self.scan_step)
+        step_C = self.distance * self.scan_step / self.pixelsize
+        
+        if self.scan_type == 'RC':
+            rebinfactor = np.abs(2.0 * np.sin(self.two_theta / 2.0) * step_C)
+        elif self.scan_type == 'TT':
+            rebinfactor = np.abs(2.0 * (1 + np.cos((self.two_theta[0] + self.two_theta[-1]) / 2.0)) * step_C)
 
         print("rebinfactor calculated:%f" % rebinfactor)
         if rebinfactor > 1.5:
@@ -144,9 +187,15 @@ class RC2RSM_2C(object):
             The transofmration matrix for the RSM conversion.
 
         """
+        omega, delta, energy = self.get_motor_pos(int(self.npoint / 2))
+
         step_C = self.distance * self.scan_step / self.pixelsize
-        transformation_matrix = np.array([[(np.cos(self.omega) - np.cos(self.two_theta - self.omega)) * step_C, -np.cos(self.two_theta - self.omega)],
-                                          [(np.sin(self.two_theta - self.omega) + np.sin(self.omega)) * step_C, np.sin(self.two_theta - self.omega)]])
+        if self.scan_type == 'RC':
+            transformation_matrix = np.array([[(np.cos(omega) - np.cos(delta - omega)) * step_C, -np.cos(delta - omega)],
+                                              [(np.sin(delta - omega) + np.sin(omega)) * step_C, np.sin(delta - omega)]])
+        elif self.scan_type == 'TT':
+            transformation_matrix = np.array([[(np.cos(omega) + np.cos(delta - omega)) * step_C, -np.cos(delta - omega)],
+                                              [(np.sin(omega) - np.sin(delta - omega)) * step_C, np.sin(delta - omega)]])
         transformation_matrix = transformation_matrix / rebinfactor
         return transformation_matrix
 
@@ -186,7 +235,7 @@ class RC2RSM_2C(object):
                     corner_num += 1
         new_shape = (np.ptp(corners_q, axis=0) / rebinfactor).astype(int)
         RSM_unit = self.units * rebinfactor
-        pch = [int(len(self.scan_motor_ar) / 2), (roi[0] + roi[1]) / 2.0, (roi[2] + roi[3]) / 2.0]
+        pch = [int(self.npoint / 2), (roi[0] + roi[1]) / 2.0, (roi[2] + roi[3]) / 2.0]
         q_origin = (self.cal_rel_q_pos(pch) - np.ptp(corners_q, axis=0) / 2.0) * self.units
 
         print("number of points for the reciprocal space:")
@@ -218,7 +267,6 @@ class RC2RSM_2C(object):
 
         """
         # Calculate the transformation matrix for the RMS
-        self.omega = self.scan_motor_ar[int(dataset.shape[0] / 2)]
         zd, yd, xd = dataset.shape
         nz, ny, nx = new_shape
 

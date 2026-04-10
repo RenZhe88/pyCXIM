@@ -11,9 +11,12 @@ import ast
 import datetime
 from io import StringIO
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import re
+from scipy.optimize import curve_fit
+from scipy.signal import savgol_filter
 
 
 class GeneralScanStructure(object):
@@ -848,3 +851,225 @@ class GeneralScanStructure(object):
             nan_array = np.empty(self.scan_infor.shape[0])
             nan_array[:] = np.NaN
             return nan_array
+
+    def Gaussian_estimation(self, counter_name, sigma=1, normalize_signal=None, normalize=True, plot=False):
+        """
+        Fit the diffraction intensity with gaussian function.
+
+        Parameters
+        ----------
+        counter_name : str
+            Name of the intensity counter.
+        sigma : float, optional
+            The starting sigma value for the fitting. The default is 1.
+        normalize_signal : str, optional
+            The name of the signal used to normalize the diffraction intensity. The default is None.
+        normalize : bool, optional
+            If true, the intensity will be normalized before fitting. The default is True.
+        plot : bool, optional
+            If true, the fitted diffraction intensiy will be plotted. The default is False.
+
+        Returns
+        -------
+        amp : float
+            The amplitude of the gaussian.
+        cen : float
+            The center position of the gaussian.
+        FWHM : float
+            The FWHM of the gaussian function.
+
+        """
+        motor = self.command.split()[1]
+        motor_scan_value = self.get_scan_data(motor)
+
+        if type(normalize_signal) == str:
+            assert (normalize_signal in self.get_counter_names()), "The given signal for the normalization does not exist in the scan!"
+            normal_int = self.get_scan_data(normalize_signal)
+            normal_int = normal_int / np.average(normal_int)
+            counter_scan_value = self.get_scan_data(counter_name) / normal_int
+        else:
+            normal_int = np.ones(self.npoints)
+            counter_scan_value = self.get_scan_data(counter_name)
+
+        if normalize:
+            counter_scan_value = (counter_scan_value - np.amin(counter_scan_value)) / ((np.amax(counter_scan_value) - np.amin(counter_scan_value)))
+        p0 = [np.amax(counter_scan_value), motor_scan_value[np.argmax(counter_scan_value)], sigma]
+        popt, pcov = curve_fit(self.gaussian, motor_scan_value, counter_scan_value, p0=p0)
+        amp = popt[0]
+        cen = popt[1]
+        FWHM = 2.35482 * popt[2]
+        if plot:
+            plt.plot(motor_scan_value, counter_scan_value, 'o', label='scan' + str(self.scan))
+            plt.plot(motor_scan_value, self.gaussian(motor_scan_value, popt[0], popt[1], popt[2]), color=plt.gca().lines[-1].get_color())
+            plt.ylabel('Intensity (a.u.)')
+            plt.xlabel(motor)
+        return amp, cen, FWHM
+
+    def knife_edge_estimation(self, counter_name, sigma=1.0, normalize_signal=None, display_range=0.2, smooth=True, plot=False):
+        """
+        Fit the knife scan and estimate the knife edge position and the FWHM.
+
+        Parameters
+        ----------
+        counter_name : str
+            The name of the counter.
+        sigma : float, optional
+            The initial sigma for the fitting of the diffraction peak. The default is 1.0.
+        normalize_signal : str, optional
+            The name of the signal used to normalize the diffraction intensity. The default is None.
+        display_range : float, optional
+            The percentage of the scan to be displayed in the fitted images. The default is 0.2.
+        smooth : bool, optional
+            If true, the . The default is True.
+        plot : bool, optional
+            If the intensity profile should be analysised. The default is False.
+
+        Returns
+        -------
+        cen : float
+            The position of the edge.
+        FWHM : float
+            The FWHM of the beam.
+
+        """
+        motor = self.get_scan_motor()
+        motor_scan_value = np.array(self.scan_infor[motor])
+
+        if type(normalize_signal) == str:
+            assert (normalize_signal in self.get_counter_names()), "The given signal for the normalization does not exist in the scan!"
+            normal_int = self.get_scan_data(normalize_signal)
+            normal_int = normal_int / np.average(normal_int)
+            counter_scan_value = self.get_scan_data(counter_name) / normal_int
+        else:
+            normal_int = np.ones(self.npoints)
+            counter_scan_value = self.get_scan_data(counter_name)
+
+        # Normaize data
+        counter_scan_value = (counter_scan_value - np.amin(counter_scan_value)) / ((np.amax(counter_scan_value) - np.amin(counter_scan_value)))
+        diff_motor = (motor_scan_value[:-1] + motor_scan_value[1:]) / 2
+        diff_counter = np.diff(counter_scan_value)
+        if smooth:
+            diff_counter = savgol_filter(diff_counter, 5, 2)
+        if 0.5 * np.abs(np.amin(diff_counter)) > np.abs(np.amax(diff_counter)):
+            diff_counter = diff_counter * -1.0
+        p0 = [np.amax(diff_counter), diff_motor[np.argmax(diff_counter)], sigma]
+        popt, pcov = curve_fit(self.gaussian, diff_motor, diff_counter, p0=p0)
+        cen = popt[1]
+        FWHM = 2.35482 * popt[2]
+        if plot:
+            plt.subplot(1, 2, 1)
+            scan_range = np.ptp(motor_scan_value)
+            range_index = np.logical_and(motor_scan_value > cen - display_range * scan_range, motor_scan_value < cen + display_range * scan_range)
+            plt.plot(motor_scan_value[range_index], counter_scan_value[range_index], "x-")
+            plt.ylabel('%s (a.u.)' % counter_name)
+            plt.xlabel(motor)
+            plt.subplot(1, 2, 2)
+            range_index = np.logical_and(diff_motor > cen - display_range * scan_range, diff_motor < cen + display_range * scan_range)
+            plt.plot(diff_motor[range_index], diff_counter[range_index], 'o', label=str(self.get_motor_pos('_scan')))
+            plt.plot(diff_motor[range_index], self.gaussian(diff_motor[range_index], popt[0], popt[1], popt[2]), color=plt.gca().lines[-1].get_color(), label='FWHM %0.2f' % FWHM)
+            plt.ylabel('Intensity (a.u.)')
+            plt.xlabel(motor)
+        return cen, FWHM
+
+    def tophat_estimation(self, counter_name, sigma=1.0, normalize_signal=None, smooth=True, plot=False):
+        """
+        Fit the scan with tophat function and return its center.
+
+        Used to find the center of the tungsten wire for the correction of the center of rotation.
+
+        Parameters
+        ----------
+        counter_name : str
+            The name of the counter to be used.
+        sigma : float, optional
+            The sigma value of the gaussian estimation. The default is 1.0.
+        smooth : bool, optional
+            If true, the diffraction signal will be smoothed before the fit. The default is True.
+        plot : bool, optional
+            If true, the positon of the two edges found for the tophat function will be plotted. The default is False.
+
+        Returns
+        -------
+        float
+            The center of the tophat function.
+
+        """
+        motor = self.get_scan_motor()
+        motor_scan_value = self.get_scan_data(motor)
+        if type(normalize_signal) == str:
+            assert (normalize_signal in self.get_counter_names()), "The given signal for the normalization does not exist in the scan!"
+            normal_int = self.get_scan_data(normalize_signal)
+            normal_int = normal_int / np.average(normal_int)
+            counter_scan_value = self.get_scan_data(counter_name) / normal_int
+        else:
+            normal_int = np.ones(self.npoints)
+            counter_scan_value = self.get_scan_data(counter_name)
+
+        counter_scan_value = (counter_scan_value - np.amin(counter_scan_value)) / ((np.amax(counter_scan_value) - np.amin(counter_scan_value)))
+        diff_motor = (motor_scan_value[:-1] + motor_scan_value[1:]) / 2
+        diff_counter = np.diff(counter_scan_value)
+        if smooth:
+            diff_counter = savgol_filter(diff_counter, 5, 2)
+        p0 = [np.amax(diff_counter), diff_motor[np.argmax(diff_counter)], sigma, np.amin(diff_counter), diff_motor[np.argmin(diff_counter)], sigma]
+        popt, pcov = curve_fit(self.gaussian_two_peaks, diff_motor, diff_counter, p0=p0)
+        edge1 = popt[1]
+        edge2 = popt[4]
+        if plot:
+            plt.plot(motor_scan_value, counter_scan_value, "x-", label='scan %d' % self.scan)
+            plt.vlines(edge1, 0, 1, "r")
+            plt.vlines(edge2, 0, 1, "r")
+            plt.ylabel('%s (a.u.)' % counter_name)
+            plt.xlabel(motor)
+        return (edge1 + edge2) / 2.0
+
+    def gaussian(self, x, amp, cen, sigma):
+        """
+        Generate the gaussian function.
+
+        Parameters
+        ----------
+        x : ndarray
+            x poisitions of the gaussian function.
+        amp : float
+            The amplitude of the gaussian function.
+        cen : float
+            The center of the gaussian function.
+        sigma : float
+            The sigma value of the gaussian function.
+
+        Returns
+        -------
+        ndarray
+            Calculated Gaussian function.
+
+        """
+        return amp * np.exp(-(x - cen) ** 2.0 / (2.0 * sigma ** 2.0))
+
+    def gaussian_two_peaks(self, x, amp1, cen1, sigma1, amp2, cen2, sigma2):
+        """
+        Generate two gaussian functions.
+
+        Parameters
+        ----------
+        x : ndarray
+            x poisitions of the gaussian function.
+        amp1 : float
+            The amplitude of the first gaussian function.
+        cen1 : float
+            The center of the first gaussian function.
+        sigma1 : float
+            The sigma value of the first gaussian function.
+        amp2 : float
+            The amplitude of the second gaussian function.
+        cen2 : float
+            The center of the second gaussian function.
+        sigma2 : float
+            The sigma value of the second gaussian function.
+
+        Returns
+        -------
+        ndarray
+            Calculated Gaussian function.
+
+        """
+        return amp1 * np.exp(-(x - cen1) ** 2.0 / (2.0 * sigma1 ** 2.0)) + amp2 * np.exp(-(x - cen2) ** 2.0 / (2.0 * sigma2 ** 2.0))

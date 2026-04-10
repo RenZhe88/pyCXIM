@@ -69,9 +69,9 @@ for i, scan_num in enumerate(scan_num_ar):
     scan.image_roi_sum([pch[0] - wxy[0], pch[0] + wxy[0], pch[1] - wxy[1], pch[1] + wxy[1]], roi_order='XY', save_img_sum=False)
     motor_name = scan.get_scan_motor()
     if motor_name == 'hpx' or motor_name == 'hpy':
-        amp, cen, FWHM = scan.Gaussian_estimation('e4m_roi1', sigma=1, normalize=True, plot=True)
+        amp, cen, FWHM = scan.Gaussian_estimation('e4m_roi1', sigma=1, normalize_signal='curpetra', normalize=True, plot=True)
     elif motor_name == 'cryox' or motor_name == 'cryoy':
-        amp, cen, FWHM = scan.Gaussian_estimation('e4m_roi1', sigma=0.001, normalize=True, plot=True)
+        amp, cen, FWHM = scan.Gaussian_estimation('e4m_roi1', sigma=0.001, normalize_signal='curpetra', normalize=True, plot=True)
     pk_ar[i] = cen
 
 pk_ar = pk_ar[np.argsort(angle_ar)]

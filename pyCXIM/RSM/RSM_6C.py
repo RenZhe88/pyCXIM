@@ -11,9 +11,13 @@ import numpy as np
 from scipy.ndimage import affine_transform
 
 
-class RC2RSM_6C(object):
+class RSM_6C(object):
     """
     Convert the detector images to the three dimensional reciprocal space map at the 6 circle diffractometer.
+    
+    Basic assumption:
+        1. scan angle is small,e.g. 1-2 degrees
+        2. sample detector distance is much large than the detecor size.
 
     The final coordinates would be in sample coordinates.
     z direction is vertically upwards.
@@ -22,23 +26,20 @@ class RC2RSM_6C(object):
 
     Parameters
     ----------
-    scan_motor_ar : list
-        The motor values in the rocking curve, which should linearly change during the scan.
-    geometry : str, optional
-        The geometry can be either 'out_of_plane' or 'in_plane'.
-        If geometry is 'out_of_plane', the scan motor should be om.
-        If geometry is 'in_plane', the scan motor should be phi.
-        The default is 'out_of_plane'.
-    omega : float, optional
+    scan_type : str
+        The geometry can be either 'RC' (Rocking curve) or 'TT' (theta-2theta scan).
+    omega : float or ndarray, optional
         The value of the omega motor in degree. The default is 0.
-    delta : float, optional
+    delta : float or ndarray, optional
         The value of the delta motor in degree. The default is 0.
-    chi : float, optional
+    chi : float or ndarray, optional
         The value of the chi motor in degree. The default is 0.
-    phi : float, optional
+    phi : float or ndarray, optional
         The value of the phi motor in degree. The default is 0.
-    gamma : float, optional
+    gamma : float or ndarray, optional
         The value of the gamma motor in degree. The default is 0.
+    mu : float, optional
+        The value of the mu motor in degree. The default is 0.
     energy : float, optional
         The X-ray beam energy in eV. The default is 8000.
     distance : float, optional
@@ -58,14 +59,12 @@ class RC2RSM_6C(object):
 
     """
 
-    def __init__(self, scan_motor_ar, geometry='out_of_plane',
+    def __init__(self, scan_type,
                  omega=0, delta=0, chi=0, phi=0, gamma=0, mu=0, energy=8000,
                  distance=1830, pixelsize=0.075, det_rot=0, cch=[0, 0],
                  additional_rotation_matrix=None):
 
-        self.scan_motor_ar = np.deg2rad(scan_motor_ar)
-        self.scan_step = np.deg2rad((scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1.0))
-        self.geometry = geometry
+        self.scan_type = scan_type
         self.omega = np.deg2rad(omega)
         self.delta = np.deg2rad(delta)
         self.chi = np.deg2rad(chi)
@@ -77,6 +76,42 @@ class RC2RSM_6C(object):
         self.pixelsize = pixelsize
         self.energy = energy
         self.cch = cch
+
+        # cheche the scan type and geometry
+        motor_check = []
+        for motor in [self.omega, self.delta, self.chi, self.phi, self.gamma, self.mu, self.energy]:
+            if isinstance(motor, np.ndarray):
+                motor_check.append(True)
+            else:
+                motor_check.append(False)
+        if self.scan_type == 'RC':
+            if motor_check == [True, False, False, False, False, False, False]:
+                self.geometry = 'out_of_plane'
+                self.scan_step = (self.omega[-1] - self.omega[0]) / (len(self.omega) - 1.0)
+                self.npoint = len(self.omega)
+            elif motor_check == [False, False, False, True, False, False, False]:
+                self.geometry = 'in_plane'
+                self.scan_step = (self.phi[-1] - self.phi[0]) / (len(self.phi) - 1.0)
+                self.npoint = len(self.phi)
+            else:
+                raise TypeError("Scan type and data does not match!")
+        elif self.scan_type == 'TT':
+            if motor_check == [True, True, False, False, False, False, False]:
+                self.geometry = 'out_of_plane'
+                self.scan_step = (self.omega[-1] - self.omega[0]) / (len(self.omega) - 1.0)
+                self.npoint = len(self.omega)
+                if (self.mu != 0) or (self.gamma !=0):
+                    print('Warning: For the theta 2theta scan in this geometry, mu and gamma should be around zeros!')
+            elif motor_check == [False, False, False, True, True, False, False]:
+                self.geometry = 'in_plane'
+                self.scan_step = (self.phi[-1] - self.phi[0]) / (len(self.phi) - 1.0)
+                self.npoint = len(self.phi)
+                if (self.chi != 0) or (self.omega !=0):
+                    print('Warning: For the theta 2theta scan in this geometry, mu and gamma should be around zeros!')
+            else:
+                raise TypeError("Scan type and data does not match!")
+        else:
+            raise TypeError("Scan type could only be RC (rocking curve) or TT (theta-2theta scan)!")
 
         if additional_rotation_matrix is None:
             self.additional_rotation_matrix = np.eye(3)
@@ -90,6 +125,29 @@ class RC2RSM_6C(object):
         wavelength = hc / self.energy
         self.units = 2 * np.pi * self.pixelsize / wavelength / self.distance
         return
+
+    def get_motor_pos(self, img_index):
+        """
+        Get the motor positions for a certain point in the scan.
+
+        Parameters
+        ----------
+        img_index : int
+            The index of the scan point.
+
+        Returns
+        -------
+        motor_position : list
+            List of motor position values in omega, delta, chi, phi, gamma, mu, energy order.
+
+        """
+        motor_position = []
+        for motor in [self.omega, self.delta, self.chi, self.phi, self.gamma, self.mu, self.energy]:
+            if isinstance(motor, np.ndarray):
+                motor_position.append(motor[img_index])
+            else:
+                motor_position.append(motor)
+        return np.array(motor_position)
 
     def cal_abs_q_pos(self, pch):
         """
@@ -111,13 +169,8 @@ class RC2RSM_6C(object):
             The calculated q_vector as [qz, qy, qx] in inverse angstrom.
 
         """
-        if self.geometry == 'out_of_plane':
-            self.omega = self.scan_motor_ar[int(pch[0])]
-        elif self.geometry == 'in_plane':
-            self.phi = self.scan_motor_ar[int(pch[0])]
-
         pixel_position = pch[1:]
-        motor_position = [self.omega, self.delta, self.chi, self.phi, self.gamma, self.mu, self.energy]
+        motor_position = self.get_motor_pos(int(pch[0]))
         detector_para = [self.distance, self.pixelsize, self.det_rot, self.cch]
         q_vector = cal_q_pos(pixel_position, motor_position, detector_para, DEG=False)
         q_vector = np.dot(self.additional_rotation_matrix, q_vector)
@@ -133,10 +186,16 @@ class RC2RSM_6C(object):
             The rebin factor recommended for the reciprocal space map.
 
         """
-        if self.geometry == 'out_of_plane':
-            rebinfactor = np.abs(2.0 * np.sin(self.delta / 2.0) * self.distance / self.pixelsize * self.scan_step)
-        elif self.geometry == 'in_plane':
-            rebinfactor = np.abs(2.0 * np.sin(self.gamma / 2.0) * self.distance / self.pixelsize * self.scan_step)
+        step_C = self.distance * self.scan_step / self.pixelsize
+        
+        if (self.scan_type == 'RC') and (self.geometry == 'out_of_plane'):
+            rebinfactor = np.abs(2.0 * np.sin(self.delta / 2.0) * step_C)
+        elif (self.scan_type == 'RC') and (self.geometry == 'in_plane'):
+            rebinfactor = np.abs(2.0 * np.sin(self.gamma / 2.0) * step_C)
+        elif (self.scan_type == 'TT') and (self.geometry == 'out_of_plane'):
+            rebinfactor = np.abs(2.0 * (1 + np.cos((self.detla[0] + self.detla[-1]) / 2.0)) * step_C)
+        elif (self.scan_type == 'TT') and (self.geometry == 'in_plane'):
+            rebinfactor = np.abs(2.0 * (1 + np.cos((self.gamma[0] + self.gamma[-1]) / 2.0)) * step_C)
 
         print("rebinfactor calculated:%f" % rebinfactor)
         if rebinfactor > 1.5:
@@ -186,6 +245,8 @@ class RC2RSM_6C(object):
             The transofmration matrix for the RSM conversion.
 
         """
+        omega, delta, chi, phi, gamma, mu, energy = self.get_motor_pos(int(self.npoint / 2))
+        
         step_C = self.distance * self.scan_step / self.pixelsize
 
         flip_matrix = np.array([[1, 0, 0],
@@ -194,41 +255,38 @@ class RC2RSM_6C(object):
         det_rot_transform = np.array([[np.cos(self.det_rot), -np.sin(self.det_rot), 0],
                                       [np.sin(self.det_rot), np.cos(self.det_rot), 0],
                                       [0, 0, 1.0]])
-        delta_transform = np.array([[np.cos(self.delta), 0, np.sin(self.delta)],
+        delta_transform = np.array([[np.cos(delta), 0, np.sin(delta)],
                                     [0, 1, 0],
-                                    [-np.sin(self.delta), 0, np.cos(self.delta)]])
+                                    [-np.sin(delta), 0, np.cos(delta)]])
         gamma_transform = np.array([[1, 0, 0],
-                                    [0, np.cos(self.gamma), np.sin(self.gamma)],
-                                    [0, -np.sin(self.gamma), np.cos(self.gamma)]])
+                                    [0, np.cos(gamma), np.sin(gamma)],
+                                    [0, -np.sin(gamma), np.cos(gamma)]])
         mu_transform = np.array([[1.0, 0, 0],
-                                 [0, np.cos(self.mu), -np.sin(self.mu)],
-                                 [0, np.sin(self.mu), np.cos(self.mu)]])
-        omega_transform = np.array([[np.cos(self.omega), 0, -np.sin(self.omega)],
+                                 [0, np.cos(mu), -np.sin(mu)],
+                                 [0, np.sin(mu), np.cos(mu)]])
+        omega_transform = np.array([[np.cos(omega), 0, -np.sin(omega)],
                                     [0, 1, 0],
-                                    [np.sin(self.omega), 0, np.cos(self.omega)]])
-        chi_transform = np.array([[np.cos(self.chi - np.pi / 2.0), -np.sin(self.chi - np.pi / 2.0), 0],
-                                  [np.sin(self.chi - np.pi / 2.0), np.cos(self.chi - np.pi / 2.0), 0],
+                                    [np.sin(omega), 0, np.cos(omega)]])
+        chi_transform = np.array([[np.cos(chi - np.pi / 2.0), -np.sin(chi - np.pi / 2.0), 0],
+                                  [np.sin(chi - np.pi / 2.0), np.cos(chi - np.pi / 2.0), 0],
                                   [0, 0, 1]])
         phi_transform = np.array([[1, 0, 0],
-                                  [0, np.cos(self.phi), np.sin(self.phi)],
-                                  [0, -np.sin(self.phi), np.cos(self.phi)]])
+                                  [0, np.cos(phi), np.sin(phi)],
+                                  [0, -np.sin(phi), np.cos(phi)]])
 
-        if self.geometry == 'out_of_plane':
-
+        if (self.scan_type == 'RC') and (self.geometry == 'out_of_plane'):
             matrix1 = np.dot(mu_transform,
                              np.dot(gamma_transform,
                                     np.dot(delta_transform,
                                            det_rot_transform)))
-
             matrix2 = np.dot(phi_transform, np.dot(chi_transform, omega_transform))
-
             matrix3 = np.array([[step_C * (np.cos(self.mu) - matrix1[2, 2]), matrix1[0, 0], matrix1[0, 1]],
                                 [0, matrix1[1, 0], matrix1[1, 1]],
                                 [step_C * matrix1[0, 2], matrix1[2, 0], matrix1[2, 1]]])
             transformation_matrix = np.dot(self.additional_rotation_matrix,
                                            np.dot(matrix2,
                                                   np.dot(matrix3, flip_matrix)))
-        elif self.geometry == 'in_plane':
+        elif (self.scan_type == 'RC') and (self.geometry == 'in_plane'):
             matrix1 = np.dot(phi_transform,
                              np.dot(chi_transform,
                                     np.dot(omega_transform,
@@ -245,7 +303,28 @@ class RC2RSM_6C(object):
                                 [step_C * (matrix2[1, 2] - matrix1[1, 2]), matrix1[2, 0], matrix1[2, 1]]])
             transformation_matrix = np.dot(self.additional_rotation_matrix,
                                            np.dot(matrix3, flip_matrix))
-
+        elif (self.scan_type == 'TT') and (self.geometry == 'out_of_plane'):
+            matrix1 = np.dot(delta_transform, det_rot_transform)
+            matrix2 = np.dot(phi_transform, 
+                             np.dot(chi_transform, 
+                                    omega_transform))
+            matrix3 = np.array([[step_C * (1 + matrix1[2, 2]), matrix1[0, 0], matrix1[0, 1]],
+                                [0, matrix1[1, 0], matrix1[1, 1]],
+                                [-step_C * matrix1[0, 2], matrix1[2, 0], matrix1[2, 1]]])
+            transformation_matrix = np.dot(self.additional_rotation_matrix,
+                                           np.dot(matrix2,
+                                                  np.dot(matrix3, flip_matrix)))
+        elif (self.scan_type == 'TT') and (self.geometry == 'in_plane'):
+            matrix1 = np.dot(gamma_transform,
+                             np.dot(delta_transform,
+                                    det_rot_transform))
+            matrix2 = np.dot(phi_transform, mu_transform)
+            matrix3 = np.array([[0, matrix1[0, 0], matrix1[0, 1]],
+                                [-step_C * (1 + matrix1[2, 2]), matrix1[1, 0], matrix1[1, 1]],
+                                [step_C * matrix1[1, 2], matrix1[2, 0], matrix1[2, 1]]])
+            transformation_matrix = np.dot(self.additional_rotation_matrix,
+                                           np.dot(matrix2,
+                                                  np.dot(matrix3, flip_matrix)))
         transformation_matrix = transformation_matrix / rebinfactor
         return transformation_matrix
 
@@ -279,7 +358,6 @@ class RC2RSM_6C(object):
         corners_q = np.zeros((8, 3))
 
         scan_range = [0, -1]
-        pch = [int(len(self.scan_motor_ar) / 2), (roi[0] + roi[1]) / 2.0, (roi[2] + roi[3]) / 2.0]
         corner_num = 0
         for i in range(2):
             for j in range(2):
@@ -289,6 +367,8 @@ class RC2RSM_6C(object):
 
         new_shape = (np.ptp(corners_q, axis=0) / self.units / rebinfactor).astype(int)
         RSM_unit = self.units * rebinfactor
+
+        pch = [int(self.npoint / 2), (roi[0] + roi[1]) / 2.0, (roi[2] + roi[3]) / 2.0]
         q_center = self.cal_abs_q_pos(pch)
         q_origin = q_center - np.ptp(corners_q, axis=0) / 2.0
 
@@ -321,10 +401,6 @@ class RC2RSM_6C(object):
 
         """
         # Calculate the transformation matrix for the RMS
-        if self.geometry == 'out_of_plane':
-            self.omega = self.scan_motor_ar[int(dataset.shape[0] / 2)]
-        elif self.geometry == 'in_plane':
-            self.phi = self.scan_motor_ar[int(dataset.shape[0] / 2)]
         Coords_transform = self.cal_transformation_matrix(rebinfactor)
         inv_Coords_transform = np.linalg.inv(Coords_transform)
         offset = np.array(dataset.shape) / 2.0 - np.dot(inv_Coords_transform, new_shape.astype(float) / 2.0)
@@ -402,3 +478,57 @@ def cal_q_pos(pixel_position, motor_position, detector_para, DEG=True):
     units = 2 * np.pi * pixelsize / wavelength / pixel_distance
     q_vector = q_vector * units
     return q_vector
+
+def det2q_2D(motor_position, detector_para, det_size):
+    """
+    Calculate the corresponding q_values of each pixel of a 2D detector mounted on the six circle diffractometer.
+
+    Used to analysis the theta2theta scans performed with the 2D area detector and the 6 circle diffractometer.
+
+    Parameters
+    ----------
+    motor_position : list
+        list of scan parameters in [omega, delta, chi, phi, gamma, energy] order. Angles in degree, Energy in eV.
+    detector_para : list
+        The detector parameters in [distance, pixelsize, det_rot, cch] order.
+        distance is the detector-sample distance in mm.
+        pixelsize is the pixelsize of the detector in mm.
+        det_rot is the inplane rotation of the detector in degree.
+        cch is the direct beam position in [Y, X] order.
+    det_size : tuple
+        The size of the 2D detector in [Y, X] order.
+
+    Returns
+    -------
+    q_2D : ndarray
+        The corresponding q_values of each pixels on the detector.
+
+    """
+    delta, gamma, energy = motor_position
+    distance, pixelsize, det_rot, cch = detector_para
+
+    detY, detX = np.mgrid[0:det_size[0], 0:det_size[1]]
+    pixel_distance = np.linalg.norm([np.zeros(det_size) + distance, (cch[0] - detY) * pixelsize, (cch[1] - detX) * pixelsize], axis=0)
+    q_vector = np.stack(((cch[0] - detY) * pixelsize / pixel_distance, (cch[1] - detX) * pixelsize / pixel_distance, distance / pixel_distance))
+
+    delta, gamma, det_rot = np.deg2rad([delta, gamma, det_rot])
+    det_rot_transform = np.array([[np.cos(det_rot), -np.sin(det_rot), 0],
+                                  [np.sin(det_rot), np.cos(det_rot), 0],
+                                  [0, 0, 1.0]])
+    delta_transform = np.array([[np.cos(delta), 0, np.sin(delta)],
+                                [0, 1, 0],
+                                [-np.sin(delta), 0, np.cos(delta)]])
+    gamma_transform = np.array([[1, 0, 0],
+                                [0, np.cos(gamma), np.sin(gamma)],
+                                [0, -np.sin(gamma), np.cos(gamma)]])
+    transform_2theta_matrix = np.dot(gamma_transform, np.dot(delta_transform, det_rot_transform))
+
+    q_vector = np.tensordot(transform_2theta_matrix, q_vector, (1, 0))
+    q_vector = q_vector - np.array([0, 0, 1])[:, np.newaxis, np.newaxis]
+    q_2D = np.linalg.norm(q_vector, axis=0)
+
+    hc = 1.23984 * 10000.0
+    wavelength = hc / energy
+    units = 2 * np.pi / wavelength
+    q_2D = q_2D * units
+    return q_2D

@@ -90,6 +90,35 @@ class DetectorMixin(ABC):
         self.img_correction = 1.0 - self.mask
         return self.mask
 
+    def generate_mask_with_threhold(self, img_index, lower_threshold=None, higher_threshold=None):
+        """
+        Generate the mask file from a single image in the scan with
+
+        Parameters
+        ----------
+        img_index : int
+            the img_index for generating the detector mask.
+        lower_threshold : float, optional
+            The lower threshold value of the detector mask. The default is None.
+        higher_threshold : float, optional
+            The higher threshold value of the detector mask. The default is None.
+
+        Returns
+        -------
+        ndarray
+            The mask file of the detector.
+
+        """
+
+        image = self.load_single_image(img_index, correction_mode='constant')
+        if lower_threshold is not None:
+            self.mask[image < lower_threshold] = 1
+        if higher_threshold is not None:
+            self.mask[image > higher_threshold] = 1
+
+        self.img_correction = 1.0 - self.mask
+        return self.mask
+
     def get_mask(self):
         """
         Get the mask file of the detector.

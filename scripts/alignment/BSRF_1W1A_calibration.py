@@ -25,7 +25,7 @@ def calibration():
 
     # Inputs: paths
     path = r"F:\Work place 4\sample\XRD\Additional Task\20240131 1W1A test data\rsm"
-    pathsave = r"F:\Work place 4\Temp"
+    pathsave = r"F:\Work place 4\pyCXIM_test_examples\Example results"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\1w1a_pilatus_mask.npy'
     detector = '300K-A'
 

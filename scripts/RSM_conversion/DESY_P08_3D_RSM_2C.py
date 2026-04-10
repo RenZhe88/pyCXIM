@@ -3,12 +3,11 @@ import numpy as np
 import os
 import sys
 import time
-import matplotlib.pyplot as plt
 
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
-from pyCXIM.scan_reader.MAXIV.nanomax_merlin_reader import NanoMaxMerlinScan
-from pyCXIM.RSM.RC2RSM_2C import RC2RSM_2C
+from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
+from pyCXIM.RSM.RSM_2C import RSM_2C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 
 def BCDI_preparation():
@@ -17,81 +16,92 @@ def BCDI_preparation():
 
     # Inputs: general information
     year = "2023"
-    nanomax_newfile = r"PTO_STO_DSO_730"
-    scan_num = 60
-    detector = 'merlin'
+    beamtimeID = "11014617"
+    p08_newfile = r"PTO_STO_DSO_732_1"
+    scan_num = 905
+    detector = 'eiger1m'
+    geometry = 'out_of_plane'
+    # geometry = 'in_plane'
 
     qz_direction = 'surface direction'
     # qz_direction = 'diffraction vector direction'
 
     # Inputs: Detector parameters
-    detector_distance = 1000.0
-    pixelsize = 0.055
+    detector_distance = 963.4560149972116
+    pixelsize = 0.075
     # Direct beam position on the detector Y, X
-    cch = [258, 258]
+    cch = [459, 493]
     # The half width of the detector roi in the order of [Y, X]
-    wxy = [200, 200, 200, 200]
+    wxy = [350, 400, 350, 350]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [100, 400, 100, 400]
+    roi = [100, 900, 100, 900]
+    # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
+    cut_central_pos = 'maximum integration'
 
     # Half width of reciprocal space box size in pixels
     generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20230623_NanoMax_PTO_STO\raw"
+    path = r"F:\Raw Data\20230615_P08_PTO_STO_in_situ\raw"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\Temp"
+    pathsavefolder = r"F:\Work place 4\pyCXIM_test_examples"
     # the path for the mask file for the detector
-    pathmask = r'F:\Work place 3\testprog\X-ray diffraction\Common functions\nanomax_merlin_mask.npy'
+    pathmask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\eiger1m_mask.npy'
 
     # %% Read the information and detector images of the scan
     print("#################")
     print("Basic information")
     print("#################")
     # reading the fio file
-    scan = NanoMaxMerlinScan('NanoMax', path, nanomax_newfile, scan_num, detector, pathsavefolder, pathmask)
+    scan = DesyEigerImporter('p08', path, p08_newfile, scan_num, detector, pathsavefolder, pathmask)
     print(scan)
-    energy = scan.get_motor_pos('energy')
+    energy = scan.get_motor_pos('energyfmb')
+    scan.generate_mask_with_threhold(img_index=0, higher_threshold=1.0e6)
 
     # Generate the paths for saving the data
     pathsave = scan.get_pathsave()
     pathinfor = os.path.join(pathsave, "scan_%04d_information.txt" % scan_num)
 
     # Load the detector images
-    dataset, mask3D, pch, wxy = scan.load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)), normalize_signal='alba2_1')
-    wxy = np.array(wxy, dtype=int)
-    dataset = np.flip(np.swapaxes(dataset, 1, 2), axis=1)
-    mask3D = np.flip(np.swapaxes(mask3D, 1, 2), axis=1)
-    pch[[1, 2]] = pch[[2, 1]]
-    pch[1] = 515 - pch[1]
-    wxy[[0, 1, 2, 3]] = wxy[[3, 2, 0, 1]]
-    print(wxy)
+    dataset, mask3D, pch, wxy = scan.load_images(roi, wxy, show_cen_image=(not os.path.exists(pathinfor)))
+    scan.write_fio()
 
     # load the scan motors
-    # read the phi values
-    scan_motor_ar = scan.get_scan_data('gonphi')
-    # read the delta value, which is gamma in the horizontal direction
-    two_theta = scan.get_motor_pos('gamma')
-    if qz_direction == 'surface direction':
-        scan_motor_offset = 0
-    elif qz_direction == 'diffraction vector direction':
-        scan_motor_offset = -two_theta / 2.0 - scan_motor_ar[int(pch[0])]
+    if geometry == 'out_of_plane':
+        # read the omega values for each step in the rocking curve
+        theta = scan.get_scan_data('om')
+        # read the delta value
+        two_theta = scan.get_motor_pos('tt')
+        if qz_direction == 'surface direction':
+            theta_offset = 0
+        elif qz_direction == 'diffraction vector direction':
+            theta_offset = two_theta / 2.0 - theta[int(pch[0])]
+    elif geometry == 'in_plane':
+        # read the phi values
+        theta = scan.get_scan_data('phi')
+        # read the delta value, which is gamma in the horizontal direction
+        two_theta = scan.get_motor_pos('gam')
+        if qz_direction == 'surface direction':
+            theta_offset = 0
+        elif qz_direction == 'diffraction vector direction':
+            theta_offset = -two_theta / 2.0 - theta[int(pch[0])]
 
-    scan_motor_ar = scan_motor_ar + scan_motor_offset
+    theta = theta + theta_offset
     # Finding the maximum peak position
-    omega = scan_motor_ar[pch[0]]
-    om_step = (scan_motor_ar[-1] - scan_motor_ar[0]) / (len(scan_motor_ar) - 1)
+    omega = theta[pch[0]]
+    om_step = (theta[-1] - theta[0]) / (len(theta) - 1)
     print("peak at omega = %f" % (omega))
 
-    RSM_converter = RC2RSM_2C(scan_motor_ar, two_theta, energy, detector_distance, pixelsize, cch)
+    RSM_converter = RSM_2C('RC', theta, two_theta, energy, detector_distance, pixelsize, cch)
 
     # writing the scan information to the aimed file
     section_ar = ['General Information', 'Paths', 'Scan Information', 'Routine1: Reciprocal space map', 'Routine2: direct cutting']
     infor = InformationFileIO(pathinfor)
     infor.add_para('command', section_ar[0], scan.get_command())
     infor.add_para('year', section_ar[0], year)
-    infor.add_para('nanomax_newfile', section_ar[0], nanomax_newfile)
+    infor.add_para('beamtimeID', section_ar[0], beamtimeID)
+    infor.add_para('p08_newfile', section_ar[0], p08_newfile)
     infor.add_para('scan_number', section_ar[0], scan_num)
 
     infor.add_para('path', section_ar[1], path)
@@ -104,11 +114,12 @@ def BCDI_preparation():
     infor.add_para('omega', section_ar[2], omega)
     infor.add_para('delta', section_ar[2], two_theta)
     infor.add_para('omegastep', section_ar[2], om_step)
-    infor.add_para('omega_error', section_ar[2], scan_motor_offset)
+    infor.add_para('omega_error', section_ar[2], theta_offset)
     infor.add_para('direct_beam_position', section_ar[2], (cch))
     infor.add_para('detector_distance', section_ar[2], detector_distance)
-    infor.add_para('energy', section_ar[2], scan.get_motor_pos('energy'))
+    infor.add_para('energy', section_ar[2], scan.get_motor_pos('energyfmb'))
     infor.add_para('pixelsize', section_ar[2], pixelsize)
+    infor.add_para('geometry', section_ar[2], geometry)
     infor.add_para('detector', section_ar[2], detector)
 
     infor.infor_writer()
@@ -151,10 +162,10 @@ def BCDI_preparation():
     RSM_mask[RSM_mask < 0.1] = 0
 
     print('saving the full 3D RSM')
-    filename = "%s_%05d_RSM.npz" % (nanomax_newfile, scan_num)
+    filename = "%s_%05d_RSM.npz" % (p08_newfile, scan_num)
     path3dRSM = os.path.join(pathsave, filename)
     np.savez_compressed(path3dRSM, data=RSM_int)
-    filename = "%s_%05d_RSM_mask.npz" % (nanomax_newfile, scan_num)
+    filename = "%s_%05d_RSM_mask.npz" % (p08_newfile, scan_num)
     path3dmask = os.path.join(pathsave, filename)
     np.savez_compressed(path3dmask, data=RSM_mask)
 
@@ -172,7 +183,6 @@ def BCDI_preparation():
     del RSM_int, RSM_mask
 
     # save the information
-    scan.write_scan()
     infor.add_para('path3DRSM', section_ar[1], path3dRSM)
     infor.add_para('path3Dmask', section_ar[1], path3dmask)
     infor.add_para('roi_width', section_ar[3], (wxy))
@@ -180,6 +190,7 @@ def BCDI_preparation():
     infor.add_para('RSM_shape', section_ar[3], (new_shape))
     infor.add_para('rebinfactor', section_ar[3], rebinfactor)
     infor.add_para('q_origin', section_ar[3], (q_origin))
+    infor.add_para('RSM_cut_central_mode', section_ar[3], cut_central_pos)
     infor.add_para('qcen', section_ar[3], (qmax))
     infor.infor_writer()
 

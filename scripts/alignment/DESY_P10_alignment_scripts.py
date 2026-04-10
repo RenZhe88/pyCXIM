@@ -286,7 +286,7 @@ class alignment():
         cen_ar = np.array([])
         for scan_num in scan_num_range:
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
-            cen = scan.tophat_estimation('diffdio', sigma=sigma, smooth=True, plot=True)
+            cen = scan.tophat_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=True)
             cen_ar = np.append(cen_ar, cen)
         plt.legend()
         plt.show()
@@ -316,7 +316,7 @@ class alignment():
         """
         for scan_num in scan_num_range:
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
-            cen = scan.tophat_estimation('diffdio', sigma=sigma, plot=True)
+            cen = scan.tophat_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', plot=True)
         plt.legend()
         plt.show()
         text = 'umv hpx %.1f\ndscan hpx -20 20 160 .3\nmvsa dip 0\n' % cen
@@ -410,7 +410,7 @@ class alignment():
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
             angle = scan.get_motor_pos('om')
             angle_ar = np.append(angle_ar, angle)
-            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, smooth=True, plot=True)
+            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=True)
             cen_ar = np.append(cen_ar, cen)
 
         plt.show()
@@ -494,7 +494,7 @@ class alignment():
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
             energy = scan.get_motor_pos('fmbenergy')
             energy_ar = np.append(energy_ar, energy)
-            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, smooth=True, plot=False)
+            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=False)
             FWHM_ar = np.append(FWHM_ar, FWHM)
 
         plt.plot(energy_ar, FWHM_ar, 'x-', label='hpz')
@@ -505,7 +505,7 @@ class alignment():
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
             energy = scan.get_motor_pos('fmbenergy')
             energy_ar = np.append(energy_ar, energy)
-            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, smooth=True, plot=False)
+            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=False)
             FWHM_ar = np.append(FWHM_ar, FWHM)
 
         plt.plot(energy_ar, FWHM_ar, 'x-', label='hpy')
@@ -560,7 +560,7 @@ class alignment():
         """
         for scan_num in range(scan_num_range[0], scan_num_range[-1] + 1):
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
-            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, smooth=True, plot=False)
+            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=False)
             print('FWHM in %s direction: %.2f' % (scan.get_scan_motor(), FWHM))
         return
 
@@ -626,7 +626,7 @@ class alignment():
         for scan_num in scan_num_ar:
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
             pos_ar = np.append(pos_ar, scan.get_motor_pos(Motor_name))
-            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, smooth=True, plot=False)
+            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=False)
             FWHM_ar = np.append(FWHM_ar, FWHM)
 
         plt.plot(pos_ar, FWHM_ar, "x-")
@@ -698,7 +698,7 @@ class alignment():
         for scan_num in scan_num_ar:
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
             pos_ar = np.append(pos_ar, scan.get_motor_pos(Motor_name))
-            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, smooth=True, plot=False)
+            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=False)
             FWHM_ar = np.append(FWHM_ar, FWHM)
 
         plt.plot(pos_ar, FWHM_ar, "x-")
@@ -766,7 +766,7 @@ class alignment():
         for scan_num in hpz_scan_num_ar:
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
             hpx_ar = np.append(hpx_ar, scan.get_motor_pos('hpx'))
-            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, smooth=True, plot=False)
+            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=False)
             FWHM_ar = np.append(FWHM_ar, FWHM)
         hpx_ar = hpx_ar - np.averge(hpx_ar)
         plt.plot(hpx_ar, FWHM_ar, 'x-', label='hpz')
@@ -776,7 +776,7 @@ class alignment():
         for scan_num in hpy_scan_num_ar:
             scan = DesyScanImporter('p10', self.path, self.p10_newfile, scan_num, creat_save_folder=False)
             hpx_ar = np.append(hpx_ar, scan.get_motor_pos('hpx'))
-            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, smooth=True, plot=False)
+            cen, FWHM = scan.knife_edge_estimation('diffdio', sigma=sigma, normalize_signal='curpetra', smooth=True, plot=False)
             FWHM_ar = np.append(FWHM_ar, FWHM)
 
         plt.plot(hpx_ar, FWHM_ar, 'x-', label='hpy')

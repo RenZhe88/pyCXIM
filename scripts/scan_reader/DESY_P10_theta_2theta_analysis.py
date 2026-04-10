@@ -20,7 +20,7 @@ sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.scan_reader.Desy.eiger_reader import DesyEigerImporter
 from pyCXIM.scan_reader.Desy.fio_reader import DesyScanImporter
 from pyCXIM.Common.Information_file_generator import InformationFileIO
-from pyCXIM.RSM.TT2RSM import det2q_2D
+from pyCXIM.RSM.RSM_6C import det2q_2D
 
 def theta2theta_analyser(scan_num):
     # %% Input
@@ -29,12 +29,12 @@ def theta2theta_analyser(scan_num):
     rebinfactor = 2.0
 
     # ['Check mask', 'GIF', 'Check results', 'Theta2theta']
-    Functions_selected = ['GIF', 'Theta2theta']
+    Functions_selected = ['Check mask', 'GIF', 'Check results', 'Theta2theta']
 
     # path information
     path = r"F:\Raw Data\20250506_P10_In_situ_battery_test_01\raw"
     path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
-    pathsavefolder = r"F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\LXD\WTY_P3_ALF"
+    pathsavefolder = r"F:\Work place 4\pyCXIM_test_examples"
     path_calib = r'F:\Work place 4\sample\XRD\20250506_in_situ_battery_P10_Desy\results\calibration.txt'
 
     delta_offset = 0.0
@@ -50,7 +50,6 @@ def theta2theta_analyser(scan_num):
     scan = DesyEigerImporter('p10', path, p10_newfile, scan_num, 'e4m', pathsavefolder, path_e4m_mask)
     print(scan)
     detector_size = scan.get_detector_size()
-    command_infor = scan.get_command_infor()
     delta_pos = scan.get_scan_data('del')
     gamma = scan.get_motor_pos('gam')
     energy = scan.get_motor_pos('fmbenergy')

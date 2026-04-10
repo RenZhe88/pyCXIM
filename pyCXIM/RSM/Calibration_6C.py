@@ -18,7 +18,8 @@ from ..Common.Information_file_generator import InformationFileIO
 from ..scan_reader.BSRF.pilatus_reader import BSRFPilatusImporter
 from ..scan_reader.Desy.eiger_reader import DesyEigerImporter
 from ..scan_reader.ESRF.h5_reader import ESRFH5Importer
-from .RC2RSM_6C import cal_q_pos
+from ..scan_reader.HEPS.pilatus_reader import HEPSPilatusImporter
+from .RSM_6C import cal_q_pos
 
 
 class Calibration(object):
@@ -93,6 +94,10 @@ class Calibration(object):
             motor_names = ['eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy']
         elif beamline == 'id01':
             motor_names = ['eta', 'delta', 'chi', 'phi', 'nu', 'mu', 'nrj']
+        elif beamline == 'id05_4c':
+            motor_names = ['th', 'tth', 'chi', 'phi', 'tthh', 'thh', 'energy']
+        elif beamline == 'id05_6c':
+            motor_names = ['eta', 'del', 'chi', 'phi', 'nu', 'mu', 'energy']
         else:
             raise KeyError('Now the code has only been implemented for the six circle diffractometer at P10 beamline, Desy and 1w1a beamline, BSRF! For other beamlines, please contact the author! renzhe@ihep.ac.cn')
 
@@ -100,7 +105,7 @@ class Calibration(object):
         self.infor.add_para('path', self.section_ar[0], path)
         self.infor.add_para('detector', self.section_ar[0], detector)
         self.infor.add_para('motor_names', self.section_ar[0], motor_names)
-        if beamline in ['p10', 'p08', '1w1a']:
+        if beamline in ['p10', 'p08', '1w1a', 'id05_4c', 'id05_6c']:
             if 'pathmask' in kwargs.keys():
                 self.infor.add_para('pathmask', self.section_ar[0], kwargs['pathmask'])
             else:
@@ -150,6 +155,14 @@ class Calibration(object):
             experimental_method = self.infor.get_para_value('experimental_method', section=self.section_ar[0])
             scan = ESRFH5Importer(beamline, path, beamtimeID, sample_name, experimental_method, scan_num, detector, creat_save_folder=False)
             energy = scan.get_motor_pos('nrj')
+        elif beamline == 'id05_4c':
+            pathmask = self.infor.get_para_value('pathmask', section=self.section_ar[0])
+            scan = HEPSPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
+            energy = scan.get_motor_pos('energy')
+        elif beamline == 'id05_6c':
+            pathmask = self.infor.get_para_value('pathmask', section=self.section_ar[0])
+            scan = HEPSPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
+            energy = scan.get_motor_pos('energy')
         self.infor.add_para('energy', self.section_ar[0], energy)
         return scan
 
