@@ -16,7 +16,7 @@ import sys
 import time
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
 from pyCXIM.Common.Information_file_generator import InformationFileIO
-from pyCXIM.scan_reader.HEPS.pilatus_reader import HEPSPilatusImporter
+from pyCXIM.scan_reader.HEPS.tif_reader import HEPSTifImporter
 from pyCXIM.RSM.RSM_6C import RSM_6C
 import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 
@@ -56,7 +56,7 @@ def HEPS_ID05_RSM_4C():
     print("#################")
 
     # Read images and fio files
-    scan = HEPSPilatusImporter('id05_4c', path, sample_name, scan_num, detector, pathsave, pathmask)
+    scan = HEPSTifImporter('id05_4c', path, sample_name, scan_num, detector, pathsave, pathmask)
     print(scan)
     pixelsize = scan.get_detector_pixelsize()
 

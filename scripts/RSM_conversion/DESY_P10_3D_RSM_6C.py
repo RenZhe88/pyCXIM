@@ -28,7 +28,7 @@ def Desy_P10_RC2RSM_6C():
     year = "2024"
     beamtimeID = "11018562"
     p10_file = r"PVBM01"
-    scan_num = 11
+    scan_num = 15
     detector = 'e4m'
     geometry = 'out_of_plane'
 

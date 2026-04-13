@@ -68,7 +68,7 @@ def phase_retrieval_3D(scan_num, hybrid_para):
     start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    algorithm = "(HIO**40*Sup)**20*(DIF**50)**2*(ND**10*RAAR**60*ER**10*Sup)**30*PSFon*(ND**10*RAAR**60*ER**10*Sup*PSFupdate**25)**10"
+    algorithm = "(HIO**40*Sup)**20*(DIF**50)**2*(ND**10*RAAR**60*ER**10*Sup)**40"
     # algorithm = "DIF**200*(HIO**60*ER**10)**10*PSFon*(ADMM**80*ER**10*PSFupdate**25)**12"
 
     # Input: parameters for CRITcheck
@@ -88,8 +88,8 @@ def phase_retrieval_3D(scan_num, hybrid_para):
     threshold_update_method = 'exp_increase'
     # threshold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
-    thrpara_min = 0.06
-    thrpara_max = 0.08
+    thrpara_min = 0.08
+    thrpara_max = 0.10
     support_smooth_width_begin = 3.5
     support_smooth_width_end = 0.95
     # hybrid_para = 0.2

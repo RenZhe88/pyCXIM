@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 sys.path.append(r'F:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.scan_reader.HEPS.pilatus_reader import HEPSPilatusImporter
+from pyCXIM.scan_reader.HEPS.tif_reader import HEPSTifImporter
 from pyCXIM.scan_reader.HEPS.spec_reader import HEPSScanImporter
 # from pyCXIM.scan_reader.p10_fluo_reader import P10FluoScan
 
@@ -78,11 +78,11 @@ for i, scan_num in enumerate(scan_num_ar):
 # %% Calculate the roi intensity
 for i, scan_num in enumerate(scan_num_ar):
     if len(cal_e4m_roi) != 0:
-        scan = DesyEigerImporter(beamline_mode, path, sample_names[i], scan_num, 'e4m', pathsavefolder, path_e4m_mask)
+        scan = HEPSTifImporter(beamline_mode, path, sample_names[i], scan_num, 'e4m', pathsavefolder, path_e4m_mask)
         scan.image_roi_sum(cal_e4m_roi, roi_order='XY', save_img_sum=True)
         
     if len(cal_pilatus_roi) != 0:
-        scan = HEPSPilatusImporter(beamline_mode, path, sample_names[i], scan_num, 'pilatus', pathsavefolder, path_pilatus_mask)
+        scan = HEPSTifImporter(beamline_mode, path, sample_names[i], scan_num, 'pilatus', pathsavefolder, path_pilatus_mask)
         scan.image_roi_sum(cal_pilatus_roi, roi_order='XY', save_img_sum=True)
 
     if (len(cal_e4m_roi) == 0) and (len(cal_pilatus_roi) == 0):

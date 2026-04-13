@@ -96,7 +96,7 @@ class BSRFPilatusImporter(BSRFScanImporter, DetectorMixin):
 
         with open(pathimg, 'rb') as f:
             f.seek(4096)
-            image = np.fromfile(f, dtype=np.int32).astype(float)
+            image = np.fromfile(f, dtype=np.int32).astype(np.float32)
 
         if self.beamline == '1w1a' and self.detector == '300K-A':
             image = image.reshape(self.detector_size[1], self.detector_size[0])

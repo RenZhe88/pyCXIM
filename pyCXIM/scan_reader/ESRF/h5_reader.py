@@ -90,7 +90,7 @@ class ESRFH5Importer(ESRFScanImporter, DetectorMixin):
 
         with h5py.File(self.pathh5, 'r') as scanfile:
             aimed_group = scanfile['%s_%s_%d.1/measurement/%s' % (self.sample_name, self.experimental_method, self.scan, self.detector)]
-            image = np.array(aimed_group[img_index, :, :])
+            image = np.array(aimed_group[img_index, :, :]).astype(np.float32)
         image = self.image_mask_correction(image, correction_mode=correction_mode)
         return image
 

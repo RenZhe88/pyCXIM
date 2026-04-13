@@ -17,7 +17,7 @@ import os
 import time
 import gc
 sys.path.append(r'E:\Work place 3\testprog\pyCXIM_master')
-from pyCXIM.scan_reader.HEPS.pilatus_reader import HEPSPilatusImporter
+from pyCXIM.scan_reader.HEPS.tif_reader import HEPSTifImporter
 from pyCXIM.scan_reader.HEPS.spec_reader import HEPSScanImporter
 from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.RSM.RSM_6C import det2q_2D
@@ -47,7 +47,7 @@ def theta2theta_analyser():
     pixelsize = calibinfor.get_para_value('pixelsize', section='Detector calibration')
     det_rot = calibinfor.get_para_value('detector_rotation', section='Detector calibration')
 
-    scan = HEPSPilatusImporter('id05_6c', path, sample_name, scan_num, 'pilatus', pathsavefolder, path_pilatus_mask)
+    scan = HEPSTifImporter('id05_6c', path, sample_name, scan_num, 'pilatus', pathsavefolder, path_pilatus_mask)
     print(scan)
     detector_size = scan.get_detector_size()
     delta_pos = scan.get_scan_data('del')
@@ -164,7 +164,7 @@ def theta2theta_analyser():
     np.savetxt(os.path.join(pathsave, 'theta2theta.txt'), result_ar, header='q_value    2theta    lab2theta    total_intensity    number_of_pixels     average_intensity')
     infor.infor_writer()
     if 'Check results' in Functions_selected:
-        int_ar = scan.get_scan_data('%s_roi1' % '100K-S')
+        int_ar = scan.get_scan_data('%s_roi1' % 'pilatus')
         plt.figure(figsize=(24, 8))
         plt.subplot(1, 3, 1)
         plt.plot(int_ar)

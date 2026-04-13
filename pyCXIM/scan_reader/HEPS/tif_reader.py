@@ -13,9 +13,9 @@ from .spec_reader import HEPSScanImporter
 from ..general_detector import DetectorMixin
 
 
-class HEPSPilatusImporter(HEPSScanImporter, DetectorMixin):
+class HEPSTifImporter(HEPSScanImporter, DetectorMixin):
     """
-    Read and treat the scans with pilatus detector. It is a child class of BSRFScanImporter and DetectorMixin.
+    Read and treat the scans with pilatus or eiger4m detector. It is a child class of HEPSScanImporter and DetectorMixin.
 
     Parameters
     ----------
@@ -53,14 +53,23 @@ class HEPSPilatusImporter(HEPSScanImporter, DetectorMixin):
         super().__init__(beamline, path, sample_name, scan_num, pathsave, creat_save_folder)
         self.detector = detector
 
-        if (beamline == 'id05_4c' or beamline == 'id05_6c') and self.detector == 'pilatus':
+        if not (beamline == 'id05_4c' or beamline == 'id05_6c'):
+            raise KeyError('Now this code is only develop for the HEPS_ID05 beamline. If you want to use this code for other HEPS bealines, please contact the author! renzhe@ihep.ac.cn')
+            
+        if self.detector == 'pilatus':
             self.detector_size = (487, 195)
             self.pixel_size = 172e-3
             self.path_image_folder = os.path.join(self.path, 'images', self.sample_name, 'S%03d' % self.scan)
             self.path_img = os.path.join(self.path_image_folder, "%s_S%03d_%05d.tif")
             self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, self.detector))
+        elif self.detector == 'e4m':
+            self.detector_size = (2162, 2068)
+            self.pixel_size = 75e-3
+            self.path_image_folder = os.path.join(self.path, 'images', self.sample_name, 'S%03d' % self.scan)
+            self.path_img = os.path.join(self.path_image_folder, "%s_S%03d_%05d.tif")
+            self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, self.detector))
         else:
-            raise KeyError('Now this code is only develop for the HEPS_ID05 beamline. If you want to use this code for other BSRF bealines, please contact the author! renzhe@ihep.ac.cn')
+            raise KeyError('The detector type is not known, please select from ! renzhe@ihep.ac.cn')
 
         if not os.path.exists(self.path_image_folder):
             raise IOError('The image folder for %s images %s does not exist, please check the path again!' % (self.detector, self.path_image_folder))
@@ -95,13 +104,16 @@ class HEPSPilatusImporter(HEPSScanImporter, DetectorMixin):
         pathimg = (self.path_img) % (self.sample_name, self.scan, img_index)
 
         with open(pathimg, 'rb') as f:
-            f.seek(4096)
-            image = np.fromfile(f, dtype=np.int32).astype(float)
+            if self.detector == 'pilatus':
+                f.seek(4096)
+            elif self.detector == 'e4m':
+                f.seek(8)
+            image = np.fromfile(f, dtype=np.int32, count=self.detector_size[0]*self.detector_size[1]).astype(np.float32)
 
-        if (self.beamline == 'id05_4c' or self.beamline == 'id05_6c') and self.detector == 'pilatus':
+        if self.detector == 'pilatus':
             image = image.reshape(self.detector_size[1], self.detector_size[0])
             image = np.flip(image.T, axis=1)
-        else:
+        elif self.detector == 'e4m':
             image = image.reshape(self.detector_size[0], self.detector_size[1])
         image = self.image_mask_correction(image, correction_mode=correction_mode)
         return image

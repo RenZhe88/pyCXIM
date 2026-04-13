@@ -125,12 +125,12 @@ class DesyEigerImporter(DesyScanImporter, DetectorMixin):
             pathimg = (self.path_img) % (self.sample_name, self.scan, img_index // 2000 + 1)
             with h5py.File(pathimg, "r") as f:
                 dataset = f['entry/data/data']
-                image = np.array(dataset[img_index % 2000, :, :], dtype=float)
+                image = np.array(dataset[img_index % 2000, :, :], dtype=np.float32)
         elif self.img_per_point == 'multiple':
             pathimg = (self.path_img) % (self.sample_name, self.scan, img_index + 1)
             with h5py.File(pathimg, "r") as f:
-                dataset = f['entry/data/data']
-                image = np.sum(f['entry/data/data'], axis=0)
+                dataset = np.array(f['entry/data/data'], dtype=np.float32)
+                image = np.sum(dataset, axis=0)
         image = self.image_mask_correction(image, correction_mode=correction_mode)
         return image
 

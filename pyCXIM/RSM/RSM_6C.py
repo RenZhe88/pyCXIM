@@ -9,6 +9,7 @@ Created on Tue Apr 25 14:51:06 2023
 """
 import numpy as np
 from scipy.ndimage import affine_transform
+from scipy.ndimage import spline_filter
 
 
 class RSM_6C(object):
@@ -406,7 +407,7 @@ class RSM_6C(object):
         offset = np.array(dataset.shape) / 2.0 - np.dot(inv_Coords_transform, new_shape.astype(float) / 2.0)
 
         # Interpolation
-        intensityfinal = affine_transform(dataset, inv_Coords_transform, offset=offset, output_shape=tuple(new_shape.astype(int)), order=3, mode='constant', cval=cval, output=float, prefilter=prefilter)
+        intensityfinal = affine_transform(dataset, inv_Coords_transform, offset=offset, output_shape=tuple(new_shape.astype(int)), order=3, mode='constant', cval=cval, output=dataset.dtype, prefilter=prefilter)
         intensityfinal = np.clip(intensityfinal, 0, 1.0e7)
         return intensityfinal
 

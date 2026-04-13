@@ -382,7 +382,7 @@ class DetectorMixin(ABC):
             plt.imshow(np.log10(self.load_single_image(self.npoints / 2, correction_mode=correction_mode) + 1.0), cmap='jet')
             plt.show()
 
-        dataset = np.zeros((self.npoints, roi[1] - roi[0], roi[3] - roi[2]))
+        dataset = np.zeros((self.npoints, roi[1] - roi[0], roi[3] - roi[2]), dtype=np.float32)
         pch = np.zeros(3, dtype=int)
 
         if type(normalize_signal) == str:
@@ -444,7 +444,7 @@ class DetectorMixin(ABC):
         if not hasattr(self, 'load_single_image'):
             'Reading method for the detector type not defined, please check the code or contact the author renzhe@ihep.ac.cn!'
         print('Loading data....')
-        dataset = np.zeros((self.npoints, self.detector_size[0], self.detector_size[1]))
+        dataset = np.zeros((self.npoints, self.detector_size[0], self.detector_size[1]), dtype=np.float32)
         if roi is None:
             roi = [0, self.detector_size[0], 0, self.detector_size[1]]
         else:

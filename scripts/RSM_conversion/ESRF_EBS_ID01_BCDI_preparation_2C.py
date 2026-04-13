@@ -63,7 +63,7 @@ def BCDI_preparation():
     # the folder that stores the raw data of the beamtime
     path = r"F:\Raw Data\20241108_ID01_BiHan"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\Temp"
+    pathsavefolder = r"F:\Work place 4\pyCXIM_test_examples"
 
     # %% Read the information and detector images of the scan
     print("#################")

@@ -87,6 +87,6 @@ class NanoMaxMerlinScan(NanoMaxScan, DetectorMixin):
 
         with h5py.File(self.pathh5, 'r') as scanfile:
             dataset = scanfile['entry/measurement/merlin/frames']
-            image = np.array(dataset[img_index, :, :], dtype=float)
+            image = np.array(dataset[img_index, :, :], dtype=np.float32)
         image = self.image_mask_correction(image, correction_mode=correction_mode)
         return image
