@@ -28,21 +28,21 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [43]
-p10_file = ["B12SYNS1P1"]
+scan_num_ar = [87]
+p10_file = ["BFO_LAO_4_7"]
 
 # path information
-path = r"F:\Raw Data\20211004_P10_BFO_Pt\raw"
+path = r"F:\Raw Data\20221103_P10_BFO_PTO\raw"
 path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
 path_e500_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\e500_mask.npy'
-pathsavefolder = r"F:\publish\HEPS02 pyCXIM"
+pathsavefolder = r"F:\Work place 4\sample\XRD\20221103 BFO islands\interface_defects"
 
 # The rois for the Eiger 4M detector
-e4m_roi1 = [1050, 1750, 450, 1250]
+e4m_roi1 = [1621-440, 1621+440, 1398-200, 1398+200]
 e4m_roi2 = [100, 2000, 500, 750]
 e4m_roi3 = [100, 2000, 100, 400]
 
-cal_e4m_roi = []
+cal_e4m_roi = [e4m_roi1]
 
 # The rois for the Eiger500 detector
 e500_roi1 = [300, 800, 100, 600]
@@ -57,7 +57,7 @@ scale = 'Log'
 
 # %% Sorting the scan types
 if len(scan_num_ar) != len(p10_file):
-    p10_newfile = p10_file[0] * len(scan_num_ar)
+    p10_newfile = [p10_file[0]] * len(scan_num_ar)
 else:
     p10_newfile = p10_file
 
@@ -147,7 +147,7 @@ if len(dscan_scan_num) > 0:
             plt.figure(figsize=(8, 8))
             img_sum = scan.get_imgsum(det_type='e500')
             plt.imshow(np.log10(img_sum + 1.0), cmap='jet')
-            for counter_name in e4mcounters:
+            for counter_name in e500counters:
                 if counter_name != 'e500_full':
                     draw_roi(scan.get_motor_pos(counter_name), counter_name)
             plt.title('scan%05d' % scan_num)
@@ -216,7 +216,7 @@ if len(d2scan_scan_num) > 0:
             plt.figure(figsize=(8, 8))
             img_sum = scan.get_imgsum(det_type='e500')
             plt.imshow(np.log10(img_sum + 1.0), cmap='jet')
-            for counter_name in e4mcounters:
+            for counter_name in e500counters:
                 if counter_name != 'e500_full':
                     draw_roi(scan.get_motor_pos(counter_name), counter_name)
             plt.title('scan%05d' % scan_num)

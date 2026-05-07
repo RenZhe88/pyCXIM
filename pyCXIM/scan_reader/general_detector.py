@@ -642,7 +642,7 @@ class DetectorMixin(ABC):
 
         print()
         if self.pathsave != '' and save_img_sum:
-            np.save(self.path_imgsum, img_sum)
+            np.save(os.path.join(self.pathsave, 'maximum_sum.npy'), img_sum)
         return X_pos, Y_pos, int_ar
 
     def image_find_peak_position(self, roi=None, cut_width=None, normalize_signal=None):

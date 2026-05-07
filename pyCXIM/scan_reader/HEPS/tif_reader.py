@@ -66,14 +66,15 @@ class HEPSTifImporter(HEPSScanImporter, DetectorMixin):
             self.detector_size = (2162, 2068)
             self.pixel_size = 75e-3
             self.path_image_folder = os.path.join(self.path, 'images', self.sample_name, 'S%03d' % self.scan)
-            self.path_img = os.path.join(self.path_image_folder, "%s_S%03d_%05d.tif")
+            self.path_img = os.path.join(self.path_image_folder, "A_%03d.tif")
             self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, self.detector))
         else:
-            raise KeyError('The detector type is not known, please select from ! renzhe@ihep.ac.cn')
+            raise KeyError('The detector type is not known, please select from pilatus and e4m! renzhe@ihep.ac.cn')
 
         if not os.path.exists(self.path_image_folder):
             raise IOError('The image folder for %s images %s does not exist, please check the path again!' % (self.detector, self.path_image_folder))
         self.load_mask(pathmask)
+        # self.check_missing_frame()
         return
 
     def load_single_image(self, img_index, correction_mode='constant'):
@@ -101,14 +102,20 @@ class HEPSTifImporter(HEPSScanImporter, DetectorMixin):
         assert img_index < self.npoints, \
             'The image number wanted is larger than the total image number in the scan!'
         img_index = int(img_index)
-        pathimg = (self.path_img) % (self.sample_name, self.scan, img_index)
-
-        with open(pathimg, 'rb') as f:
-            if self.detector == 'pilatus':
-                f.seek(4096)
-            elif self.detector == 'e4m':
-                f.seek(8)
-            image = np.fromfile(f, dtype=np.int32, count=self.detector_size[0]*self.detector_size[1]).astype(np.float32)
+        if self.detector == 'pilatus':
+            pathimg = (self.path_img) % (self.sample_name, self.scan, img_index)
+        elif self.detector == 'e4m':
+            pathimg = (self.path_img) % (img_index)
+        
+        if os.path.exists(pathimg):
+            with open(pathimg, 'rb') as f:
+                if self.detector == 'pilatus':
+                    f.seek(4096)
+                elif self.detector == 'e4m':
+                    f.seek(8)
+                image = np.fromfile(f, dtype=np.int32, count=self.detector_size[0]*self.detector_size[1]).astype(np.float32)
+        else:
+            image = np.zeros(self.detector_size[0]*self.detector_size[1], dtype=np.float32)
 
         if self.detector == 'pilatus':
             image = image.reshape(self.detector_size[1], self.detector_size[0])
@@ -117,6 +124,17 @@ class HEPSTifImporter(HEPSScanImporter, DetectorMixin):
             image = image.reshape(self.detector_size[0], self.detector_size[1])
         image = self.image_mask_correction(image, correction_mode=correction_mode)
         return image
+
+    # def check_missing_frame(self):
+    #     for i in range(self.npoints):
+    #         if self.detector == 'pilatus':
+    #             pathimg = (self.path_img) % (self.sample_name, self.scan, i)
+    #         elif self.detector == 'e4m':
+    #             pathimg = (self.path_img) % (i)
+    #         if not os.path.exists(pathimg):
+    #             break
+    #     self.npoints = i
+    #     return
 
     def load_6C_peak_infor(self, roi=None, cut_width=[50, 50]):
         """

@@ -933,7 +933,7 @@ class GeneralScanStructure(object):
 
         """
         motor = self.get_scan_motor()
-        motor_scan_value = np.array(self.scan_infor[motor])
+        motor_scan_value = self.get_scan_data(motor)
 
         if type(normalize_signal) == str:
             assert (normalize_signal in self.get_counter_names()), "The given signal for the normalization does not exist in the scan!"

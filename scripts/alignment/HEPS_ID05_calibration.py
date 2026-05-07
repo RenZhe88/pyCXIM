@@ -24,15 +24,15 @@ def calibration():
     # Calibration_type = 'hkl_to_angles'
 
     # Inputs: paths
-    path = r"F:\Work place 4\sample\XRD\Additional Task\20260325 ID05 RSM\raw\Zhanglinxing"
-    pathsave = r"F:\Work place 4\pyCXIM_test_examples"
-    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\id05_pilatus_mask.npy'
-    detector = 'pilatus'
+    path = r"F:\Raw Data\20260422_ID05_HEPS_BCDI_test\raw\RenZhe"
+    pathsave = r"F:\Work place 4\sample\XRD\202600422_Battery_ID05_HEPS"
+    pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\id05_e4m_mask.npy'
+    detector = 'e4m'
 
     # Inputs:Detector parameters
     if Calibration_type == 'detector':
-        sample_name = r"S1_1"
-        scan_num = 1
+        sample_name = r"Sample1_1"
+        scan_num = 286
 
     elif Calibration_type == 'crystal infor':
         surface_dir = np.array([0, 0, 1], dtype=float)

@@ -25,25 +25,25 @@ import pyCXIM.RSM.RSM_post_processing as RSM_post_processing
 def Desy_P10_RC2RSM_6C():
     start_time = time.time()
     # %%Inputs: general information
-    year = "2024"
-    beamtimeID = "11018562"
-    p10_file = r"PVBM01"
-    scan_num = 15
+    year = "2022"
+    beamtimeID = "11014693"
+    p10_file = r"BFO_LAO_9_42"
+    scan_num = 112
     detector = 'e4m'
     geometry = 'out_of_plane'
 
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [150, 1800, 738, 1938]
+    roi = [1398-200, 1398+200, 1621-440, 1621+440]
 
     # Inputs: reciprocal space box size in pixels
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 
     # Inputs: paths
-    path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
-    pathsave = r"F:\Work place 4\pyCXIM_test_examples"
+    path = r"F:\Raw Data\20221103_P10_BFO_PTO\raw"
+    pathsave = r"F:\Work place 4\sample\XRD\20221103 BFO islands\interface_defects"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
-    pathcalib = r'F:\Work place 4\pyCXIM_test_examples\Example results\alignment\calibration_test_result_at_P10.txt'
+    pathcalib = r'F:\Work place 4\sample\XRD\20221103 BFO islands\interface_defects\calibration.txt'
 
     # %% Generate the RSM
     print("#################")

@@ -17,10 +17,10 @@ from pyCXIM.RSM.Calibration_6C import Calibration
 
 def calibration():
     # Inputs: general information
-    # Calibration_type = 'detector'
+    Calibration_type = 'detector'
     # Calibration_type = 'crystal infor'
     # Calibration_type = 'single Bragg 6C'
-    Calibration_type = 'multiple Bragg 6C'
+    # Calibration_type = 'multiple Bragg 6C'
     # Calibration_type = 'hkl_to_angles'
 
     # Inputs: paths

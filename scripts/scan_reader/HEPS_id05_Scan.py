@@ -28,37 +28,37 @@ def draw_roi(roi, roi_name=''):
 
 
 # %% Inputs
-scan_num_ar = [6]
-sample_names = ["S2_1"]
+scan_num_ar = [252]
+sample_names = ["Sample1_1"]
 beamline_mode = 'id05_6c'
 
 # path information
-path = r"F:\Work place 4\sample\XRD\Additional Task\20260325 ID05 RSM\raw\Zhanglinxing"
-path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
-path_pilatus_mask = r'E:\Work place 3\testprog\X-ray diffraction\Common functions\pilatus_mask.npy'
+path = r"F:\Raw Data\20260422_ID05_HEPS_BCDI_test\raw\RenZhe"
+path_e4m_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\id05_e4m_mask.npy'
+path_pilatus_mask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\id05_pilatus_mask.npy'
 pathsavefolder = r"F:\Work place 4\Temp"
 
 # The rois for the Eiger 4M detector
-e4m_roi1 = [1050, 1750, 450, 1250]
+e4m_roi1 = [400, 1200, 400, 1200]
 e4m_roi2 = [100, 2000, 500, 750]
 e4m_roi3 = [100, 2000, 100, 400]
 
-cal_e4m_roi = []
+cal_e4m_roi = [e4m_roi1]
 
 # The rois for the Eiger500 detector
 pilatus_roi1 = [120, 200, 100, 300]
 pilatus_roi2 = [100, 300, 100, 600]
-cal_pilatus_roi = [pilatus_roi1]
+cal_pilatus_roi = []
 
 # Plot selection
-counter_select = ['eta', 'pilatus_roi1']
+counter_select = ['eta', 'e4m_roi1']
 # scale = 'Linear'
 # scale = 'Normalized'
 scale = 'Log'
 
 # %% Sorting the scan types
 if len(scan_num_ar) != len(sample_names):
-    sample_names = sample_names[0] * len(scan_num_ar)
+    sample_names = [sample_names[0]] * len(scan_num_ar)
 else:
     sample_names = sample_names
 
@@ -96,6 +96,7 @@ for i, scan_num in enumerate(scan_num_ar):
 # %% Plot and save
 assert len(counter_select) > 0, 'Please select at least one of the counters to plot!'
 for counter in counter_select:
+    print(scan.name_converter_short_to_full(counter))
     assert (counter in scan.get_counter_names()) or (scan.name_converter_short_to_full(counter) in scan.get_counter_names()), 'The counter %s does not exist! Please check the name of the counter again!' % counter
 
 # Plot one motor line scans
@@ -111,7 +112,7 @@ if len(dscan_scan_num) > 0:
         motor_pos = scan.get_scan_data(motor)
 
         for i, counter_name in enumerate(counter_select):
-            assert (counter in scan.get_counter_names()) or (scan.name_converter_short_to_full(counter) in scan.get_counter_names()), 'Counter %s does not exist, please check it again!' % counter_name
+            assert (counter_name in scan.get_counter_names()) or (scan.name_converter_short_to_full(counter_name) in scan.get_counter_names()), 'Counter %s does not exist, please check it again!' % counter_name
             intensity = scan.get_scan_data(counter_name)
 
             plt.subplot(plt_y, plt_x, i + 1)
@@ -146,7 +147,7 @@ if len(dscan_scan_num) > 0:
             plt.figure(figsize=(8, 8))
             img_sum = scan.get_imgsum(det_type='pilatus')
             plt.imshow(np.log10(img_sum + 1.0), cmap='jet')
-            for counter_name in e4mcounters:
+            for counter_name in pilatuscounters:
                 if counter_name != 'pilatus_full':
                     draw_roi(scan.get_motor_pos(counter_name), counter_name)
             plt.title('scan%05d' % scan_num)
@@ -168,7 +169,7 @@ if len(d2scan_scan_num) > 0:
         motor2_pos = scan.get_scan_data(motor2)
 
         for i, counter_name in enumerate(counter_select):
-            assert (counter in scan.get_counter_names()) or (scan.name_converter_short_to_full(counter) in scan.get_counter_names()), 'Counter %s does not exist, please check it again!' % counter_name
+            assert (counter_name in scan.get_counter_names()) or (scan.name_converter_short_to_full(counter_name) in scan.get_counter_names()), 'Counter %s does not exist, please check it again!' % counter_name
             intensity = scan.get_scan_data(counter_name)
 
             plt.subplot(plt_y, plt_x, i + 1)
@@ -215,7 +216,7 @@ if len(d2scan_scan_num) > 0:
             plt.figure(figsize=(8, 8))
             img_sum = scan.get_imgsum(det_type='pilatus')
             plt.imshow(np.log10(img_sum + 1.0), cmap='jet')
-            for counter_name in e4mcounters:
+            for counter_name in pilatuscounters:
                 if counter_name != 'pilatus_full':
                     draw_roi(scan.get_motor_pos(counter_name), counter_name)
             plt.title('scan%05d' % scan_num)

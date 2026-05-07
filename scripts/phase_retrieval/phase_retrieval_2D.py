@@ -48,13 +48,13 @@ def phase_retrieval_2D(scan_num):
 
     # Input: parameters for creating the initial suppport.
     # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', or 'modulus_selected'
-    support_type = 'support_selected'
-    support_from_trial = 6
+    support_type = 'auto_correlation'
+    support_from_trial = 0
 
     # If support_type is 'auto_correlation'
-    auto_corr_thrpara = 0.04
+    auto_corr_thrpara = 0.08
     # If support_type is 'average', 'support_selected', or'modulus_selected'
-    initial_support_threshold = 0.8
+    initial_support_threshold = 0.75
     # If support_type is 'support_selected' or 'modulus_selected'
     support_selection_error = 'Difference map error'
     # If support_type is 'support_selected' or 'modulus_selected'
@@ -65,11 +65,11 @@ def phase_retrieval_2D(scan_num):
     path_import_initial_support = r'F:\Work place 4\sample\XRD\High strain test\20211004_Pt_islands_Stephane\B12SYNS1P1_00144\cutqz\support.npz'
 
     # Input: starting image inherented from trial
-    start_trial_num = 6
+    start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    # algorithm = "(DIF**50)**2*(HIO**50*ER**10*Sup)**20*(RAAR**80*ER**10*Sup)**40"
-    algorithm = "DIF**200*(RAAR**50*ER**10)**30*PSFon*(RAAR**50*ER**10*PSFupdate**25)**20"
+    algorithm = "(HIO**80*ER**10*Sup)**20*(RAAR**80*ER**10*Sup)**40"
+    # algorithm = "DIF**200*(RAAR**80*ER**10)**40"
     
     # Input: parameters for CRITcheck
     critical_error_selected = 'Fourier space error'
@@ -85,14 +85,14 @@ def phase_retrieval_2D(scan_num):
 
     # Input: parameters for the shrink wrap loop
     # threshold_update_method = 'random'
-    threshold_update_method = 'exp_increase'
-    # threshold_update_method = 'lin_increase'
+    # threshold_update_method = 'exp_increase'
+    threshold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
     thrpara_min = 0.08
-    thrpara_max = 0.115
+    thrpara_max = 0.13
     support_smooth_width_begin = 3.5
     support_smooth_width_end = 1.0
-    hybrid_para = 0.0
+    hybrid_para = 0.4
 
     # Input: parameters for the detwin operation
     detwin_axis = 0
@@ -101,7 +101,7 @@ def phase_retrieval_2D(scan_num):
     # flip_condition = 'Support'
     flip_condition = 'Phase'
     # flip_condition ='Modulus'
-    first_seed_flip = True
+    first_seed_flip = False
     phase_unwrap_method = 0
 
     # Input: Parameters for further analysis like SVD and average
@@ -229,4 +229,4 @@ def phase_retrieval_2D(scan_num):
     return
 
 if __name__ == '__main__':
-    phase_retrieval_2D(97)
+    phase_retrieval_2D(132)

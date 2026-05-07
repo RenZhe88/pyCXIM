@@ -18,7 +18,7 @@ from ..Common.Information_file_generator import InformationFileIO
 from ..scan_reader.BSRF.pilatus_reader import BSRFPilatusImporter
 from ..scan_reader.Desy.eiger_reader import DesyEigerImporter
 from ..scan_reader.ESRF.h5_reader import ESRFH5Importer
-from ..scan_reader.HEPS.pilatus_reader import HEPSPilatusImporter
+from ..scan_reader.HEPS.tif_reader import HEPSTifImporter
 from .RSM_6C import cal_q_pos
 
 
@@ -157,11 +157,11 @@ class Calibration(object):
             energy = scan.get_motor_pos('nrj')
         elif beamline == 'id05_4c':
             pathmask = self.infor.get_para_value('pathmask', section=self.section_ar[0])
-            scan = HEPSPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
+            scan = HEPSTifImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
             energy = scan.get_motor_pos('energy')
         elif beamline == 'id05_6c':
             pathmask = self.infor.get_para_value('pathmask', section=self.section_ar[0])
-            scan = HEPSPilatusImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
+            scan = HEPSTifImporter(beamline, path, sample_name, scan_num, detector, pathmask=pathmask, creat_save_folder=False)
             energy = scan.get_motor_pos('energy')
         self.infor.add_para('energy', self.section_ar[0], energy)
         return scan

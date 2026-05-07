@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['pyCXIM\\scan_reader\\HEPS\\tif_reader.py', 'pyCXIM\\scan_reader\\ESRF\\edf_reader.py', 'pyCXIM\\scan_reader\\general_detector.py', 'pyCXIM\\RSM\\RSM_6C.py', 'scripts\\scan_reader\\HEPS_id05_Scan.py', 'scripts\\scan_reader\\HEPS_id05_theta_2theta_analysis.py']
+recent_files = ['pyCXIM\\scan_reader\\HEPS\\spec_reader.py', 'pyCXIM\\scan_reader\\general_scan.py', 'pyCXIM\\scan_reader\\HEPS\\tif_reader.py', 'pyCXIM\\RSM\\RSM_6C.py']
 
 [main]
 version = 0.2.0

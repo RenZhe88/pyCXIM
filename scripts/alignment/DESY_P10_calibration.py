@@ -25,35 +25,35 @@ def calibration():
     # Calibration_type = 'Calculate peak index'
 
     # Inputs: paths
-    path = r"F:\Raw Data\20240601_P10_BFO_LiNiMnO2\raw"
-    pathsave = r"F:\Work place 4\pyCXIM_test_examples"
+    path = r"F:\Raw Data\20221103_P10_BFO_PTO\raw"
+    pathsave = r"F:\Work place 4\sample\XRD\20221103 BFO islands\symmetric"
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\p10_e4m_mask.npy'
     detector = 'e4m'
 
     # Inputs:Detector parameters
     if Calibration_type == 'detector':
         p10_file = r"det_cal"
-        scan_num = 1
+        scan_num = 2
 
     elif Calibration_type == 'crystal infor':
         surface_dir = np.array([0, 0, 1], dtype=float)
         inplane_dir = np.array([1, 0, 0], dtype=float)
-        lattice_constants = [3.905, 3.905, 3.905, 90.0, 90.0, 90.0]
+        lattice_constants = [3.7911, 3.7911, 3.7911, 90.0, 90.0, 90.0]
 
     # Inputs:Simple calibration with symmetric diffraction peak
     elif Calibration_type == 'single Bragg 6C':
-        p10_file = r"PVBM01"
-        scan_num = 5
-        peak = np.array([1, 0, 3], dtype=float)
+        p10_file = r"BFO_LAO_4_7"
+        scan_num = 32
+        peak = np.array([-1, 0, 3], dtype=float)
         # om, del, chi, phi, gamma, energy
         error_source = ['om', 'del', 'phi']
-        known_error_values = np.array([0, 0, 0.367747926440273, 0, 0, 0, 0], dtype=float)
+        known_error_values = np.array([0, 0, -0.000974313160043056, 0, 0, 0, 0], dtype=float)
 
     # Inputs:Determine the U matrix based on measured Bragg peaks and their mill indexes
     elif Calibration_type == 'multiple Bragg 6C':
-        p10_file = "PVBM01"
-        scan_num_ar = [6, 5]
-        peak_index_ar = np.array([[0, 0, 2], [1, 0, 3]], dtype=float)
+        p10_file = "BFO_LAO_4_7"
+        scan_num_ar = [33, 32]
+        peak_index_ar = np.array([[0, 0, 2], [-1, 0, 3]], dtype=float)
 
     # Inputs:Determine the peak indexes based on the previously calculated U_matrix
     elif Calibration_type == 'Calculate peak index':

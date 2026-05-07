@@ -35,13 +35,13 @@ from pyCXIM.Common.Information_file_generator import InformationFileIO
 from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 
-def phase_retrieval_3D(scan_num, hybrid_para):
+def phase_retrieval_3D(scan_num):
     # %%Input
     start_time = time.time()
-    pathsave = r'F:\publish\HEPS06 shrinkwrap methods\B3_syn_S4_%05d\pynxpre\reciprocal_space_map' % scan_num
+    pathsave = r'F:\Work place 4\sample\XRD\202600422_Battery_ID05_HEPS\Sample1_1_%05d\pynxpre\reciprocal_space_map' % scan_num
     intensity_file = 'scan%04d.npz' % scan_num
     mask_file = 'scan%04d_mask.npz' % scan_num
-    path_scan_infor = r"F:\publish\HEPS06 shrinkwrap methods\B3_syn_S4_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
+    path_scan_infor = r"F:\Work place 4\sample\XRD\202600422_Battery_ID05_HEPS\Sample1_1_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
     # data_description = 'reciprocal_space_map_CDI'
     data_description = 'reciprocal_space_map_BCDI'
     # data_description = 'stacked_detector_images_BCDI'
@@ -68,15 +68,15 @@ def phase_retrieval_3D(scan_num, hybrid_para):
     start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    algorithm = "(HIO**40*Sup)**20*(DIF**50)**2*(ND**10*RAAR**60*ER**10*Sup)**40"
-    # algorithm = "DIF**200*(HIO**60*ER**10)**10*PSFon*(ADMM**80*ER**10*PSFupdate**25)**12"
+    algorithm = "DIF**100*(HIO**80*ER**10*Sup)**20*(ND**15*RAAR**80*ER**10*Sup)**10*PSFon*(ND**15*RAAR**80*ER**10*Sup*PSFupdate**25)**20"
+    # algorithm = "DIF**200*PSFon*(ND**25*RAAR**80*ER**10*PSFupdate**25)**30"
 
     # Input: parameters for CRITcheck
     critical_error_selected = 'Fourier space error'
     critical_error = 0.0043
 
     # Input: parameters for partial coherent calculation
-    psf_sigma = 1.3
+    psf_sigma = 1.5
 
     # Input: parameters for the free Log likelihood
     Free_LLK = False
@@ -88,11 +88,11 @@ def phase_retrieval_3D(scan_num, hybrid_para):
     threshold_update_method = 'exp_increase'
     # threshold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
-    thrpara_min = 0.08
-    thrpara_max = 0.10
+    thrpara_min = 0.04
+    thrpara_max = 0.06
     support_smooth_width_begin = 3.5
-    support_smooth_width_end = 0.95
-    # hybrid_para = 0.2
+    support_smooth_width_end = 1.0
+    hybrid_para = 0.6
     # Input: parameters for the detwin operation
     detwin_axis = (0, 1, 2)
 
@@ -100,7 +100,7 @@ def phase_retrieval_3D(scan_num, hybrid_para):
     # flip_condition = 'Support'
     flip_condition = 'Phase'
     # flip_condition = 'Modulus'
-    first_seed_flip = False
+    first_seed_flip = True
     phase_unwrap_method = 0
 
     # Input: The number of images selected for further analysis like SVD and average
@@ -240,6 +240,5 @@ def phase_retrieval_3D(scan_num, hybrid_para):
 
 
 if __name__ == '__main__':
-    for i in np.arange(0.2, 1.1, 0.2):
-        phase_retrieval_3D(111, i)
+    phase_retrieval_3D(191)
     

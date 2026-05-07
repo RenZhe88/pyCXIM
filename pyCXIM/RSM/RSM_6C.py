@@ -9,8 +9,6 @@ Created on Tue Apr 25 14:51:06 2023
 """
 import numpy as np
 from scipy.ndimage import affine_transform
-from scipy.ndimage import spline_filter
-
 
 class RSM_6C(object):
     """

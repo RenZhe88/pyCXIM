@@ -78,25 +78,27 @@ class HEPSScanImporter(GeneralScanStructure):
         None.
 
         """
-        pattern0 = r'#S \d+  .+\n'
-        pattern1 = r'#S \d+  (.+)\n'
-        pattern2 = r'#O\d (.+)\n'
-        pattern3 = r'#o\d (.+)\n'
-        pattern4 = r'#P\d (.+)\n'
-        pattern5 = r'#L (.+)\n'
-        pattern6 = r'#L .+\n([^#]+\n)(?:#|\n)'
-        pattern7 = r'#G4 (.+)\n'
-        pattern8 = r'^#D (\w+ \w+ \d+ [\d|\:]+ \d+)'
+        pattern0 = r'^#S \d+  .*$'
+        pattern1 = r'^#S (\d+)  .*$'
+        pattern2 = r'^#S \d+  (.*)$'
+        pattern3 = r'^#O\d+ (.+)$'
+        pattern4 = r'^#o\d+ (.+)$'
+        pattern5 = r'^#P\d+ (.+)$'
+        pattern6 = r'^#L (.+)$'
+        pattern7 = r'^#L .*?\n(.*?)(?=\n#|\Z)'
+        pattern8 = r'^#G4 (.+)$'
+        pattern9 = r'^#D (\w+ \w+ \d+ [\d|\:]+ \d+)'
 
         with open(self.pathspec, 'r') as specfile:
             spectext = specfile.read()
 
-        header = re.split(pattern0, spectext)[0]
-        scan_command_list = re.findall(pattern1, spectext)
-        scan_text_list = re.split(pattern0, spectext)[1:]
+        header = re.split(pattern0, spectext, flags=re.M)[0]
+        scan_num_list = re.findall(pattern1, spectext, flags=re.M)
+        scan_command_list = re.findall(pattern2, spectext, flags=re.M)
+        scan_text_list = re.split(pattern0, spectext, flags=re.M)[1:]
 
-        full_motor_name_lines = re.findall(pattern2, header)
-        short_motor_name_lines = re.findall(pattern3, header)
+        full_motor_name_lines = re.findall(pattern3, header, flags=re.M)
+        short_motor_name_lines = re.findall(pattern4, header, flags=re.M)
         full_motor_name_list = []
         short_motor_name_list = []
         for i in range(len(short_motor_name_lines)):
@@ -107,35 +109,69 @@ class HEPSScanImporter(GeneralScanStructure):
         self.motor_name_short_to_full = dict(zip(short_motor_name_list, full_motor_name_list))
         self.add_scan_section('Name conversion')
 
-        self.command = scan_command_list[self.scan - 1]
-        scantext = scan_text_list[self.scan - 1]
+        scan_idx = scan_num_list.index(str(self.scan))
+        self.command = scan_command_list[scan_idx]
+        scantext = scan_text_list[scan_idx]
+        self.extract_roi_infor(scantext)
         self.add_scan_section('Scan Information')
 
-        motor_value_lines = re.findall(pattern4, scantext)
-        self.start_time = re.findall(pattern8, scantext)[0]
-        self.start_time = datetime.datetime.strptime(self.start_time, '%a %b %d %H:%M:%S %Y')
+        motor_value_lines = re.findall(pattern5, scantext, flags=re.M)
         motor_value_list = []
         for i in range(len(motor_value_lines)):
             motor_value_list += motor_value_lines[i].split()
         motor_value_list = list(map(float, motor_value_list))
         self.motor_position = dict(zip(short_motor_name_list, motor_value_list))
-        wavelength = float(re.findall(pattern7, scantext)[0].split()[3])
+
+        time_matches = re.findall(pattern9, scantext, flags=re.M)
+        if time_matches:
+            self.start_time = datetime.datetime.strptime(time_matches[0], '%a %b %d %H:%M:%S %Y')
+
+        wavelength = float(re.findall(pattern8, scantext, flags=re.M)[0].split()[3])
         hc = 1.23984 * 10000.0
         energy = hc / wavelength
         self.add_motor_pos('energy', energy, 'Energy')
         self.add_scan_section('Motor Positions')
 
-        old_counters = re.findall(pattern5, scantext)[0].split()
+        old_counters = re.findall(pattern6, scantext, flags=re.M)[0].split()
         counters = []
         for element in old_counters:
             if element.isdigit():
                 counters[-1] += element
             else:
                 counters += [element] 
-        scan_data = np.loadtxt(StringIO(re.findall(pattern6, scantext)[0]))
+        scan_data = np.loadtxt(StringIO(re.findall(pattern7, scantext, flags=re.M | re.S)[0]))
         self.scan_infor = pd.DataFrame(scan_data, columns=counters)
         self.npoints = scan_data.shape[0]
         self.add_scan_section('Scan Data')
+        return
+
+    def extract_roi_infor(self, scan_text):
+        """
+        Extracting the roi information used in the experiment
+
+        Parameters
+        ----------
+        scan_text : str
+            Information of the corresponding scan in text format.
+
+        Returns
+        -------
+        None.
+
+        """
+        roi_blocks = re.findall(r'<group name="(roi\d+)".*?</group>', scan_text, re.DOTALL)
+        
+        self.roi_dict = {}
+        
+        for roi_name in roi_blocks:
+            block = re.search(fr'<group name="{roi_name}".*?</group>', scan_text, re.DOTALL).group()
+        
+            min_x = re.search(r'<dataset name="min_x".*?>(\d+)</dataset>', block).group(1)
+            min_y = re.search(r'<dataset name="min_y".*?>(\d+)</dataset>', block).group(1)
+            size_x = re.search(r'<dataset name="size_x".*?>(\d+)</dataset>', block).group(1)
+            size_y = re.search(r'<dataset name="size_y".*?>(\d+)</dataset>', block).group(1)
+
+            self.roi_dict[roi_name] = [int(min_y), int(min_y) + int(size_y), int(min_x), int(min_x) + int(size_x)]
         return
 
     def write_name_converter(self, section_name='Name conversion'):
