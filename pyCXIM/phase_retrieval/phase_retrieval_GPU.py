@@ -156,8 +156,17 @@ class PhaseRetrievalFuns():
         self.img = (self.img * self.support).cpu().numpy()
         self.support = self.support.cpu().numpy()
         self.MaskFFT = self.MaskFFT.cpu().numpy()
+        self.ModulusFFT = self.ModulusFFT.cpu().numpy()
         if hasattr(self, 'psf'):
             self.psf = self.psf.cpu().numpy()
+        if self.LLKmask is not None:
+            self.LLKmask = self.LLKmask.cpu().numpy()
+
+        for attr in ['Modulus_sum', 'holderimg_HIO', 'holderimg_NHIO',
+                     'holderimg_RAAR', 'std_noise', 'x', 'scaled_dual_variable']:
+            if hasattr(self, attr):
+                delattr(self, attr)
+
         torch.cuda.empty_cache()
         return
 

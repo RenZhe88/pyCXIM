@@ -35,7 +35,7 @@ numpy==2.3.5
     #   matplotlib
     #   pandas
     #   scikit-image
-	#   scikit-learn
+    #   scikit-learn
     #   scipy
     #   tifffile
 packaging==25.0
@@ -66,7 +66,7 @@ scipy==1.16.3
     # via
     #   pycxim (pyproject.toml)
     #   scikit-image
-	#   scikit-learn
+    #   scikit-learn
 six==1.17.0
     # via python-dateutil
 threadpoolctl==3.6.0

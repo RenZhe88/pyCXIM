@@ -28,9 +28,9 @@ def BCDI_preparation():
 
     # Inputs: general information
     year = "2026"
-    beamtimeID = "PLT-26-00571-ID05-01"
+    beamtimeID = "PLT-26-00571-ID05-02"
     sample_name = 'Sample1_1'
-    scan_num = 191
+    scan_num = 265
     detector = 'e4m'
     geometry = 'out_of_plane'
     # geometry = 'in_plane'
@@ -39,31 +39,30 @@ def BCDI_preparation():
     # qz_direction = 'diffraction vector direction'
 
     # Inputs: Detector parameters
-    detector_distance = 1218.9774651539371
+    detector_distance = 1327.2471046955623
     # Direct beam position on the detector Y, X
-    cch = [1347, 811]
-    # Energy of the X-ray beam
-    energy = 9900
+    cch = [1433, 869]
+
     # The half width of the detector roi in the order of [Y, X]
     wxy = [300, 300]
     # Roi on the detector [Ymin, Ymax, Xmin, Xmax]
-    roi = [400, 1200, 400, 1200]
+    roi = [1250, 1600, 600, 1000]
     # Method to find the centeral position for the cut, please select from 'maximum intensity', 'maximum integration',  'weight center'
     cut_central_pos = 'weight center'
     # Half size for the direct cut in pixels
-    DC_bs = [80, 128, 128]
+    DC_bs = [128, 128, 128]
 
     # Half width of reciprocal space box size in pixels
-    RSM_bs = [64, 64, 64]
+    RSM_bs = [128, 128, 128]
     use_prefilter = False
     save_full_3D_RSM = False
     generating_3D_vtk_file = False
 
     # Inputs: Paths
     # the folder that stores the raw data of the beamtime
-    path = r"F:\Raw Data\20260422_ID05_HEPS_BCDI_test\raw\RenZhe"
+    path = r"F:\Raw Data\20260625_ID05_HEPS_BCDI_PTO_particles\RenZhe"
     # the aimed saving folder
-    pathsavefolder = r"F:\Work place 4\Temp"
+    pathsavefolder = r"F:\Work place 4\sample\XRD\20260625_PTO_ID05_HEPS"
     # the path for the mask file for the detector
     pathmask = r'F:\Work place 3\testprog\pyCXIM_master\detector_mask\id05_e4m_mask.npy'
 
@@ -75,6 +74,7 @@ def BCDI_preparation():
     scan = HEPSTifImporter('id05_6c', path, sample_name, scan_num, detector, pathsavefolder, pathmask)
     print(scan)
     pixelsize = scan.get_detector_pixelsize()
+    energy = scan.get_motor_pos('energy')
 
     # Generate the paths for saving the data
     pathsave = scan.get_pathsave()

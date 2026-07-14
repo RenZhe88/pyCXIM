@@ -14,9 +14,9 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 
 def plot_phase_retrieval_results():
     # %%Inputs
-    pathsave = r'F:\Work place 4\Temp\B12SYNS1P1_00043\pynxpre\reciprocal_space_map'
+    pathsave = r'F:\publish\HEPS02 pyCXIM\B12SYNS1P1_00144\pynxpre\stacked_detector_images'
     trial_num = 1
-    path_scan_infor = r"F:\Work place 4\Temp\B12SYNS1P1_00043\scan_0043_information.txt"
+    path_scan_infor = r"F:\publish\HEPS02 pyCXIM\B12SYNS1P1_00144\scan_0144_information.txt"
     display_range = [500, 500, 500]
 
     # %%Load the information file

@@ -21,9 +21,9 @@ def start_alignment():
     # scan_num = [93, 94, 95]
     # align.align_om_rotation(scan_num)
 
-    ####Measurement of the beamsize####
-    scan_num = [100]
-    align.measure_beamsize(scan_num)
+    # ####Measurement of the beamsize####
+    # scan_num = [100]
+    # align.measure_beamsize(scan_num)
 
 class alignment():
     def __init__(self, path, id05_newfile, pathsave):
