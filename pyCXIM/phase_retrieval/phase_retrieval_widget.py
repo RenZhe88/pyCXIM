@@ -589,7 +589,7 @@ class PhaseRetrievalWidget():
         imgfile.create_dataset("Average_All/intensity_sum", data=intensity_sum, dtype=dtype_list[0], chunks=chunks_size, compression="gzip")
         imgfile.create_dataset("Average_All/phase_retrieval_transfer_function", data=PRTF, dtype=dtype_list[0])
         if 'PSFon' in algorithm:
-            imgfile.create_dataset("Average_All/psf_sum", data=intensity_sum, dtype=dtype_list[0], compression="gzip")
+            imgfile.create_dataset("Average_All/psf_sum", data=psf_sum, dtype=dtype_list[0], compression="gzip")
         imgfile.close()
         self.save_para_list()
         return
@@ -654,11 +654,19 @@ class PhaseRetrievalWidget():
                 Avr_Phase = Avr_Phase + Phase
                 Avr_Img = Avr_Img + np.multiply(Modulus, np.exp(1j * Phase))
                 Avr_intensity = Avr_intensity + np.square(np.abs(np.fft.fftshift(np.fft.fftn(Img * support))))
+                if 'psf_sigma' in  self.para_dict.keys():
+                    if i == 0:
+                        psf_sum = np.abs(np.array(imgfile['Solutions/Seed%03d/psf' % Seed]))
+                    else:
+                        psf = np.abs(np.array(imgfile['Solutions/Seed%03d/psf' % Seed]))
+                        psf_sum = psf_sum + psf
 
             Avr_Modulus = Avr_Modulus / n_best_for_further_analysis
             Avr_Phase = Avr_Phase / n_best_for_further_analysis
             Avr_Img = Avr_Img / n_best_for_further_analysis
             Avr_intensity = Avr_intensity / n_best_for_further_analysis
+            if 'psf_sigma' in  self.para_dict.keys():
+                psf_sum = psf_sum / n_best_for_further_analysis
             PRTF = pp.cal_PRTF(intensity, Avr_Img, MaskFFT)
 
             self.para_dict['n_best_for_further_analysis'] = n_best_for_further_analysis
@@ -670,6 +678,9 @@ class PhaseRetrievalWidget():
             imgfile.create_dataset("Selected_average/Support_sum", data=support, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/intensity_sum", data=Avr_intensity, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/phase_retrieval_transfer_function", data=PRTF, dtype='float')
+            if 'psf_sigma' in  self.para_dict.keys():
+                imgfile.create_dataset("Selected_average/psf_sum", data=psf_sum, dtype='float', compression="gzip")
+
 
             if n_best_for_further_analysis >= 3:
                 Mode1 = np.zeros(data_shape, dtype=complex)
@@ -716,7 +727,7 @@ class PhaseRetrievalWidget():
             Avr_Img = np.zeros(data_shape, dtype=np.complex128)
             Avr_intensity = np.zeros(data_shape, dtype=float)
 
-            for Seed in Seed_selected:
+            for i, Seed in enumerate(Seed_selected):
                 Img = np.array(imgfile['Solutions/Seed%03d/image' % Seed], dtype=complex)
                 support = np.array(imgfile['Solutions/Seed%03d/support' % Seed], dtype=float)
                 Modulus = np.abs(Img)
@@ -726,12 +737,20 @@ class PhaseRetrievalWidget():
                 Avr_support = Avr_support + support
                 Avr_Img = Avr_Img + np.multiply(Modulus, np.exp(1j * Phase))
                 Avr_intensity = Avr_intensity + np.square(np.abs(np.fft.fftshift(np.fft.fftn(Img * support))))
+                if 'psf_sigma' in  self.para_dict.keys():
+                    if i == 0:
+                        psf_sum = np.abs(np.array(imgfile['Solutions/Seed%03d/psf' % Seed]))
+                    else:
+                        psf = np.abs(np.array(imgfile['Solutions/Seed%03d/psf' % Seed]))
+                        psf_sum = psf_sum + psf
 
             Avr_Modulus = Avr_Modulus / n_best_for_further_analysis
             Avr_Phase = Avr_Phase / n_best_for_further_analysis
             Avr_support = Avr_support / n_best_for_further_analysis
             Avr_Img = Avr_Img / n_best_for_further_analysis
             Avr_intensity = Avr_intensity / n_best_for_further_analysis
+            if 'psf_sigma' in  self.para_dict.keys():
+                psf_sum = psf_sum / n_best_for_further_analysis
             PRTF = pp.cal_PRTF(intensity, Avr_Img, MaskFFT)
             
             self.para_dict['n_best_for_further_analysis'] = n_best_for_further_analysis
@@ -743,6 +762,8 @@ class PhaseRetrievalWidget():
             imgfile.create_dataset("Selected_average/Support_sum", data=Avr_support, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/intensity_sum", data=Avr_intensity, dtype='float', chunks=chunks_size, compression="gzip")
             imgfile.create_dataset("Selected_average/phase_retrieval_transfer_function", data=PRTF, dtype='float')
+            if 'psf_sigma' in  self.para_dict.keys():
+                imgfile.create_dataset("Selected_average/psf_sum", data=psf_sum, dtype='float', compression="gzip")
         imgfile.close()
         self.save_para_list()
         return
@@ -1333,25 +1354,31 @@ class PhaseRetrievalWidget():
                 color_bar_range = np.linspace(np.amin(plt_array), np.amax(plt_array), 150)
                 im = axs[i, 0].contourf(unitx, unity, plt_array[int(zd / 2), :, :], color_bar_range, cmap='jet')
                 plt.colorbar(im, ax=axs[i, 0], shrink=0.6)
-                axs[i, 0].set_title('%s z cut' % array_names[i], fontsize=24)
-                axs[i, 0].set_xlabel('x (%s)' % unit, fontsize=24)
-                axs[i, 0].set_ylabel('y (%s)' % unit, fontsize=24)
+                axs[i, 0].set_title('%s z cut' % array_names[i], fontsize=28)
+                axs[i, 0].set_xlabel('x (%s)' % unit, fontsize=28)
+                axs[i, 0].set_ylabel('y (%s)' % unit, fontsize=28)
+                axs[i, 0].tick_params(axis='x', labelsize=22)
+                axs[i, 0].tick_params(axis='y', labelsize=22)
                 axs[i, 0].axis('scaled')
                 axs[i, 0].set_xlim(-display_range[2], display_range[2])
                 axs[i, 0].set_ylim(-display_range[1], display_range[1])
                 im = axs[i, 1].contourf(unitx, unitz, plt_array[:, int(yd / 2), :], color_bar_range, cmap='jet')
                 plt.colorbar(im, ax=axs[i, 1], shrink=0.6)
-                axs[i, 1].set_title('%s y cut' % array_names[i], fontsize=24)
-                axs[i, 1].set_xlabel('x (%s)' % unit, fontsize=24)
-                axs[i, 1].set_ylabel('z (%s)' % unit, fontsize=24)
+                axs[i, 1].set_title('%s y cut' % array_names[i], fontsize=28)
+                axs[i, 1].set_xlabel('x (%s)' % unit, fontsize=28)
+                axs[i, 1].set_ylabel('z (%s)' % unit, fontsize=28)
+                axs[i, 1].tick_params(axis='x', labelsize=22)
+                axs[i, 1].tick_params(axis='y', labelsize=22)
                 axs[i, 1].axis('scaled')
                 axs[i, 1].set_xlim(-display_range[2], display_range[2])
                 axs[i, 1].set_ylim(-display_range[0], display_range[0])
                 im = axs[i, 2].contourf(unity, unitz, plt_array[:, :, int(xd / 2)], color_bar_range, cmap='jet')
                 plt.colorbar(im, ax=axs[i, 2], shrink=0.6)
-                axs[i, 2].set_title('%s x cut' % array_names[i], fontsize=24)
-                axs[i, 2].set_xlabel('y (%s)' % unit, fontsize=24)
-                axs[i, 2].set_ylabel('z (%s)' % unit, fontsize=24)
+                axs[i, 2].set_title('%s x cut' % array_names[i], fontsize=28)
+                axs[i, 2].set_xlabel('y (%s)' % unit, fontsize=28)
+                axs[i, 2].set_ylabel('z (%s)' % unit, fontsize=28)
+                axs[i, 2].tick_params(axis='x', labelsize=22)
+                axs[i, 2].tick_params(axis='y', labelsize=22)
                 axs[i, 2].axis('scaled')
                 axs[i, 2].set_xlim(-display_range[1], display_range[1])
                 axs[i, 2].set_ylim(-display_range[0], display_range[0])

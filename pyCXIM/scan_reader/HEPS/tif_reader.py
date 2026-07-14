@@ -66,7 +66,7 @@ class HEPSTifImporter(HEPSScanImporter, DetectorMixin):
             self.detector_size = (2162, 2068)
             self.pixel_size = 75e-3
             self.path_image_folder = os.path.join(self.path, 'images', self.sample_name, 'S%03d' % self.scan)
-            self.path_img = os.path.join(self.path_image_folder, "A_%03d.tif")
+            self.path_img = os.path.join(self.path_image_folder, "Sample1_%03d_%05d.tif")
             self.path_imgsum = os.path.join(self.pathsave, '%s_scan%05d_%s_imgsum.npy' % (self.sample_name, self.scan, self.detector))
         else:
             raise KeyError('The detector type is not known, please select from pilatus and e4m! renzhe@ihep.ac.cn')
@@ -105,7 +105,7 @@ class HEPSTifImporter(HEPSScanImporter, DetectorMixin):
         if self.detector == 'pilatus':
             pathimg = (self.path_img) % (self.sample_name, self.scan, img_index)
         elif self.detector == 'e4m':
-            pathimg = (self.path_img) % (img_index)
+            pathimg = (self.path_img) % (self.scan, img_index)
         
         if os.path.exists(pathimg):
             with open(pathimg, 'rb') as f:
@@ -115,7 +115,7 @@ class HEPSTifImporter(HEPSScanImporter, DetectorMixin):
                     f.seek(8)
                 image = np.fromfile(f, dtype=np.int32, count=self.detector_size[0]*self.detector_size[1]).astype(np.float32)
         else:
-            image = np.zeros(self.detector_size[0]*self.detector_size[1], dtype=np.float32)
+            image = np.zeros(self.detector_size[0] * self.detector_size[1], dtype=np.float32)
 
         if self.detector == 'pilatus':
             image = image.reshape(self.detector_size[1], self.detector_size[0])

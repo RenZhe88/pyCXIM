@@ -38,13 +38,13 @@ from pyCXIM.phase_retrieval.phase_retrieval_widget import PhaseRetrievalWidget
 def phase_retrieval_3D(scan_num):
     # %%Input
     start_time = time.time()
-    pathsave = r'F:\Work place 4\sample\XRD\202600422_Battery_ID05_HEPS\Sample1_1_%05d\pynxpre\reciprocal_space_map' % scan_num
+    pathsave = r'F:\publish\HEPS02 pyCXIM\B12SYNS1P1_%05d\pynxpre\stacked_detector_images' % scan_num
     intensity_file = 'scan%04d.npz' % scan_num
     mask_file = 'scan%04d_mask.npz' % scan_num
-    path_scan_infor = r"F:\Work place 4\sample\XRD\202600422_Battery_ID05_HEPS\Sample1_1_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
+    path_scan_infor = r"F:\publish\HEPS02 pyCXIM\B12SYNS1P1_%05d\scan_%04d_information.txt" % (scan_num, scan_num)
     # data_description = 'reciprocal_space_map_CDI'
-    data_description = 'reciprocal_space_map_BCDI'
-    # data_description = 'stacked_detector_images_BCDI'
+    # data_description = 'reciprocal_space_map_BCDI'
+    data_description = 'stacked_detector_images_BCDI'
 
     # Input: parameters for creating the initial suppport.
     # Please chose from 'auto_correlation', 'import', 'average', 'support_selected', 'modulus_selected', or 'clustering_selection'
@@ -54,7 +54,7 @@ def phase_retrieval_3D(scan_num):
     # If support_type is 'auto_correlation'
     auto_corr_thrpara = 0.004
     # If support_type is 'average', 'support_selected', or'modulus_selected'
-    initial_support_threshold = 0.8
+    initial_support_threshold = 0.6
     # If support_type is 'support_selected' or 'modulus_selected'
     support_selection_error = 'Fourier space error'
     # If support_type is 'support_selected' or 'modulus_selected'
@@ -68,8 +68,8 @@ def phase_retrieval_3D(scan_num):
     start_trial_num = 0
     SeedNum = 100
     precision = '32'
-    algorithm = "DIF**100*(HIO**80*ER**10*Sup)**20*(ND**15*RAAR**80*ER**10*Sup)**10*PSFon*(ND**15*RAAR**80*ER**10*Sup*PSFupdate**25)**20"
-    # algorithm = "DIF**200*PSFon*(ND**25*RAAR**80*ER**10*PSFupdate**25)**30"
+    algorithm = "DIF**100*(HIO**80*ER**10*Sup)**20*(RAAR**80*ER**10*Sup)**20*PSFon*(RAAR**80*ER**10*Sup*PSFupdate**25)**10"
+    # algorithm = "DIF**200*PSFon*(RAAR**80*ER**10*PSFupdate**25)**30"
 
     # Input: parameters for CRITcheck
     critical_error_selected = 'Fourier space error'
@@ -85,11 +85,11 @@ def phase_retrieval_3D(scan_num):
 
     # Input: parameters for the shrink wrap loop
     # threshold_update_method = 'random'
-    threshold_update_method = 'exp_increase'
-    # threshold_update_method = 'lin_increase'
+    # threshold_update_method = 'exp_increase'
+    threshold_update_method = 'lin_increase'
     support_para_update_precent = 0.8
-    thrpara_min = 0.04
-    thrpara_max = 0.06
+    thrpara_min = 0.07
+    thrpara_max = 0.09
     support_smooth_width_begin = 3.5
     support_smooth_width_end = 1.0
     hybrid_para = 0.6
@@ -240,5 +240,4 @@ def phase_retrieval_3D(scan_num):
 
 
 if __name__ == '__main__':
-    phase_retrieval_3D(191)
-    
+    phase_retrieval_3D(144)
